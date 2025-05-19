@@ -259,6 +259,10 @@
   display: block;
 }
 
+.hsi-map-deviation-fail-magenta .hsi-map-deviation-fail-msg {
+  color: var(--g3000-color-magenta);
+}
+
 .hsi-map-nav-source {
   position: absolute;
   right: 278px;

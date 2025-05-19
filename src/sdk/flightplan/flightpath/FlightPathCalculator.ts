@@ -1,8 +1,9 @@
 import { EventBus } from '../../data/EventBus';
 import { SimVarValueType } from '../../data/SimVars';
+import { LatLonInterface } from '../../geo/GeoInterfaces';
 import { GeoPoint } from '../../geo/GeoPoint';
 import { NavMath } from '../../geo/NavMath';
-import { UnitType } from '../../math/NumberUnit';
+import { NumberUnitInterface, UnitFamily, UnitType } from '../../math/NumberUnit';
 import { Facility, LegType } from '../../navigation/Facilities';
 import { FacilityClient } from '../../navigation/FacilityClient';
 import { IcaoValue } from '../../navigation/Icao';
@@ -10,16 +11,18 @@ import { ICAO } from '../../navigation/IcaoUtils';
 import { LerpLookupTable } from '../../utils/datastructures/LerpLookupTable';
 import { LegCalculations, LegDefinition } from '../FlightPlanning';
 import { FlightPlanUtils } from '../FlightPlanUtils';
+import { FlightPathAnticipatedData, FlightPathAnticipatedDataCalculator, FlightPathAnticipatedDataContext } from './FlightPathAnticipatedDataCalculator';
 import { FlightPathCalculatorControlEvents } from './FlightPathCalculatorControlEvents';
+import { FlightPathCalculatorDataProvider } from './FlightPathCalculatorDataProvider';
+import { FlightPathCalculatorFacilityCache } from './FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions, FlightPathLegCalculator } from './FlightPathLegCalculator';
 import { FlightPathLegToLegCalculator } from './FlightPathLegToLegCalculator';
 import { FlightPathState } from './FlightPathState';
 import { FlightPathUtils } from './FlightPathUtils';
 import {
-  ArcToFixLegCalculator, CourseToAltitudeLegCalculator, CourseToFixLegCalculator, DirectToFixLegCalculator,
-  DiscontinuityLegCalculator, DmeInterceptLegCalculator, FixToAltitudeLegCalculator, FixToDmeLegCalculator,
-  FixToManualLegCalculator, HeadingToAltitudeLegCalculator, HeadingToManualLegCalculator, HoldLegCalculator,
-  LegInterceptLegCalculator, NoPathLegCalculator, ProcedureTurnLegCalculator, RadialInterceptLegCalculator,
+  ArcToFixLegCalculator, CourseToAltitudeLegCalculator, CourseToFixLegCalculator, DirectToFixLegCalculator, DiscontinuityLegCalculator,
+  DmeInterceptLegCalculator, FixToAltitudeLegCalculator, FixToDmeLegCalculator, FixToManualLegCalculator, HeadingToAltitudeLegCalculator,
+  HeadingToManualLegCalculator, HoldLegCalculator, LegInterceptLegCalculator, NoPathLegCalculator, ProcedureTurnLegCalculator, RadialInterceptLegCalculator,
   RadiusToFixLegCalculator, TrackFromFixLegCalculator, TrackToFixLegCalculator
 } from './legcalculators';
 
@@ -55,7 +58,7 @@ export enum FlightPathAirplaneWindMode {
   /** No wind data are used. */
   None = 'None',
 
-  /** Wind data from the sim are used. */
+  /** Wind data from the calculator's data provider are used. */
   Automatic = 'Automatic',
 
   /** Custom-defined wind data are used. **Not yet supported.** */
@@ -145,6 +148,18 @@ export type FlightPathCalculatorInitOptions = FlightPathCalculatorOptions & {
    * calculated discontinuity vectors will have the `Discontinuity` flag applied to them. Defaults to `false`.
    */
   calculateDiscontinuityVectors?: boolean;
+
+  /**
+   * A provider of data for the calculator. If not defined, then a default data provider will be created and used that
+   * sources data from SimVars.
+   */
+  dataProvider?: FlightPathCalculatorDataProvider;
+
+  /**
+   * A calculator that provides anticipated per-flight plan leg data to be used by the flight path calculator. If
+   * not defined, then anticipated data will not be used.
+   */
+  anticipatedDataCalculator?: FlightPathAnticipatedDataCalculator;
 };
 
 /**
@@ -211,16 +226,21 @@ export class FlightPathCalculator {
 
   private readonly id: string;
 
-  private readonly facilityCache = new Map<string, Facility>();
+  private readonly facilityMap = new Map<string, Facility>();
+  private readonly facilityCache: FlightPathCalculatorFacilityCache = {
+    getFacility: icao => this.facilityMap.get(ICAO.getUid(icao))
+  };
   private readonly legCalculatorMap = this.createLegCalculatorMap();
   private readonly turnCalculator = new FlightPathLegToLegCalculator();
+
+  private readonly dataProvider: FlightPathCalculatorDataProvider;
 
   private bankAngleTable!: LerpLookupTable;
   private holdBankAngleTable?: LerpLookupTable;
   private courseReversalBankAngleTable?: LerpLookupTable;
   private turnAnticipationBankAngleTable?: LerpLookupTable;
 
-  private readonly state = new FlightPathStateClass();
+  private readonly state: FlightPathStateClass;
 
   private readonly staticOptions: FlightPathCalculatorStaticOptions;
   private readonly options: FlightPathCalculatorOptions;
@@ -243,7 +263,9 @@ export class FlightPathCalculator {
     options: Readonly<FlightPathCalculatorInitOptions>,
     private readonly bus: EventBus
   ) {
-    this.id = options?.id ?? '';
+    this.id = options.id ?? '';
+
+    this.dataProvider = options.dataProvider ?? new DefaultFlightPathCalculatorDataProvider();
 
     this.options = {
       defaultClimbRate: 0,
@@ -257,6 +279,15 @@ export class FlightPathCalculator {
       airplaneWindMode: FlightPathAirplaneWindMode.None
     };
     this.setOptions(options);
+
+    this.state = new FlightPathStateClass(
+      this.dataProvider,
+      this.options,
+      this.bankAngleTable,
+      this.holdBankAngleTable,
+      this.courseReversalBankAngleTable,
+      this.turnAnticipationBankAngleTable,
+      options.anticipatedDataCalculator);
 
     this.staticOptions = {
       calculateDiscontinuityVectors: options.calculateDiscontinuityVectors ?? false
@@ -338,6 +369,11 @@ export class FlightPathCalculator {
           default:
             (this.options as any)[key] = option;
         }
+        this.state?.setPlaneStateOptions(
+          this.bankAngleTable,
+          this.holdBankAngleTable,
+          this.courseReversalBankAngleTable,
+          this.turnAnticipationBankAngleTable);
       }
     }
   }
@@ -470,16 +506,12 @@ export class FlightPathCalculator {
       initialIndex = Math.max(0, initialIndex);
       count = Math.max(0, Math.min(legs.length - initialIndex, count));
 
-      this.state.updatePlaneState(
-        this.options,
-        this.bankAngleTable,
-        this.holdBankAngleTable,
-        this.courseReversalBankAngleTable,
-        this.turnAnticipationBankAngleTable
-      );
+      this.state.updatePlaneState();
+
+      this.state.updateAnticipatedData(legs, initialIndex, initialIndex + count);
 
       // Because some facilities can be mutated, we always want to get the most up-to-date version from the facility loader
-      this.facilityCache.clear();
+      this.facilityMap.clear();
       await this.loadFacilities(legs, initialIndex, count);
 
       this.initState(legs, initialIndex);
@@ -531,8 +563,7 @@ export class FlightPathCalculator {
           continue;
         }
 
-        // TODO we should refactor facilityCache to use `ICAO.getUid()` as the key
-        this.facilityCache.set(loadedFac.icao, loadedFac);
+        this.facilityMap.set(ICAO.getUid(loadedFac.icaoStruct), loadedFac);
       }
     }
   }
@@ -650,6 +681,18 @@ export class FlightPathCalculator {
 }
 
 /**
+ * 
+ */
+type FlightPathStateClassCalculatorOptions = Pick<
+  FlightPathCalculatorOptions,
+  'defaultClimbRate'
+  | 'defaultSpeed'
+  | 'maxBankAngle'
+  | 'airplaneSpeedMode'
+  | 'airplaneWindMode'
+>;
+
+/**
  * An implementation of {@link FlightPathState}
  */
 class FlightPathStateClass implements FlightPathState {
@@ -665,7 +708,7 @@ class FlightPathStateClass implements FlightPathState {
   /** @inheritDoc */
   public isFallback = false;
 
-  private _planePosition = new GeoPoint(0, 0);
+  private readonly _planePosition = new GeoPoint(0, 0);
   /** @inheritDoc */
   public readonly planePosition = this._planePosition.readonly;
 
@@ -675,19 +718,19 @@ class FlightPathStateClass implements FlightPathState {
     return this._planeHeading;
   }
 
-  private _planeAltitude = UnitType.FOOT.createNumber(0);
+  private readonly _planeAltitude = UnitType.FOOT.createNumber(0);
   /** @inheritDoc */
   public readonly planeAltitude = this._planeAltitude.readonly;
 
-  private _planeSpeed = UnitType.KNOT.createNumber(0);
+  private readonly _planeSpeed = UnitType.KNOT.createNumber(0);
   /** @inheritDoc */
   public readonly planeSpeed = this._planeSpeed.readonly;
 
-  private _planeClimbRate = UnitType.FPM.createNumber(0);
+  private readonly _planeClimbRate = UnitType.FPM.createNumber(0);
   /** @inheritDoc */
   public readonly planeClimbRate = this._planeClimbRate.readonly;
 
-  private _planeTrueAirspeed = UnitType.KNOT.createNumber(0);
+  private readonly _planeTrueAirspeed = UnitType.KNOT.createNumber(0);
   /** @inheritDoc */
   public readonly planeTrueAirspeed = this._planeTrueAirspeed.readonly;
 
@@ -697,28 +740,33 @@ class FlightPathStateClass implements FlightPathState {
     return this._planeWindDirection;
   }
 
-  private _planeWindSpeed = UnitType.KNOT.createNumber(0);
+  private readonly _planeWindSpeed = UnitType.KNOT.createNumber(0);
   /** @inheritDoc */
   public readonly planeWindSpeed = this._planeWindSpeed.readonly;
 
-  private _desiredTurnRadius = UnitType.METER.createNumber(0);
+  private readonly _desiredTurnRadius = UnitType.METER.createNumber(0);
   /** @inheritDoc */
   public readonly desiredTurnRadius = this._desiredTurnRadius.readonly;
 
-  private _desiredHoldTurnRadius = UnitType.METER.createNumber(0);
+  private readonly _desiredHoldTurnRadius = UnitType.METER.createNumber(0);
   /** @inheritDoc */
   public readonly desiredHoldTurnRadius = this._desiredHoldTurnRadius.readonly;
 
-  private _desiredCourseReversalTurnRadius = UnitType.METER.createNumber(0);
+  private readonly _desiredCourseReversalTurnRadius = UnitType.METER.createNumber(0);
   /** @inheritDoc */
   public readonly desiredCourseReversalTurnRadius = this._desiredCourseReversalTurnRadius.readonly;
 
-  private _desiredTurnAnticipationTurnRadius = UnitType.METER.createNumber(0);
+  private readonly _desiredTurnAnticipationTurnRadius = UnitType.METER.createNumber(0);
   /** @inheritDoc */
   public readonly desiredTurnAnticipationTurnRadius = this._desiredTurnAnticipationTurnRadius.readonly;
 
+  // For the new radius determination based on anticipated speed:
+  private anticipatedData: FlightPathAnticipatedData[] = [];
+  private anticipatedSpeedsContext: FlightPathAnticipatedDataContext = { planeSpeed: 0, planeWindSpeed: 0, planeWindDirection: 0 };
+
   /**
-   * Updates this state with the latest information on the airplane.
+   * Creates an instance of a plane state class.
+   * @param dataProvider A provider of flight path calculator data.
    * @param options Flight path calculator options.
    * @param bankAngleTable A lookup table for general turn bank angle, in degrees, versus airplane speed.
    * @param holdBankAngleTable A lookup table for hold turn bank angle, in degrees, versus airplane speed, in knots.
@@ -727,72 +775,303 @@ class FlightPathStateClass implements FlightPathState {
    * airplane speed, in knots. If not defined, the general turn bank angle table will be used instead.
    * @param turnAnticipationBankAngleTable A lookup table for turn anticipation bank angle, in degrees, versus airplane
    * speed, in knots. If not defined, the general turn bank angle table will be used instead.
+   * @param anticipatedDataCalculator Optional calculator for anticipated speeds.
    */
-  public updatePlaneState(
-    options: Readonly<FlightPathCalculatorOptions>,
+  public constructor(
+    private readonly dataProvider: FlightPathCalculatorDataProvider,
+    private options: Readonly<FlightPathStateClassCalculatorOptions>,
+    private bankAngleTable: LerpLookupTable,
+    private holdBankAngleTable: LerpLookupTable | undefined,
+    private courseReversalBankAngleTable: LerpLookupTable | undefined,
+    private turnAnticipationBankAngleTable: LerpLookupTable | undefined,
+    private anticipatedDataCalculator: FlightPathAnticipatedDataCalculator | undefined,
+  ) { }
+
+  /**
+   * Updates the options:
+   * @param bankAngleTable A lookup table for general turn bank angle, in degrees, versus airplane speed.
+   * @param holdBankAngleTable A lookup table for hold turn bank angle, in degrees, versus airplane speed, in knots.
+   * If not defined, the general turn bank angle table will be used instead.
+   * @param courseReversalBankAngleTable A lookup table for course reversal turn bank angle, in degrees, versus
+   * airplane speed, in knots. If not defined, the general turn bank angle table will be used instead.
+   * @param turnAnticipationBankAngleTable A lookup table for turn anticipation bank angle, in degrees, versus airplane
+   * speed, in knots. If not defined, the general turn bank angle table will be used instead.
+   */
+  public setPlaneStateOptions(
     bankAngleTable: LerpLookupTable,
     holdBankAngleTable: LerpLookupTable | undefined,
     courseReversalBankAngleTable: LerpLookupTable | undefined,
     turnAnticipationBankAngleTable: LerpLookupTable | undefined
   ): void {
-    this._planePosition.set(
-      SimVar.GetSimVarValue('PLANE LATITUDE', SimVarValueType.Degree),
-      SimVar.GetSimVarValue('PLANE LONGITUDE', SimVarValueType.Degree)
-    );
-    this._planeAltitude.set(SimVar.GetSimVarValue('INDICATED ALTITUDE', 'feet'));
-    this._planeHeading = SimVar.GetSimVarValue('PLANE HEADING DEGREES TRUE', 'degree');
+    this.bankAngleTable = bankAngleTable;
+    this.holdBankAngleTable = holdBankAngleTable;
+    this.courseReversalBankAngleTable = courseReversalBankAngleTable;
+    this.turnAnticipationBankAngleTable = turnAnticipationBankAngleTable;
+  }
 
-    const tas = SimVar.GetSimVarValue('AIRSPEED TRUE', SimVarValueType.Knots);
-    this._planeTrueAirspeed.set(Math.max(tas, options.defaultSpeed));
+  /**
+   * Updates this state with the latest information on the airplane.
+   */
+  public updatePlaneState(): void {
+    this._planePosition.set(this.dataProvider.getPlanePosition());
+    this._planeHeading = this.dataProvider.getPlaneTrueHeading();
 
-    switch (options.airplaneWindMode) {
-      case FlightPathAirplaneWindMode.Automatic:
-        this._planeWindDirection = SimVar.GetSimVarValue('AMBIENT WIND DIRECTION', SimVarValueType.Degree);
-        this._planeWindSpeed.set(SimVar.GetSimVarValue('AMBIENT WIND VELOCITY', SimVarValueType.Knots));
+    const altitude = this.dataProvider.getPlaneAltitude();
+    if (isFinite(altitude)) {
+      this._planeAltitude.set(altitude);
+    } else {
+      this._planeAltitude.set(0);
+    }
+
+    const tas = this.dataProvider.getPlaneTrueAirspeed();
+    if (isFinite(tas)) {
+      this._planeTrueAirspeed.set(Math.max(tas, this.options.defaultSpeed));
+    } else {
+      this._planeTrueAirspeed.set(this.options.defaultSpeed);
+    }
+
+    switch (this.options.airplaneWindMode) {
+      case FlightPathAirplaneWindMode.Automatic: {
+        const direction = this.dataProvider.getPlaneWindDirection();
+        const speed = this.dataProvider.getPlaneWindSpeed();
+
+        if (isFinite(direction) && isFinite(speed)) {
+          this._planeWindDirection = direction;
+          this._planeWindSpeed.set(speed);
+        } else {
+          this._planeWindDirection = 0;
+          this._planeWindSpeed.set(0);
+        }
+
         break;
+      }
       default:
         this._planeWindDirection = 0;
         this._planeWindSpeed.set(0);
     }
 
-    switch (options.airplaneSpeedMode) {
-      case FlightPathAirplaneSpeedMode.GroundSpeed:
-        this._planeSpeed.set(Math.max(SimVar.GetSimVarValue('GROUND VELOCITY', SimVarValueType.Knots), options.defaultSpeed));
+    switch (this.options.airplaneSpeedMode) {
+      case FlightPathAirplaneSpeedMode.GroundSpeed: {
+        const gs = this.dataProvider.getPlaneGroundSpeed();
+        if (isFinite(gs)) {
+          this._planeSpeed.set(Math.max(gs, this.options.defaultSpeed));
+        } else {
+          this._planeSpeed.set(this.options.defaultSpeed);
+        }
         break;
+      }
       case FlightPathAirplaneSpeedMode.TrueAirspeed:
       case FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind: {
-        const windSpeed = options.airplaneSpeedMode === FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind
-          ? this._planeWindSpeed.number
-          : 0;
+        if (isFinite(tas)) {
+          const windSpeed = this.options.airplaneSpeedMode === FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind
+            ? this._planeWindSpeed.number
+            : 0;
 
-        this._planeSpeed.set(Math.max(tas + windSpeed, options.defaultSpeed));
+          this._planeSpeed.set(Math.max(tas + windSpeed, this.options.defaultSpeed));
+        } else {
+          this._planeSpeed.set(this.options.defaultSpeed);
+        }
         break;
       }
       default:
-        this._planeSpeed.set(options.defaultSpeed);
+        this._planeSpeed.set(this.options.defaultSpeed);
     }
 
-    this._planeClimbRate.set(Math.max(SimVar.GetSimVarValue('VERTICAL SPEED', 'feet per minute'), options.defaultClimbRate));
+    const vs = this.dataProvider.getPlaneVerticalSpeed();
+    if (isFinite(vs)) {
+      this._planeClimbRate.set(Math.max(vs, this.options.defaultClimbRate));
+    } else {
+      this._planeClimbRate.set(this.options.defaultClimbRate);
+    }
 
     const planeSpeedKnots = this._planeSpeed.asUnit(UnitType.KNOT);
-    this._desiredTurnRadius.set(NavMath.turnRadius(planeSpeedKnots, Math.min(bankAngleTable.get(planeSpeedKnots), options.maxBankAngle)));
+    this._desiredTurnRadius.set(this.calculateRadius(planeSpeedKnots, this.bankAngleTable));
+    this._desiredHoldTurnRadius.set(this.calculateRadius(planeSpeedKnots, this.holdBankAngleTable));
+    this._desiredCourseReversalTurnRadius.set(this.calculateRadius(planeSpeedKnots, this.courseReversalBankAngleTable));
+    this._desiredTurnAnticipationTurnRadius.set(this.calculateRadius(planeSpeedKnots, this.turnAnticipationBankAngleTable));
+  }
 
-    if (holdBankAngleTable) {
-      this._desiredHoldTurnRadius.set(NavMath.turnRadius(planeSpeedKnots, Math.min(holdBankAngleTable.get(planeSpeedKnots), options.maxBankAngle)));
-    } else {
-      this._desiredHoldTurnRadius.set(this._desiredTurnRadius);
-    }
+  /**
+   * Iterates over all the waypoints to determine an anticipated turn radius for each waypoint, which belongs to the
+   * approach and which will likely be below 10000ft (assuming a 3° descent towards the MAP leg).
+   *
+   * @param legs flightplan legs
+   * @param startIndex first index to calculate
+   * @param endIndex end index to calculate
+   */
+  public updateAnticipatedData(legs: LegDefinition[], startIndex: number, endIndex: number): void {
+    if (this.anticipatedDataCalculator) {
+      this.anticipatedSpeedsContext.planeSpeed = this._planeSpeed.number;
+      this.anticipatedSpeedsContext.planeWindSpeed = this._planeWindSpeed.number;
+      this.anticipatedSpeedsContext.planeWindDirection = this._planeWindDirection;
 
-    if (courseReversalBankAngleTable) {
-      this._desiredCourseReversalTurnRadius.set(NavMath.turnRadius(planeSpeedKnots, Math.min(courseReversalBankAngleTable.get(planeSpeedKnots), options.maxBankAngle)));
-    } else {
-      this._desiredCourseReversalTurnRadius.set(this._desiredTurnRadius);
-    }
+      // Prepare and clear data in output array.
+      this.anticipatedData.length = legs.length;
+      for (let i = 0; i < this.anticipatedData.length; i++) {
+        const data = this.anticipatedData[i];
+        if (data) {
+          data.tas = undefined;
+          data.windDirection = undefined;
+          data.windSpeed = undefined;
+        } else {
+          this.anticipatedData[i] = {
+            tas: undefined,
+            windDirection: undefined,
+            windSpeed: undefined,
+          };
+        }
+      }
 
-    if (turnAnticipationBankAngleTable) {
-      this._desiredTurnAnticipationTurnRadius.set(NavMath.turnRadius(planeSpeedKnots, Math.min(turnAnticipationBankAngleTable.get(planeSpeedKnots), options.maxBankAngle)));
-    } else {
-      this._desiredTurnAnticipationTurnRadius.set(this._desiredTurnRadius);
+      this.anticipatedDataCalculator.getAnticipatedData(legs, startIndex, endIndex, this.anticipatedSpeedsContext, this.anticipatedData);
     }
+  }
+
+  /** @inheritDoc */
+  public getPlaneTrueAirspeed(legIndex: number): number {
+    const anticipatedData = this.anticipatedData[legIndex];
+    if (anticipatedData && anticipatedData.tas !== undefined) {
+      return Math.max(anticipatedData.tas, this.options.defaultSpeed);
+    }
+    return this._planeTrueAirspeed.number;
+  }
+
+  /** @inheritDoc */
+  public getWindSpeed(legIndex: number): number {
+    const anticipatedData = this.anticipatedData[legIndex];
+    if (anticipatedData && anticipatedData.windSpeed !== undefined) {
+      return anticipatedData.windSpeed;
+    }
+    return this._planeWindSpeed.number;
+  }
+
+  /** @inheritDoc */
+  public getWindDirection(legIndex: number): number {
+    const anticipatedData = this.anticipatedData[legIndex];
+    if (anticipatedData && anticipatedData.windDirection !== undefined) {
+      return anticipatedData.windDirection;
+    }
+    return this._planeWindDirection;
+  }
+
+  /** @inheritDoc */
+  public getDesiredTurnRadius(legIndex: number): number {
+    return this.getTurnRadiusToUse(this._desiredTurnRadius, this.bankAngleTable, legIndex);
+  }
+
+  /** @inheritDoc */
+  public getDesiredHoldTurnRadius(legIndex: number): number {
+    return this.getTurnRadiusToUse(this._desiredHoldTurnRadius, this.holdBankAngleTable, legIndex);
+  }
+
+  /** @inheritDoc */
+  public getDesiredCourseReversalTurnRadius(legIndex: number): number {
+    return this.getTurnRadiusToUse(this._desiredCourseReversalTurnRadius, this.courseReversalBankAngleTable, legIndex);
+  }
+
+  /** @inheritDoc */
+  public getDesiredTurnAnticipationTurnRadius(legIndex: number): number {
+    return this.getTurnRadiusToUse(this._desiredTurnAnticipationTurnRadius, this.turnAnticipationBankAngleTable, legIndex);
+  }
+
+  /**
+   * Calculates the radius from a given leg index using default radius, anticipated data and a bank angle table.
+   * @param defaultTurnRadius fallback radius
+   * @param bankAngleTable bank angle table.
+   * @param legIndex leg index
+   * @returns radius in Meter.
+   */
+  private getTurnRadiusToUse(
+    defaultTurnRadius: NumberUnitInterface<UnitFamily.Distance>,
+    bankAngleTable: LerpLookupTable | undefined,
+    legIndex: number
+  ): number {
+    if (this.options.airplaneSpeedMode !== FlightPathAirplaneSpeedMode.Default && this.options.airplaneSpeedMode !== FlightPathAirplaneSpeedMode.Custom) {
+      const anticipatedData = this.anticipatedData[legIndex];
+      if (anticipatedData && anticipatedData.tas !== undefined) {
+        let speed = anticipatedData.tas;
+        if (this.options.airplaneSpeedMode !== FlightPathAirplaneSpeedMode.TrueAirspeed && anticipatedData.windSpeed !== undefined) {
+          // Need to do wind correction.
+          speed += anticipatedData.windSpeed;
+        }
+        return this.calculateRadius(Math.max(speed, this.options.defaultSpeed), bankAngleTable);
+      }
+    }
+    return defaultTurnRadius.number;
+  }
+
+  /**
+   * Calculates the radius from a given true airspeed in knots and a bank angle table.
+   * @param tas true air speed in knots.
+   * @param bankAngleTable bank angle table.
+   * @returns radius in Meter.
+   */
+  private calculateRadius(tas: number, bankAngleTable: LerpLookupTable | undefined): number {
+    bankAngleTable ??= this.bankAngleTable;
+    return NavMath.turnRadius(tas, Math.min(bankAngleTable.get(tas), this.options.maxBankAngle));
+  }
+}
+
+/**
+ * A {@link FlightPathCalculatorDataProvider} that sources its data from SimVars.
+ */
+class DefaultFlightPathCalculatorDataProvider implements FlightPathCalculatorDataProvider {
+  private readonly latitudeSimVarId = SimVar.GetRegisteredId('PLANE LATITUDE', SimVarValueType.Degree, '');
+  private readonly longitudeSimVarId = SimVar.GetRegisteredId('PLANE LONGITUDE', SimVarValueType.Degree, '');
+
+  private readonly tasSimVarId = SimVar.GetRegisteredId('AIRSPEED TRUE', SimVarValueType.Knots, '');
+
+  private readonly gsSimVarId = SimVar.GetRegisteredId('GROUND VELOCITY', SimVarValueType.Knots, '');
+
+  private readonly windDirectionSimVarId = SimVar.GetRegisteredId('AMBIENT WIND DIRECTION', SimVarValueType.Degree, '');
+  private readonly windSpeedSimVarId = SimVar.GetRegisteredId('AMBIENT WIND VELOCITY', SimVarValueType.Knots, '');
+
+  private readonly altitudeSimVarId = SimVar.GetRegisteredId('INDICATED ALTITUDE', SimVarValueType.Feet, '');
+
+  private readonly vsSimVarId = SimVar.GetRegisteredId('VERTICAL SPEED', SimVarValueType.FPM, '');
+
+  private readonly trueHeadingSimVarId = SimVar.GetRegisteredId('PLANE HEADING DEGREES TRUE', SimVarValueType.Degree, '');
+
+  private readonly planePosition: LatLonInterface = { lat: NaN, lon: NaN };
+
+  /** @inheritDoc */
+  public getPlanePosition(): Readonly<LatLonInterface> {
+    this.planePosition.lat = SimVar.GetSimVarValueFastReg(this.latitudeSimVarId);
+    this.planePosition.lon = SimVar.GetSimVarValueFastReg(this.longitudeSimVarId);
+    return this.planePosition;
+  }
+
+  /** @inheritDoc */
+  public getPlaneTrueAirspeed(): number {
+    return SimVar.GetSimVarValueFastReg(this.tasSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneGroundSpeed(): number {
+    return SimVar.GetSimVarValueFastReg(this.gsSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneWindDirection(): number {
+    return SimVar.GetSimVarValueFastReg(this.windDirectionSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneWindSpeed(): number {
+    return SimVar.GetSimVarValueFastReg(this.windSpeedSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneAltitude(): number {
+    return SimVar.GetSimVarValueFastReg(this.altitudeSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneVerticalSpeed(): number {
+    return SimVar.GetSimVarValueFastReg(this.vsSimVarId);
+  }
+
+  /** @inheritDoc */
+  public getPlaneTrueHeading(): number {
+    return SimVar.GetSimVarValueFastReg(this.trueHeadingSimVarId);
   }
 }

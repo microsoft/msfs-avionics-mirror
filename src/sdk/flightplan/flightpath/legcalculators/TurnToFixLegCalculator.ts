@@ -5,9 +5,10 @@ import { GeoPoint } from '../../../geo/GeoPoint';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility, FlightPlanLeg, LegTurnDirection } from '../../../navigation/Facilities';
+import { FlightPlanLeg, LegTurnDirection } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -31,7 +32,7 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
    * Creates a new instance of TurnToFixLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -46,7 +47,7 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcaoStruct);
     const turnCenter = this.getTurnCenter(leg.leg);
 
     if (!terminatorPos || !turnCenter) {
@@ -91,7 +92,7 @@ export abstract class TurnToFixLegCalculator extends AbstractFlightPathLegCalcul
               vectors, vectorIndex,
               state.currentPosition, startPath,
               endVec, endPath,
-              state.desiredTurnRadius.asUnit(UnitType.METER),
+              state.getDesiredTurnRadius(calculateIndex),
               undefined,
               flags, true
             );
@@ -163,14 +164,14 @@ export class ArcToFixLegCalculator extends TurnToFixLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.afGeoPointCache[0], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.afGeoPointCache[0], leg.leg.fixIcaoStruct);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     leg.calculated!.courseMagVar = this.getLegMagVar(leg.leg, terminatorPos) ?? 0;
   }
 
   /** @inheritDoc */
   protected getTurnCenter(leg: FlightPlanLeg): LatLonInterface | undefined {
-    return this.facilityCache.get(leg.originIcao);
+    return this.facilityCache.getFacility(leg.originIcaoStruct);
   }
 
   /** @inheritDoc */
@@ -197,11 +198,11 @@ export class RadiusToFixLegCalculator extends TurnToFixLegCalculator {
 
   /** @inheritDoc */
   protected getTurnCenter(leg: FlightPlanLeg): LatLonInterface | undefined {
-    return this.facilityCache.get(leg.arcCenterFixIcao);
+    return this.facilityCache.getFacility(leg.arcCenterFixIcaoStruct);
   }
 
   /** @inheritDoc */
   protected getTurnRadius(leg: FlightPlanLeg, center: LatLonInterface): number | undefined {
-    return this.getPositionFromIcao(leg.fixIcao, this.rfGeoPointCache[0])?.distance(center);
+    return this.getPositionFromIcao(leg.fixIcaoStruct, this.rfGeoPointCache[0])?.distance(center);
   }
 }

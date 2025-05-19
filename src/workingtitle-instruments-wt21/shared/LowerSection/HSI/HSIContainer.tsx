@@ -1,5 +1,5 @@
 import {
-  APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, ConsumerSubject, DisplayComponent, EventBus, FlightPlanner,
+  APEvents, AvionicsSystemState, AvionicsSystemStateEvent, ComponentProps, ComputedSubject, ConsumerSubject, DisplayComponent, EventBus, FacilityLoader, FlightPlanner,
   FSComponent, MapAltitudeArcLayer, MapAltitudeArcLayerModules, MapAltitudeArcModule, MapSystemBuilder, MapSystemKeys, Subject, Subscription, UnitType,
   UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
@@ -43,6 +43,9 @@ import './HSIContainer.css';
 interface HSIContainerProps extends ComponentProps {
   /** The event bus. */
   bus: EventBus;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** The instrument configuration object */
   instrumentConfig: InstrumentConfig;
@@ -91,6 +94,7 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
   });
 
   private readonly mapSystem = MapSystemBuilder.create(this.props.bus)
+    .withContext(MapSystemKeys.FacilityLoader, () => this.props.facLoader)
     .withModule(WT21MapKeys.MapStyles, () => new WT21MapStylesModule(MapSystemCommon.mapStyles))
     .withBing(`wt21-map-${this.props.instrumentConfig.instrumentType}-${this.props.instrumentConfig.instrumentIndex}`, { bingDelay: this.props.instrumentConfig.instrumentType === WT21InstrumentType.Pfd ? 1000 : 0 })
     .withNearestWaypoints(MapSystemConfig.configureMapWaypoints(), false)
@@ -98,10 +102,10 @@ export class HSIContainer extends DisplayComponent<HSIContainerProps> {
     .withFlightPlan(MapSystemConfig.configureFlightPlan(this.props.bus, this.props.waypointAlerter, this.mapUserSettings), this.props.flightPlanner, 0, false)
     .withLayer(WT21MapKeys.Tod,
       (context): VNode => <MapTodLayer bus={context.bus} model={context.model} mapProjection={context.projection}
-        planner={this.props.flightPlanner} waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+        facLoader={context[MapSystemKeys.FacilityLoader]} planner={this.props.flightPlanner} waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
         textManager={context.textManager} activePerformancePlan={this.props.performancePlan} fixInfo={this.props.fixInfo} />)
 
-    .withModule(WT21MapKeys.CtrWpt, () => new MapFacilitySelectModule(this.props.bus))
+    .withModule(WT21MapKeys.CtrWpt, (context) => new MapFacilitySelectModule(this.props.bus, context[MapSystemKeys.FacilityLoader]))
     .withLayer(WT21MapKeys.CtrWpt,
       (context) => {
         return <MapSelectWaypointLayer bus={context.bus} model={context.model} mapProjection={context.projection}

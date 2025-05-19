@@ -86,6 +86,7 @@ export interface UserSettingManager<T extends UserSettingRecord> {
    * @param name The name of a setting.
    * @returns a consumer which notifies handlers when the value of the setting changes.
    * @throws Error if no setting with the specified name exists.
+   * @deprecated Please use `getSetting(name).sub()` instead.
    */
   whenSettingChanged<K extends keyof T & string>(name: K): Consumer<NonNullable<T[K]>>;
 
@@ -112,8 +113,11 @@ export type UserSettingManagerEntry<T extends UserSettingValue> = {
   /** A user setting. */
   setting: SyncableUserSetting<T>;
 
-  /** The event topic used to sync the setting. */
+  /** The event topic used to sync the setting locally. */
   syncTopic: `usersetting_sync_${string}`;
+
+  /** The event topic used to sync the setting across instruments. */
+  crossSyncTopic?: `usersetting_sync_cross_${string}`;
 
   /** The timestamp of the most recent sync event. */
   syncTime: number;
@@ -160,11 +164,17 @@ export type UserSettingManagerSyncData<T extends UserSettingValue> = {
  * Events used to sync user setting values across instruments.
  */
 export interface UserSettingManagerSyncEvents {
-  /** A user setting value initialized event. */
+  /** A local user setting value initialized event. */
   [setting_init: `usersetting_init_${string}`]: UserSettingManagerInitData<UserSettingValue>;
 
-  /** A user setting value sync event. */
+  /** A cross-instrument user setting value initialized event. */
+  [setting_init_cross: `usersetting_init_cross_${string}`]: UserSettingManagerInitData<UserSettingValue>;
+
+  /** A local user setting value sync event. */
   [setting_sync: `usersetting_sync_${string}`]: UserSettingManagerSyncData<UserSettingValue>;
+
+  /** A cross-instrument user setting value sync event. */
+  [setting_sync_cross: `usersetting_sync_cross_${string}`]: UserSettingManagerSyncData<UserSettingValue>;
 }
 
 /**
@@ -180,15 +190,17 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
   protected readonly syncPublisher = this.bus.getPublisher<UserSettingManagerSyncEvents>();
   protected readonly syncSubscriber = this.bus.getSubscriber<UserSettingManagerSyncEvents>();
 
-  private keepLocal: boolean;
+  private readonly keepLocal: boolean;
 
   /**
-   * Constructor.
+   * Creates a new instance of DefaultUserSettingManager.
    * @param bus The bus used by this manager to publish setting change events.
    * @param settingDefs The setting definitions used to initialize this manager's settings.
-   * @param keepLocal If present and true, values will be kept local to the instrument on which they're set.
+   * @param keepLocal Whether the manager should only sync the values of its settings within its local instrument. If
+   * true, then the manager will not sync setting values to or from the same settings on other instruments. If false,
+   * then the manager will sync setting values to and from the same settings on other instruments. Defaults to `false`.
    */
-  constructor(
+  public constructor(
     protected readonly bus: EventBus,
     settingDefs: readonly UserSettingDefinition<T[keyof T]>[],
     keepLocal = false
@@ -196,32 +208,40 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
     this.keepLocal = keepLocal;
     this.settings = new Map(settingDefs.map(def => {
       const initTopic = `usersetting_init_${def.name}` as const;
+      const crossInitTopic = this.keepLocal ? undefined : `usersetting_init_cross_${def.name}` as const;
       const syncTopic = `usersetting_sync_${def.name}` as const;
+      const crossSyncTopic = this.keepLocal ? undefined : `usersetting_sync_cross_${def.name}` as const;
 
       const entry: UserSettingManagerEntry<any> = {
         syncTopic,
+        crossSyncTopic,
         syncTime: 0,
         initUid: Math.round(Math.random() * Number.MAX_SAFE_INTEGER)
       } as any;
 
       entry.setting = new SyncableUserSetting(def, this.onSettingValueChanged.bind(this, entry));
 
-      entry.initSub = this.syncSubscriber.on(initTopic).handle(data => {
+      // If keepLocal is false, then only respond to cross-instrument syncs. Otherwise, only respond to local syncs.
+      entry.initSub = this.syncSubscriber.on(crossInitTopic ?? initTopic).handle(data => {
         // Do not respond to our own initialization sync.
         if (data.uid === entry.initUid) {
           return;
         }
 
-        // If we receive an initialization sync event for a setting, that means a manager on another instrument tried
-        // to initialize the same setting to its default value. However, since the setting already exists here, we will
-        // send a response to override the initialized value with the existing value.
-        this.syncPublisher.pub(entry.syncTopic, { value: entry.setting.value, syncTime: entry.syncTime, initUid: data.uid }, !this.keepLocal, true);
+        // If we receive an initialization sync event for a setting, that means another manager tried to initialize the
+        // same setting to its default value. However, since the setting already exists here, we will send a response
+        // to override the initialized value with the existing value.
+        this.syncPublisher.pub(entry.syncTopic, { value: entry.setting.value, syncTime: entry.syncTime, initUid: data.uid }, false, true);
+        if (entry.crossSyncTopic) {
+          this.syncPublisher.pub(entry.crossSyncTopic, { value: entry.setting.value, syncTime: entry.syncTime, initUid: data.uid }, true, true);
+        }
       }, true);
 
+      // If keepLocal is false, then only respond to cross-instrument syncs. Otherwise, only respond to local syncs.
       // Because sync events are cached, the initial subscriptions to the sync topic below will grab the synced value
       // of the new setting if it exists on the local instrument (e.g. if the value was synced from another instrument
       // after the local instrument was created but before this manager and local setting were created).
-      this.syncSubscriber.on(syncTopic).handle(this.onSettingValueSynced.bind(this, entry) as Handler<UserSettingManagerSyncData<UserSettingValue>>);
+      this.syncSubscriber.on(crossSyncTopic ?? syncTopic).handle(this.onSettingValueSynced.bind(this, entry) as Handler<UserSettingManagerSyncData<UserSettingValue>>);
       if (entry.syncTime === 0) {
 
         // If the new setting has no synced value on the local instrument, we will try to grab an initialization value
@@ -229,7 +249,7 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
         // to this initialization value, we want to be ready to accept the response when it arrives, which we can't do
         // if the local sync time is non-zero).
 
-        const sub = this.syncSubscriber.on(initTopic).handle(data => {
+        const sub = this.syncSubscriber.on(crossInitTopic ?? initTopic).handle(data => {
           this.onSettingValueSynced(entry, { value: data.value as T[keyof T], syncTime: 0 });
         });
         sub.destroy();
@@ -241,7 +261,12 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
         // exists on other instruments, their managers will send an initialization response to override our initialized
         // value.
 
-        this.syncPublisher.pub(initTopic, { value: entry.setting.value, syncTime: Date.now(), uid: entry.initUid }, !this.keepLocal, true);
+        const syncTime = Date.now();
+        this.syncPublisher.pub(initTopic, { value: entry.setting.value, syncTime, uid: entry.initUid }, false, true);
+        if (crossInitTopic) {
+          this.syncPublisher.pub(crossInitTopic, { value: entry.setting.value, syncTime, uid: entry.initUid }, true, true);
+        }
+
         this.publisher.pub(entry.setting.definition.name, entry.setting.value, false, true);
       }
 
@@ -293,7 +318,10 @@ export class DefaultUserSettingManager<T extends UserSettingRecord> implements U
    */
   protected onSettingValueChanged<K extends keyof T>(entry: UserSettingManagerEntry<T[K]>, value: T[K]): void {
     entry.syncTime = Date.now();
-    this.syncPublisher.pub(entry.syncTopic, { value, syncTime: entry.syncTime }, !this.keepLocal, true);
+    this.syncPublisher.pub(entry.syncTopic, { value, syncTime: entry.syncTime }, false, true);
+    if (entry.crossSyncTopic) {
+      this.syncPublisher.pub(entry.crossSyncTopic, { value, syncTime: entry.syncTime }, true, true);
+    }
   }
 
   /**
@@ -382,19 +410,16 @@ class SyncableUserSetting<T extends UserSettingValue> extends AbstractSubscribab
   private _value: T;
 
   // eslint-disable-next-line jsdoc/require-returns
-  /** This setting's current value. */
+  /**
+   * This setting's current value.
+   * @deprecated Please use `get()` and `set()` instead.
+   */
   public get value(): T {
     return this._value;
   }
   // eslint-disable-next-line jsdoc/require-jsdoc
   public set value(v: T) {
-    if (this._value === v) {
-      return;
-    }
-
-    this._value = v;
-    this.valueChangedCallback(v);
-    this.notify();
+    this.set(v);
   }
 
   /**
@@ -434,7 +459,13 @@ class SyncableUserSetting<T extends UserSettingValue> extends AbstractSubscribab
    * @param value The new value.
    */
   public set(value: T): void {
-    this.value = value;
+    if (this._value === value) {
+      return;
+    }
+
+    this._value = value;
+    this.valueChangedCallback(value);
+    this.notify();
   }
 
   /** @inheritdoc */

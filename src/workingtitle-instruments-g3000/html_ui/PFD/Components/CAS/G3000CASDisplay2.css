@@ -1,7 +1,7 @@
 .full-cas-display-2 {
   background-color: var(--g3000-color-black);
   border: 1px solid var(--g3000-color-border-gray);
-  font-size: 15px;
+  font-size: 13px;
   display: flex;
   flex-flow: column nowrap;
   align-items: stretch;

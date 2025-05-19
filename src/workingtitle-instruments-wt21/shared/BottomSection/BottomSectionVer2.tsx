@@ -1,5 +1,5 @@
 import {
-  ComponentProps, ComputedSubject, DisplayComponent, EventBus, FacilityLoader, FacilityRepository, FacilityType, FlightPlanner, FlightPlannerEvents,
+  ComponentProps, ComputedSubject, DisplayComponent, EventBus, FacilityLoader, FacilityType, FlightPlanner, FlightPlannerEvents,
   FSComponent, PressurizationEvents, Subject, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -9,6 +9,9 @@ import {
 interface BottomSectionVer2Props extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** An instance of the flight planner. */
   planner: FlightPlanner;
@@ -34,12 +37,11 @@ export class BottomSectionVer2 extends DisplayComponent<BottomSectionVer2Props> 
     press.on('cabin_altitude_rate').withPrecision(0).handle((v) => this.cabAltitudeRate.set(this.formatCabinAltitude(v)));
     press.on('pressure_diff').withPrecision(1).handle((v) => this.pressureDiff.set(v));
 
-    const facilityLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
     const planEvents = this.props.bus.getSubscriber<FlightPlannerEvents>();
     planEvents.on('fplCopied').handle(async () => {
       const plan = this.props.planner.getActiveFlightPlan();
       if (plan.destinationAirport !== undefined) {
-        const airport = await facilityLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
+        const airport = await this.props.facLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
         const elevation = airport.runways[0].elevation;
         this.destElevSubject.set(elevation !== undefined ? Math.round(UnitType.METER.convertTo(elevation, UnitType.FOOT)) : '-----');
         this.destElevRef.instance?.classList.toggle('invalid', elevation === undefined);

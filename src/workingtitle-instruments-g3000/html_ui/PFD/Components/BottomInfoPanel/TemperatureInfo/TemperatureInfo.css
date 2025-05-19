@@ -12,7 +12,7 @@
   align-items: baseline;
 }
 
-.temperature-info-oat {
+.temperature-info-row-top {
   position: absolute;
   left: 0px;
   top: 0px;
@@ -20,7 +20,7 @@
   height: 50%;
 }
 
-.temperature-info-isa {
+.temperature-info-row-bottom {
   position: absolute;
   left: 0px;
   top: 50%;

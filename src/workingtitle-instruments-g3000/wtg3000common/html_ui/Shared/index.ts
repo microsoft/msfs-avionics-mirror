@@ -5,6 +5,7 @@ export * from './Autothrottle';
 export * from './AvionicsConfig';
 export * from './AvionicsStatus';
 export * from './CAS';
+export * from './Charts';
 export * from './Checklist';
 export * from './Components';
 export * from './Config';

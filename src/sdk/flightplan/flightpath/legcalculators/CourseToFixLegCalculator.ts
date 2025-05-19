@@ -5,9 +5,10 @@ import { MagVar } from '../../../geo/MagVar';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility, LegTurnDirection, LegType } from '../../../navigation/Facilities';
+import { LegTurnDirection, LegType } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -44,7 +45,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of CourseToFixLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, true);
   }
 
@@ -54,7 +55,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcaoStruct);
     leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : this.getLegMagVar(leg.leg, terminatorPos);
   }
 
@@ -69,7 +70,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[1], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[1], leg.leg.fixIcaoStruct);
 
     if (!terminatorPos) {
       vectors.length = 0;
@@ -79,7 +80,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
 
     let vectorIndex = 0;
 
-    const minTurnRadius = state.desiredTurnRadius.asUnit(UnitType.METER);
+    const minTurnRadius = state.getDesiredTurnRadius(calculateIndex);
 
     if (state.isFallback && !state.isDiscontinuity && state.currentPosition.isValid() && state.currentCourse !== undefined) {
       // We are in a fallback state -> create a direct path to the end point.
@@ -120,7 +121,7 @@ export class CourseToFixLegCalculator extends AbstractFlightPathLegCalculator {
             vectors, vectorIndex,
             state.currentPosition, startPath,
             startVec, endPath,
-            state.desiredTurnRadius.asUnit(UnitType.METER),
+            minTurnRadius,
             undefined,
             FlightPathVectorFlags.Discontinuity, true
           );

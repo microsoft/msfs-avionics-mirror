@@ -29,6 +29,9 @@ export interface G3000AltimeterProps extends ComponentProps {
   /** The current minimums alert state. */
   minimumsAlertState: Subscribable<MinimumsAlertState>;
 
+  /** Whether the barometric transition alert is active. */
+  isBaroTransitionAlertActive: Subscribable<boolean>;
+
   /** A manager for PFD user settings. */
   pfdSettingManager: UserSettingManager<PfdAliasedUserSettingTypes>;
 
@@ -96,6 +99,7 @@ export class G3000Altimeter extends DisplayComponent<G3000AltimeterProps> {
         dataProvider={this.props.dataProvider}
         altitudeAlertState={this.props.altitudeAlertState}
         minimumsAlertState={this.props.minimumsAlertState}
+        isBaroTransitionAlertActive={this.props.isBaroTransitionAlertActive}
         declutter={this.props.declutter}
         tapeScaleOptions={this.props.config.tapeScaleOptions}
         trendVectorOptions={{ trendThreshold: 1 }}

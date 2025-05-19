@@ -4,9 +4,10 @@ import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility, LegType } from '../../../navigation/Facilities';
+import { LegType } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
 import { CircleInterceptLegCalculator, CircleInterceptLegPathToInterceptInfo } from './CircleInterceptLegCalculator';
@@ -22,7 +23,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
    * @param facilityCache This calculator's cache of facilities.
    * @param isHeadingLeg Whether the calculator calculates flight plan legs flown with constant heading.
    */
-  public constructor(facilityCache: Map<string, Facility>, isHeadingLeg: boolean) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache, isHeadingLeg: boolean) {
     super(facilityCache, isHeadingLeg);
   }
 
@@ -35,7 +36,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
 
     if (magVar === undefined && calculateIndex + 1 < legs.length) {
       const nextLeg = legs[calculateIndex + 1];
@@ -43,7 +44,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
         case LegType.AF:
         case LegType.CF:
         case LegType.RF: {
-          const terminatorPos = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[0], nextLeg.leg.fixIcao);
+          const terminatorPos = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[0], nextLeg.leg.fixIcaoStruct);
           if (terminatorPos) {
             magVar = this.getLegMagVar(nextLeg.leg, terminatorPos);
           }
@@ -52,7 +53,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
 
         case LegType.FC:
         case LegType.FM: {
-          const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcao, this.geoPointCache[0]);
+          const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcaoStruct, this.geoPointCache[0]);
           if (originPos) {
             magVar = this.getLegMagVar(nextLeg.leg, originPos);
           }
@@ -93,8 +94,8 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
 
     switch (nextLeg.leg.type) {
       case LegType.AF: {
-        const center = this.getPositionFromIcao(nextLeg.leg.originIcao, this.geoPointCache[0]);
-        const end = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[1], nextLeg.leg.fixIcao);
+        const center = this.getPositionFromIcao(nextLeg.leg.originIcaoStruct, this.geoPointCache[0]);
+        const end = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[1], nextLeg.leg.fixIcaoStruct);
         if (center && end && UnitType.METER.convertTo(nextLeg.leg.rho, UnitType.GA_RADIAN) > GeoMath.ANGULAR_TOLERANCE) {
           FlightPathUtils.getTurnCircle(
             center,
@@ -110,7 +111,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
       }
 
       case LegType.CF: {
-        const terminatorPos = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[0], nextLeg.leg.fixIcao);
+        const terminatorPos = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[0], nextLeg.leg.fixIcaoStruct);
         const course = this.getLegTrueCourse(nextLeg.leg);
         if (terminatorPos && course !== undefined) {
           out.circle.setAsGreatCircle(terminatorPos, course);
@@ -122,7 +123,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
       }
 
       case LegType.FC: {
-        const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcao, this.geoPointCache[0]);
+        const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcaoStruct, this.geoPointCache[0]);
         const course = this.getLegTrueCourse(nextLeg.leg);
         if (originPos && course !== undefined && UnitType.METER.convertTo(nextLeg.leg.distance, UnitType.GA_RADIAN) > GeoMath.ANGULAR_TOLERANCE) {
           out.circle.setAsGreatCircle(originPos, course);
@@ -134,7 +135,7 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
       }
 
       case LegType.FM: {
-        const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcao, this.geoPointCache[0]);
+        const originPos = this.getPositionFromIcao(nextLeg.leg.fixIcaoStruct, this.geoPointCache[0]);
         const course = this.getLegTrueCourse(nextLeg.leg);
         if (originPos && course !== undefined) {
           out.circle.setAsGreatCircle(originPos, course);
@@ -146,8 +147,8 @@ export class LegInterceptLegCalculator extends CircleInterceptLegCalculator {
       }
 
       case LegType.RF: {
-        const center = this.getPositionFromIcao(nextLeg.leg.arcCenterFixIcao, this.geoPointCache[0]);
-        const end = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[1], nextLeg.leg.fixIcao);
+        const center = this.getPositionFromIcao(nextLeg.leg.arcCenterFixIcaoStruct, this.geoPointCache[0]);
+        const end = this.getTerminatorPosition(nextLeg.leg, this.geoPointCache[1], nextLeg.leg.fixIcaoStruct);
         if (center && end) {
           const radius = center.distance(end);
           if (radius > GeoMath.ANGULAR_TOLERANCE) {

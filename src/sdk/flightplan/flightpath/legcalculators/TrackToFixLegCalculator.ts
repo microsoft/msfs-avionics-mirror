@@ -1,10 +1,10 @@
 import { GeoPoint } from '../../../geo/GeoPoint';
-import { UnitType } from '../../../math/NumberUnit';
-import { Facility, FacilityType, LegType } from '../../../navigation/Facilities';
+import { FacilityType, LegType } from '../../../navigation/Facilities';
 import { FacilityUtils } from '../../../navigation/FacilityUtils';
 import { ICAO } from '../../../navigation/IcaoUtils';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -26,7 +26,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of TrackToFixLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -50,7 +50,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcaoStruct);
 
     if (!terminatorPos) {
       vectors.length = 0;
@@ -77,7 +77,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
             vectors, vectorIndex,
             state.currentPosition, state.currentCourse,
             terminatorPos,
-            state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+            state.getDesiredTurnRadius(calculateIndex), undefined,
             flags | (state.isFallback ? FlightPathVectorFlags.Fallback : FlightPathVectorFlags.None)
           );
         } else {
@@ -101,7 +101,7 @@ export class TrackToFixLegCalculator extends AbstractFlightPathLegCalculator {
       && leg.leg.type === LegType.IF
       && ICAO.isFacility(leg.leg.fixIcao, FacilityType.RWY)
     ) {
-      const facility = this.facilityCache.get(leg.leg.fixIcao);
+      const facility = this.facilityCache.getFacility(leg.leg.fixIcaoStruct);
       if (facility && FacilityUtils.isFacilityType(facility, FacilityType.RWY)) {
         state.currentCourse = facility.runway.course;
       }

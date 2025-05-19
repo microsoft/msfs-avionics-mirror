@@ -1,9 +1,9 @@
 import {
-  AirportFacility, BitFlags, EventBus, FacilitySearchType, FacilityType, FacilityWaypointUtils, FSComponent, ICAO,
-  IntersectionType, MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapNearestWaypointsLayerSearchTypes,
-  MapProjection, MapSyncedCanvasLayer, MapSystemKeys, NearestAirportSearchSession, NearestIcaoSearchSession,
-  NearestIcaoSearchSessionDataType, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
-  NearestVorSearchSession, RunwayUtils, UnitType, VNode, Waypoint
+  AirportFacility, BitFlags, EventBus, FacilityLoader, FacilitySearchType, FacilityType, FacilityWaypointUtils,
+  FSComponent, ICAO, IntersectionType, MapLayer, MapLayerProps, MapNearestWaypointsLayer,
+  MapNearestWaypointsLayerSearchTypes, MapProjection, MapSyncedCanvasLayer, MapSystemKeys, NearestAirportSearchSession,
+  NearestIcaoSearchSession, NearestIcaoSearchSessionDataType, NearestIntersectionSearchSession,
+  NearestRepoFacilitySearchSession, NearestVorSearchSession, RunwayUtils, UnitType, VNode, Waypoint
 } from '@microsoft/msfs-sdk';
 
 import { AirportSize, AirportWaypoint } from '../../../navigation/AirportWaypoint';
@@ -29,6 +29,9 @@ export interface MapWaypointsLayerModules {
 export interface MapWaypointsLayerProps extends MapLayerProps<MapWaypointsLayerModules> {
   /** The event bus. */
   bus: EventBus;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The waypoint renderer to use. */
   waypointRenderer: MapWaypointRenderer;
@@ -332,6 +335,7 @@ export class MapWaypointsLayer extends MapLayer<MapWaypointsLayerProps> {
         model={this.props.model}
         mapProjection={this.props.mapProjection}
         bus={this.props.bus}
+        facilityLoader={this.props.facilityLoader}
         waypointRenderer={this.props.waypointRenderer}
         waypointForFacility={(facility): Waypoint => this.waypointCache.get(facility)}
         initRenderer={this.initWaypointRenderer.bind(this)}

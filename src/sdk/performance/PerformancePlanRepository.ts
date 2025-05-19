@@ -67,7 +67,7 @@ export class PerformancePlanRepository<P extends PerformancePlan, ID extends str
     private readonly id: ID,
     private readonly bus: EventBus,
     private readonly flightPlanner: FlightPlanner,
-    private readonly definitions: PerformancePlanDefinitionObject<P>,
+    private readonly definitions: PerformancePlanDefinitionObject<P>
   ) {
     this._plans[PerformancePlanRepository.DEFAULT_VALUES_PLAN_INDEX] = this.createPlanFromDefinitions();
     this._plans[PerformancePlanRepository.SYNC_PLAN_INDEX] = this.createPlanFromDefinitions();

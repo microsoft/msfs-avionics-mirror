@@ -2,6 +2,10 @@
   position: relative;
 }
 
+.gdu-460-display .cns-com {
+  --cns-button-com-failure-box-font-size: 18px;
+}
+
 .cns-com-combined-button {
   position: absolute;
   left: 0;
@@ -62,10 +66,10 @@
   width: 100%;
   height: 100%;
   padding-top: 15px;
-  fill: var(--g3x-color-gray);
+  fill: #505050;
 }
 
-.cns-button-com-slider-occlude {
+.cns-button-com-slider-foreground {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -90,6 +94,7 @@
   right: 7px;
   bottom: 5px;
   font-size: 14px;
+  text-shadow: 0 0 4px black;
 }
 
 .cns-button-com-slider-shadow {
@@ -129,4 +134,13 @@
   font-size: 16px;
   margin-top: 2px;
   color: var(--g3x-color-white);
+}
+
+.failure-box.cns-button-com-failure-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  font-size: var(--cns-button-com-failure-box-font-size);
 }

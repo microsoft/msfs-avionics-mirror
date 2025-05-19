@@ -4,6 +4,7 @@ export * from './DisplayUserSettings';
 export * from './FplCalculationUserSettings';
 export * from './FplDisplayUserSettings';
 export * from './FplSourceUserSettings';
+export * from './G3XChartsUserSettings';
 export * from './G3XDateTimeUserSettings';
 export * from './G3XNearestAirportUserSettings';
 export * from './G3XTrafficUserSettings';

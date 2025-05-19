@@ -13,5 +13,7 @@ export enum DisplayPaneViewKeys {
   Gps1Status = 'gps1-status',
   Gps2Status = 'gps2-status',
   Checklist = 'checklist',
-  WeightBalance = 'weight-balance'
+  WeightBalance = 'weight-balance',
+  Charts = 'charts',
+  ProcedurePreviewCharts = 'procedure-preview-charts',
 }

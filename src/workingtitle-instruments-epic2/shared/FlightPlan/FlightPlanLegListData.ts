@@ -156,14 +156,14 @@ export class FlightPlanLegListData implements FlightPlanBaseListData {
     const behindActive = this.legData.isBehindActiveLeg.get();
     const behindDto = this.legData.globalLegIndex.get() < (dtoOriginalLeg ?? -1);
     const dtoSourceLegIndex = dtoOriginalLeg && plan.directToData.segmentIndex !== -1 && plan.directToData.segmentLegIndex !== -1
-        && Epic2FmsUtils.getGlobalLegIndex(plan, plan.directToData.segmentIndex, plan.directToData.segmentLegIndex);
+      && Epic2FmsUtils.getGlobalLegIndex(plan, plan.directToData.segmentIndex, plan.directToData.segmentLegIndex);
     const isPartOfDto = BitFlags.isAny(this.legData.leg.flags, LegDefinitionFlags.DirectTo) || dtoSourceLegIndex === this.legData.globalLegIndex.get();
 
     // If there is no active DTO, or there is but the plan is pending, then we hide any legs before the active leg
     return ((!isDtoPendingActive && behindActive)
-    // If there is an active DTO and the plan is not pending, then we hide legs that are behind both the active leg
-    // and the leg which the DTO originates from, or behind the active leg and that are flagged as part of the DTO
-    || (isDtoPendingActive && behindActive && (behindDto || isPartOfDto)));
+      // If there is an active DTO and the plan is not pending, then we hide legs that are behind both the active leg
+      // and the leg which the DTO originates from, or behind the active leg and that are flagged as part of the DTO
+      || (isDtoPendingActive && behindActive && (behindDto || isPartOfDto)));
   }
 
   /**
@@ -407,6 +407,9 @@ export class FlightPlanLegData implements FlightPlanBaseData {
 
   /** Whether this leg's altitude constraint is different from the published constraint. */
   public readonly isAltitudeEdited = Subject.create(false);
+
+  /** Whether this leg's altitude constraint is advisory (predicted). */
+  public readonly isAltitudeAdvisory = Subject.create(false);
 
   /** Whether this leg's altitude constraint is invalid or not. */
   public readonly isAltitudeInvalid = Subject.create(false);

@@ -1,4 +1,4 @@
-import { ClockEvents, EventBus, GeoPoint, GNSSEvents, Subscription, UserSetting, UserSettingManager, Vec3Math } from '@microsoft/msfs-sdk';
+import { AmbientEvents, ClockEvents, ConsumerValue, EventBus, ExpSmoother, MathUtils, Subscription, UserSetting, UserSettingManager } from '@microsoft/msfs-sdk';
 
 import {
   BacklightIntensitySettingName, BacklightMode, BacklightModeSettingName, BacklightUserSettings, BacklightUserSettingTypes
@@ -14,23 +14,11 @@ export class BacklightManager {
   private static readonly RESPONSE_FACTOR = 3; // the greater the factor, the steeper the response curve
   private static readonly RESPONSE_SCALE = (BacklightManager.RESPONSE_MAX - BacklightManager.RESPONSE_MIN) / (Math.exp(BacklightManager.RESPONSE_FACTOR) - 1);
 
-  private static readonly AUTO_UPDATE_REALTIME_FREQ = 10; // max frequency (Hz) of auto backlight level updates in real time
-  private static readonly AUTO_UPDATE_SIMTIME_THRESHOLD = 60000; // minimum interval (ms) between auto backlight level updates in sim time
+  private static readonly INPUT_MIN_RANGE = 0.5;
+  private static readonly INPUT_MAX_RANGE = 10000;
 
   private static readonly AUTO_MAX_INTENSITY = 100; // The maximum intensity applied by auto backlight.
   private static readonly AUTO_MIN_INTENSITY = 30; // The minimum intensity applied by auto backlight.
-  private static readonly AUTO_INTENSITY_RANGE = BacklightManager.AUTO_MAX_INTENSITY - BacklightManager.AUTO_MIN_INTENSITY;
-
-  private static readonly AUTO_MAX_SOLAR_ANGLE = 3; // The solar altitude angle at which auto backlight reaches maximum intensity.
-  private static readonly AUTO_MIN_SOLAR_ANGLE = -8; // The solar altitude angle at which auto backlight reaches minimum intensity.
-  private static readonly AUTO_MAX_SOLAR_ANGLE_SIN = Math.sin(BacklightManager.AUTO_MAX_SOLAR_ANGLE * Avionics.Utils.DEG2RAD);
-  private static readonly AUTO_MIN_SOLAR_ANGLE_SIN = Math.sin(BacklightManager.AUTO_MIN_SOLAR_ANGLE * Avionics.Utils.DEG2RAD);
-  private static readonly AUTO_SOLAR_ANGLE_RANGE_SIN = BacklightManager.AUTO_MAX_SOLAR_ANGLE_SIN - BacklightManager.AUTO_MIN_SOLAR_ANGLE_SIN;
-
-  private static readonly EPOCH = 946684800000; // Jan 1, 2000 00:00:00 UTC
-  private static readonly DAY = 86400000; // milliseconds in one day
-
-  private static tempVec3 = new Float64Array(3);
 
   private readonly settingManager: UserSettingManager<BacklightUserSettingTypes>;
 
@@ -40,14 +28,13 @@ export class BacklightManager {
 
   private readonly screenIntensitySetting: UserSetting<number>;
 
-  private simTime = 0;
+  private prevUpdateTime: number | undefined;
 
-  private readonly ppos = new Float64Array(3);
+  private readonly ambientLightIntensity = ConsumerValue.create(null, 0);
+  private readonly ambientLightIntensitySmoother: ExpSmoother;
+  private readonly inverseGamma: number;
 
-  private needRecalcAuto = true;
-
-  private readonly simTimeSub: Subscription;
-  private readonly pposSub: Subscription;
+  private readonly updateSub: Subscription;
 
   /**
    * Constructor.
@@ -61,16 +48,17 @@ export class BacklightManager {
 
     this.settingManager = BacklightUserSettings.getManager(bus);
 
+    this.inverseGamma = 1 / 2.2; /* The inverse of the gamma value to use when mapping input light intensities to output backlight levels. */
+
     this.screenIntensitySetting = this.settingManager.getSetting(this.INTENSITY_SETTING_NAME);
 
-    const clockSubscriber = bus.getSubscriber<ClockEvents>();
+    this.ambientLightIntensitySmoother = new ExpSmoother(2000, 0);
 
-    this.simTimeSub = clockSubscriber.on('simTime').whenChangedBy(BacklightManager.AUTO_UPDATE_SIMTIME_THRESHOLD)
-      .handle(this.onSimTimeChanged.bind(this), true);
-    this.pposSub = bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(BacklightManager.AUTO_UPDATE_REALTIME_FREQ)
-      .handle(this.onPPosChanged.bind(this), true);
+    const sub = bus.getSubscriber<ClockEvents & AmbientEvents>();
 
-    clockSubscriber.on('realTime').atFrequency(BacklightManager.AUTO_UPDATE_REALTIME_FREQ).handle(this.onUpdate.bind(this));
+    this.ambientLightIntensity.setConsumer(sub.on('ambient_light_intensity'));
+
+    this.updateSub = sub.on('activeSimDuration').handle(this.updateAutoBacklightIntensity.bind(this));
   }
 
   /**
@@ -78,24 +66,7 @@ export class BacklightManager {
    * to changes in their settings.
    */
   public init(): void {
-    // TODO: Support key levels.
-    this.settingManager.whenSettingChanged(this.MODE_SETTING_NAME).handle(this.onBacklightModeChanged.bind(this));
     this.settingManager.whenSettingChanged(this.INTENSITY_SETTING_NAME).handle(this.onScreenIntensityChanged.bind(this, this.LVAR_NAME));
-  }
-
-  /**
-   * A callback which is called when the backlight mode changes.
-   * @param mode The new backlight mode.
-   */
-  private onBacklightModeChanged(mode: BacklightMode): void {
-    if (mode === BacklightMode.Auto) {
-      this.simTimeSub.resume(true);
-      this.pposSub.resume(true);
-    } else {
-      this.simTimeSub.pause();
-      this.pposSub.pause();
-      this.needRecalcAuto = false;
-    }
   }
 
   /**
@@ -109,75 +80,24 @@ export class BacklightManager {
   }
 
   /**
-   * A callback which is called when the sim time changes.
-   * @param time The new sim time.
-   */
-  private onSimTimeChanged(time: number): void {
-    this.simTime = time;
-    this.needRecalcAuto = true;
-  }
-
-  /**
-   * A callback which is called when the sim time changes.
-   * @param ppos The new plane position.
-   */
-  private onPPosChanged(ppos: LatLongAlt): void {
-    const pposVec = GeoPoint.sphericalToCartesian(ppos.lat, ppos.long, BacklightManager.tempVec3);
-    if (Vec3Math.dot(pposVec, this.ppos) >= 1 - 1e-4) { // ~600 m
-      return;
-    }
-
-    Vec3Math.copy(pposVec, this.ppos);
-    this.needRecalcAuto = true;
-  }
-
-  /**
-   * This method runs once per update cycle.
-   */
-  private onUpdate(): void {
-    if (this.needRecalcAuto) {
-      this.updateAutoBacklightIntensity();
-      this.needRecalcAuto = false;
-    }
-  }
-
-  /**
    * Updates backlight intensity according to the auto setting algorithm.
+   * @param activeSimDuration The total amount of simulated time at the current update, in milliseconds.
    */
-  private updateAutoBacklightIntensity(): void {
-    const subSolarPoint = BacklightManager.calculateSubSolarPoint(this.simTime, BacklightManager.tempVec3);
-    const sinSolarAngle = Vec3Math.dot(this.ppos, subSolarPoint);
-    const sinSolarAngleClamped = Utils.Clamp(sinSolarAngle, BacklightManager.AUTO_MIN_SOLAR_ANGLE_SIN, BacklightManager.AUTO_MAX_SOLAR_ANGLE_SIN);
-    const intensityFrac = (sinSolarAngleClamped - BacklightManager.AUTO_MIN_SOLAR_ANGLE_SIN) / BacklightManager.AUTO_SOLAR_ANGLE_RANGE_SIN;
+  private updateAutoBacklightIntensity(activeSimDuration: number): void {
+    const dt = this.prevUpdateTime === undefined ? 0 : Math.max(activeSimDuration - this.prevUpdateTime, 0);
 
-    this.screenIntensitySetting.value = Math.round(BacklightManager.AUTO_MIN_INTENSITY + intensityFrac * BacklightManager.AUTO_INTENSITY_RANGE);
-  }
+    const smoothedLightIntensity = this.ambientLightIntensitySmoother.next(this.ambientLightIntensity.get(), dt);
 
-  /**
-   * Calculates the subsolar point (the point on Earth's surface directly below the Sun, where solar zenith angle = 0)
-   * given a specific time.
-   * @param time A UNIX timestamp in milliseconds.
-   * @param out A Float64Array object to which to write the result.
-   * @returns the subsolar point at the specified time.
-   */
-  private static calculateSubSolarPoint(time: number, out: Float64Array): Float64Array {
-    // Source: Zhang, T et al. https://doi.org/10.1016/j.renene.2021.03.047
-    const PI2 = 2 * Math.PI;
-    const days = (time - BacklightManager.EPOCH) / BacklightManager.DAY;
-    const daysFrac = days - Math.floor(days);
-    const L = (4.895055 + 0.01720279 * days);
-    const g = (6.240041 + 0.01720197 * days);
-    const lambda = L + 0.033423 * Math.sin(g) + 0.000349 * Math.sin(2 * g);
-    const epsilon = 0.40910518 - 6.98e-9 * days;
-    const rAscension = Math.atan2(Math.cos(epsilon) * Math.sin(lambda), Math.cos(lambda));
-    const declination = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
+    this.prevUpdateTime = activeSimDuration;
 
-    // equation of time in days.
-    const E = (((L - rAscension) % PI2 + 3 * Math.PI) % PI2 - Math.PI) * 0.159155;
+    if (this.settingManager.getSetting(this.MODE_SETTING_NAME).get() === BacklightMode.Auto) {
+      const outputLevel = Math.pow(
+        MathUtils.lerp(
+          smoothedLightIntensity, BacklightManager.INPUT_MIN_RANGE, BacklightManager.INPUT_MAX_RANGE, 0, 1, true, true),
+          this.inverseGamma
+        );
 
-    const lat = declination * Avionics.Utils.RAD2DEG;
-    const lon = -15 * (daysFrac - 0.5 + E) * 24;
-
-    return GeoPoint.sphericalToCartesian(lat, lon, out);
+      this.screenIntensitySetting.set(Math.round(MathUtils.lerp(outputLevel, 0, 1, BacklightManager.AUTO_MIN_INTENSITY, BacklightManager.AUTO_MAX_INTENSITY)));
+    }
   }
 }

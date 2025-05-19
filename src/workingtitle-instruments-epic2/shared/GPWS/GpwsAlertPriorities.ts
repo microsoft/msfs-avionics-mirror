@@ -1,0 +1,21 @@
+/** Enum documenting the priority of various GPWS alert aurals. Lower numbers are higher priority. */
+export enum GpwsAlertPriority {
+  Mode1PullUp = 1,
+  Mode2PullUp = 2,
+  TerrainAwarenessPullUp = 3,
+  Mode2Terrain = 4,
+  Mode6Minimums = 5,
+  TerrainAwarenessCaution = 6,
+  Mode4TooLowTerrain = 7,
+  TerrainClearanceFloorTooLowTerrain = 8,
+  Mode6AltitudeCallouts = 9,
+  Mode4TooLowGear = 10,
+  Mode4TooLowFlaps = 11,
+  Mode1Sinkrate = 12,
+  Mode3DontSink = 13,
+  Mode5Glideslope = 14,
+  Mode6ApproachingMinimums = 15,
+  Mode6BankAngle = 16,
+  SmartRunwayCautions = 17,
+  SmartRunwayAdvisories = 18,
+}

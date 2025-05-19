@@ -1,4 +1,4 @@
-import { DisplayComponent, FSComponent, Subject, VNode } from '@microsoft/msfs-sdk';
+import { DisplayComponent, FSComponent, MutableSubscribable, VNode } from '@microsoft/msfs-sdk';
 
 import { CheckBox } from './Checkbox';
 import { TouchButton, TouchButtonProps } from './TouchButton';
@@ -9,7 +9,7 @@ interface TouchButtonCheckboxProps extends Omit<TouchButtonProps, 'onPressed'> {
   /** The button label. */
   readonly label: string;
   /** Checked state. */
-  readonly isChecked: Subject<boolean>;
+  readonly isChecked: MutableSubscribable<boolean>;
   /** Css class string to apply to root element. */
   readonly class?: string;
 }

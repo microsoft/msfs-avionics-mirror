@@ -4,13 +4,13 @@
 /// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import {
-  ClockEvents, CompositeLogicXMLHost, ConsumerSubject, DebounceTimer, FlightPlanPredictor, FSComponent, GameStateProvider, PluginSystem,
-  PressurizationPublisher, SimVarValueType, SoundServer, StallWarningEvents, StallWarningPublisher, Subject, VNode, Wait
+  ChecklistItemTypeDefMap, ChecklistManager, ClockEvents, CompositeLogicXMLHost, ConsumerSubject, DebounceTimer, DefaultChecklistStateProvider, FlightPlanPredictor, FSComponent,
+  GameStateProvider, PluginSystem, PressurizationPublisher, SimVarValueType, SoundServer, StallWarningEvents, StallWarningPublisher, Subject, VNode, Wait
 } from '@microsoft/msfs-sdk';
 
 import {
   AvionicsConfig, BottomSectionContainer, BottomSectionVersion, InstrumentConfig, MapUserSettings, MenuContainer, MFDUserSettings, NavIndicatorContext,
-  PerformancePlanProxy, WT21ControlSimVarEvents, WT21DisplayUnitFsInstrument, WT21FlightPlanPredictorConfiguration, WT21FmsUtils, WT21InstrumentType,
+  PerformancePlanProxy, WT21ChecklistSetDef, WT21ControlSimVarEvents, WT21DisplayUnitFsInstrument, WT21FlightPlanPredictorConfiguration, WT21FmsUtils, WT21InstrumentType,
   WT21LNavDataEvents, WT21SettingSaveManager, WT21XmlAuralsConfig
 } from '@microsoft/msfs-wt21-shared';
 
@@ -67,8 +67,13 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
   private readonly casRef = FSComponent.createRef<CAS>();
   private readonly textPageContainerRef = FSComponent.createRef<TextPagesContainer>();
   private readonly hsiRef = FSComponent.createRef<MfdHsi>();
+  private readonly upperTextContainerRef = FSComponent.createRef<UpperTextContainer>();
 
   private readonly dispatchModeTimer = new DebounceTimer();
+
+  private checklistDef?: WT21ChecklistSetDef;
+  private checklistManager?: ChecklistManager;
+  private checklistStateProvider?: DefaultChecklistStateProvider<ChecklistItemTypeDefMap, void, void, void, void>;
 
   /**
    * Creates an instance of the WT21_MFD.
@@ -111,17 +116,52 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
   }
 
   /** @inheritdoc */
-  protected override doInit(): void {
-    this.initPluginSystem().then(() => {
-      const saveKey = `${SimVar.GetSimVarValue('ATC MODEL', 'string')}.profile_1`;
-      this.settingSaveManager.load(saveKey);
-      this.settingSaveManager.startAutoSave(saveKey);
+  protected override async doInit(): Promise<void> {
+    await this.initPluginSystem();
 
-      super.doInit();
+    const saveKey = `${SimVar.GetSimVarValue('ATC MODEL', 'string')}.profile_1`;
+    this.settingSaveManager.load(saveKey);
+    this.settingSaveManager.startAutoSave(saveKey);
 
-      this.doRenderComponents();
-      this.doRegisterMenues();
-      this.wireDispatchVisuals();
+    super.doInit();
+
+    await this.initChecklist();
+
+    this.doRenderComponents();
+    this.doRegisterMenues();
+    this.wireDispatchVisuals();
+  }
+
+  /**
+   * Initializes this instrument's checklist system.
+   */
+  private async initChecklist(): Promise<void> {
+    let checklistDef: WT21ChecklistSetDef | undefined = undefined;
+
+    this.pluginSystem.callPlugins((plugin) => {
+      checklistDef = plugin.getChecklistDef?.();
+    });
+
+    if (!this.checklistDef && this.config.checklist.checklistFileURL !== undefined) {
+      const fetch = this.config.checklist.resolve();
+      checklistDef = await fetch(5000);
+    }
+
+    if (checklistDef) {
+      this.checklistDef = checklistDef;
+      this.checklistStateProvider = new DefaultChecklistStateProvider(1, this.bus, this.checklistDef);
+
+      this.checklistStateProvider.init();
+
+      if (this.instrument.instrumentIndex === 1) {
+        // Only one ChecklistManager is needed, so put it on MFD1
+        this.checklistManager = new ChecklistManager(1, this.bus, this.checklistDef);
+        this.checklistManager.wake();
+      }
+    }
+
+    this.pluginSystem.callPlugins((plugin) => {
+      plugin.onChecklistInit?.(checklistDef, this.checklistStateProvider);
     });
   }
 
@@ -129,7 +169,7 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
    * Registers the MFD menues.
    */
   private doRegisterMenues(): void {
-    this.uprMenuViewService.registerView('MfdUprMenu', () => <MfdUprMenu viewService={this.uprMenuViewService} bus={this.bus} mfdSettingManager={this.mfdSettingManager} />);
+    this.uprMenuViewService.registerView('MfdUprMenu', () => <MfdUprMenu viewService={this.uprMenuViewService} bus={this.bus} mfdSettingManager={this.mfdSettingManager} isChecklistAvailable={this.checklistStateProvider !== undefined} />);
     this.lwrMenuViewService.registerView('MfdLwrMenu', () => <MfdLwrMenu viewService={this.lwrMenuViewService} bus={this.bus} mapSettingsManager={this.mapSettingsManager} />);
     this.lwrMenuViewService.registerView('MfdLwrOverlaysMenu', () => <MfdLwrOverlaysMenu viewService={this.lwrMenuViewService} bus={this.bus} mapSettingsManager={this.mapSettingsManager} />);
     this.lwrMenuViewService.registerView('MfdLwrMapSymbolsMenu', () => <MfdLwrMapSymbolsMenu viewService={this.lwrMenuViewService} bus={this.bus} mapSettingsManager={this.mapSettingsManager} />);
@@ -154,6 +194,7 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
     }
     FSComponent.render(
       <UpperTextContainer
+        ref={this.upperTextContainerRef}
         bus={this.bus}
         pluginSystem={this.pluginSystem}
         planner={this.planner}
@@ -161,6 +202,8 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
         performancePlanProxy={this.performancePlanProxy}
         mapSettingManager={this.mapSettingsManager}
         mfdSettingManager={this.mfdSettingManager}
+        checklistDef={this.checklistDef}
+        checklistStateProvider={this.checklistStateProvider}
       />,
       document.getElementById('UpperMenu'),
     );
@@ -183,6 +226,7 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
           ref={this.hsiRef}
           bus={this.bus}
           instrumentConfig={this.instrumentConfig}
+          facLoader={this.facLoader}
           flightPlanner={this.planner}
           tcas={this.tcas}
           fixInfo={this.fixInfoManager}
@@ -193,7 +237,7 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
       document.getElementById('HSIMap')
     );
     FSComponent.render(<BottomSectionContainer bus={this.bus} version={(this.instrument.isPrimary) ? BottomSectionVersion.ver2 : BottomSectionVersion.ver3}
-      planner={this.planner} />,
+      facLoader={this.facLoader} planner={this.planner} />,
       document.getElementById('MFDBottomSection'));
     FSComponent.render(<MenuContainer bus={this.bus} />, document.getElementById('MenuSection'));
   }
@@ -291,13 +335,17 @@ export class WT21_MFD_Instrument extends WT21DisplayUnitFsInstrument {
   public onInteractionEvent(args: string[]): void {
     const handledByUprMenu = this.uprMenuViewService.onInteractionEvent(args[0], this.instrument.instrumentIndex);
     const handledByLwrMenu = this.lwrMenuViewService.onInteractionEvent(args[0], this.instrument.instrumentIndex);
-    if (!handledByUprMenu && !handledByLwrMenu) {
-      const event = CcpHEvents.mapHEventToCcpEvent(args[0], this.instrument.instrumentIndex);
-      if (event) {
-        this.ccpEventPublisher.dispatchHEvent(event);
-      } else {
-        this.hEventPublisher.dispatchHEvent(args[0]);
-      }
+    const handledByUpperText = this.upperTextContainerRef.instance.onInteractionEvent(args[0], this.instrument.instrumentIndex);
+
+    if (handledByUprMenu || handledByLwrMenu || handledByUpperText) {
+      return;
+    }
+
+    const event = CcpHEvents.mapHEventToCcpEvent(args[0], this.instrument.instrumentIndex);
+    if (event) {
+      this.ccpEventPublisher.dispatchHEvent(event);
+    } else {
+      this.hEventPublisher.dispatchHEvent(args[0]);
     }
   }
 

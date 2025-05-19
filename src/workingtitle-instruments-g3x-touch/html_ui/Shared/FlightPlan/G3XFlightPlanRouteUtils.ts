@@ -23,15 +23,15 @@ export class G3XFlightPlanRouteUtils {
   ): Promise<FlightPlanRoute> {
     const route = FlightPlanRouteUtils.emptyRoute();
 
-    if (flightPlan.originAirport !== undefined && ICAO.isStringV1Facility(flightPlan.originAirport, FacilityType.Airport)) {
-      route.departureAirport = ICAO.stringV1ToValue(flightPlan.originAirport);
+    if (flightPlan.originAirportIcao !== undefined && ICAO.isValueFacility(flightPlan.originAirportIcao, FacilityType.Airport)) {
+      route.departureAirport = flightPlan.originAirportIcao;
     }
 
-    if (flightPlan.destinationAirport !== undefined && ICAO.isStringV1Facility(flightPlan.destinationAirport, FacilityType.Airport)) {
-      route.destinationAirport = ICAO.stringV1ToValue(flightPlan.destinationAirport);
+    if (flightPlan.destinationAirportIcao !== undefined && ICAO.isValueFacility(flightPlan.destinationAirportIcao, FacilityType.Airport)) {
+      route.destinationAirport = flightPlan.destinationAirportIcao;
 
       const loadedApproach = flightPlan.getUserData<G3XFmsFplUserDataTypeMap[G3XFmsFplUserDataKey.LoadedApproach]>(G3XFmsFplUserDataKey.LoadedApproach);
-      if (loadedApproach && loadedApproach.airportIcao === flightPlan.destinationAirport) {
+      if (loadedApproach && ICAO.valueEquals(loadedApproach.airportIcaoStruct, flightPlan.destinationAirportIcao)) {
         // Even though VFR approaches can be loaded into G3X internal flight plans, they are not true published IFR
         // approaches, so we will not add the approach to the flight plan route. Instead, we will use the loaded
         // approach to infer a destination runway.

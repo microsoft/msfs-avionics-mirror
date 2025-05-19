@@ -1,13 +1,16 @@
 import {
   ComponentProps, DisplayComponent, FSComponent, FacilityLoader, FacilitySearchType, FacilityType, FacilityWaypoint,
   FilteredMapSubject, GeoPoint, GeoPointSubject, ICAO, MapSubject, MappedSubject, MutableSubscribable, NodeReference,
-  ReadonlyFloat64Array, Subject, Subscribable, SubscribableMap, SubscribableUtils, Subscription, UserSettingManager,
-  VNode, Vec2Math, Vec2Subject
+  ReadonlyFloat64Array, Subject, Subscribable, SubscribableMap, SubscribableMapFunctions, SubscribableUtils,
+  Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath, VecNSubject
 } from '@microsoft/msfs-sdk';
 
 import { DateTimeUserSettingTypes, GarminFacilityWaypointCache, WaypointInfoStore } from '@microsoft/msfs-garminsdk';
 
 import { RadiosConfig } from '../../../Shared/AvionicsConfig/RadiosConfig';
+import { G3XChartsConfig } from '../../../Shared/Charts/G3XChartsConfig';
+import { G3XChartsSelectionManager } from '../../../Shared/Charts/G3XChartsSelectionManager';
+import { G3XChartsSource } from '../../../Shared/Charts/G3XChartsSource';
 import { MapConfig } from '../../../Shared/Components/Map/MapConfig';
 import { GenericTabbedContent } from '../../../Shared/Components/TabbedContainer/GenericTabbedContent';
 import { TabbedContainer } from '../../../Shared/Components/TabbedContainer/TabbedContainer';
@@ -15,7 +18,9 @@ import { G3XFplSourceDataProvider } from '../../../Shared/FlightPlan/G3XFplSourc
 import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
 import { PositionHeadingDataProvider } from '../../../Shared/Navigation/PositionHeadingDataProvider';
 import { ComRadioSpacingDataProvider } from '../../../Shared/Radio/ComRadioSpacingDataProvider';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { DisplayUserSettingTypes } from '../../../Shared/Settings/DisplayUserSettings';
+import { G3XChartsUserSettingTypes } from '../../../Shared/Settings/G3XChartsUserSettings';
 import { G3XUnitsUserSettingManager } from '../../../Shared/Settings/G3XUnitsUserSettings';
 import { GduUserSettingTypes } from '../../../Shared/Settings/GduUserSettings';
 import { G3XMapUserSettingTypes } from '../../../Shared/Settings/MapUserSettings';
@@ -26,9 +31,12 @@ import { UiKnobUtils } from '../../../Shared/UiSystem/UiKnobUtils';
 import { UiService } from '../../../Shared/UiSystem/UiService';
 import { UiViewOcclusionType, UiViewSizeMode } from '../../../Shared/UiSystem/UiViewTypes';
 import { UiWaypointSelectButton } from '../TouchButton/UiWaypointSelectButton';
+import { AirportChartsTab } from './AirportChartsTab';
 import { AirportFreqTab } from './AirportFreqTab';
 import { AirportRunwayTab } from './AirportRunwayTab';
 import { AirportWeatherTab } from './AirportWeatherTab';
+import { DefaultWaypointInfoChartDisplayDataProvider } from './DefaultWaypointInfoChartDisplayDataProvider';
+import { WaypointInfoChartDisplay } from './WaypointInfoChartDisplay';
 import { WaypointInfoInfo } from './WaypointInfoInfo';
 import { WaypointInfoContentMode } from './WaypointInfoTypes';
 
@@ -56,6 +64,9 @@ export interface WaypointInfoProps extends ComponentProps {
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
 
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
+
   /** A provider of COM radio spacing mode data. */
   comRadioSpacingDataProvider: ComRadioSpacingDataProvider;
 
@@ -77,14 +88,23 @@ export interface WaypointInfoProps extends ComponentProps {
   /** A manager for map user settings. */
   mapSettingManager: UserSettingManager<Partial<G3XMapUserSettingTypes>>;
 
+  /** A manager for electronic charts user settings. */
+  chartsSettingManager: UserSettingManager<G3XChartsUserSettingTypes>;
+
   /** A manager for display units user settings. */
   unitsSettingManager: G3XUnitsUserSettingManager;
 
   /** A configuration object defining options for the map. */
   mapConfig: MapConfig;
 
+  /** A configuration object defining options for electronic charts. */
+  chartsConfig: G3XChartsConfig;
+
   /** A configuration object defining options for radios. */
   radiosConfig: RadiosConfig;
+
+  /** All available electronic charts sources. */
+  chartsSources: Iterable<G3XChartsSource>;
 
   /**
    * A mutable subscribable to which to bind the display's selected waypoint. If not defined, then the display's
@@ -104,11 +124,13 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
 
   private readonly tabsRef = FSComponent.createRef<TabbedContainer>();
   private readonly infoRef = FSComponent.createRef<WaypointInfoInfo>();
+  private readonly chartDisplayRef = FSComponent.createRef<WaypointInfoChartDisplay>();
 
   private readonly allowSelection = SubscribableUtils.toSubscribable(this.props.allowSelection, true) as Subscribable<boolean>;
 
   private sizeMode = UiViewSizeMode.Full;
   private readonly dimensions = Vec2Math.create();
+  private readonly expandMargins = VecNSubject.create(VecNMath.create(4));
 
   private readonly tabsPerListPage = Subject.create(6);
   private readonly tabLength = Subject.create(80);
@@ -126,7 +148,7 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
       return WaypointInfoContentMode.None;
     }
 
-    switch (ICAO.getFacilityType(facility.icao)) {
+    switch (ICAO.getFacilityTypeFromValue(facility.icaoStruct)) {
       case FacilityType.Airport:
         return WaypointInfoContentMode.Airport;
       case FacilityType.VOR:
@@ -156,13 +178,36 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
     this.isInfoTabSelected
   );
 
+  private readonly chartsSelectionManager = new G3XChartsSelectionManager(
+    this.props.uiService.bus,
+    this.props.chartsSources,
+    this.props.fplSourceDataProvider,
+    this.props.posHeadingDataProvider,
+    this.props.chartsSettingManager
+  );
+  private readonly chartDisplayDataProvider = new DefaultWaypointInfoChartDisplayDataProvider(
+    this.props.uiService.gduIndex,
+    this.props.uiService.bus,
+    this.chartsSelectionManager,
+    this.props.posHeadingDataProvider,
+    this.props.chartsSettingManager
+  );
+
+  private readonly isChartsTabSelected = Subject.create(false);
+  private readonly isChartDisplayExpanded = Subject.create(false);
+  private readonly chartDisplayHidden = this.isChartsTabSelected.map(SubscribableMapFunctions.not());
+
   private updateFocusSub?: Subscription;
   private readonly updateTabsVisSub = this.contentMode.sub(this.updateTabsVisibility.bind(this), false, true);
   private readonly updateTabsResumeSub = this.tabsHidden.sub(this.updateTabsResumeState.bind(this), false, true);
   private readonly updateInfoSizeSub = this.tabsHidden.sub(this.updateInfoSize.bind(this), false, true);
   private readonly updateInfoResumeSub = this.infoHidden.sub(this.updateInfoResumeState.bind(this), false, true);
+  private readonly updateChartDisplaySizeSub = this.isChartDisplayExpanded.sub(this.updateChartDisplaySize.bind(this), false, true);
+  private readonly updateChartDisplayResumeSub = this.chartDisplayHidden.sub(this.updateChartDisplayResumeState.bind(this), false, true);
 
   private readonly focusController = new UiFocusController();
+
+  private readonly allowTabKnobPush = this.allowSelection.map(SubscribableMapFunctions.not());
 
   private readonly baseRequestedKnobLabelState = MapSubject.create<UiKnobId, string>();
 
@@ -170,37 +215,54 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   /** The bezel rotary knob label state requested by this display. */
   public readonly knobLabelState = this._knobLabelState as SubscribableMap<UiKnobId, string> & Subscribable<UiKnobRequestedLabelState>;
 
+  private normalKnobLabelPipe?: Subscription;
+  private chartDisplayKnobLabelPipe?: Subscription;
+  private tabKnobLabelPipe?: Subscription;
+
   private isResumed = false;
 
-  private readonly subscriptions: Subscription[] = [];
+  private readonly subscriptions: Subscription[] = [
+    this.allowTabKnobPush
+  ];
 
   /** @inheritdoc */
   public onAfterRender(thisNode: VNode): void {
     this.thisNode = thisNode;
 
+    const focusState = MappedSubject.create(
+      this.allowSelection,
+      this.tabsRef.instance.knobLabelState
+    );
+
     this.subscriptions.push(
+      focusState,
+
       this.allowSelection.sub(this.updateBaseRequestedKnobLabelState.bind(this), true),
 
-      this.updateFocusSub = this.allowSelection.sub(this.updateFocus.bind(this), false, true)
+      this.updateFocusSub = focusState.sub(this.updateFocus.bind(this), false, true)
     );
 
     this.focusController.setActive(true);
 
-    UiKnobUtils.reconcileRequestedLabelStates(
-      [...this.props.validKnobIds], this._knobLabelState, false,
-      this.baseRequestedKnobLabelState,
+    this.normalKnobLabelPipe = UiKnobUtils.reconcileRequestedLabelStates(
+      [...this.props.validKnobIds], this._knobLabelState, true,
       this.tabsRef.instance.knobLabelState,
       this.infoRef.instance.knobLabelState,
+      this.baseRequestedKnobLabelState,
     );
 
+    this.chartDisplayKnobLabelPipe = this.chartDisplayRef.instance.knobLabelState.pipe(this._knobLabelState, true);
+
     // Shorten the knob label for selecting tabs when there is a knob label for the push action being requested.
-    this._knobLabelState.pipe(this.tabKnobLabel, knobLabelState => {
+    this.tabKnobLabelPipe = this._knobLabelState.pipe(this.tabKnobLabel, knobLabelState => {
       return (
         knobLabelState.has(UiKnobId.SingleInnerPush)
         || knobLabelState.has(UiKnobId.LeftInnerPush)
         || knobLabelState.has(UiKnobId.RightInnerPush)
       ) ? 'Tab' : 'Tab Select';
-    });
+    }, true);
+
+    this.isChartDisplayExpanded.sub(this.updateKnobLabelState.bind(this), true);
   }
 
   /**
@@ -214,18 +276,28 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   /**
    * Responds to when this display's parent view is opened.
    * @param sizeMode The new size mode of this display's parent view.
-   * @param dimensions The new dimensions of this display, as `[width, height]` in pixels.
+   * @param dimensions The dimensions of this display, as `[width, height]` in pixels.
+   * @param expandMargins The available margins around this display into which it can expand, as
+   * `[left, top, right, bottom]` in pixels.
    */
-  public onOpen(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
+  public onOpen(
+    sizeMode: UiViewSizeMode,
+    dimensions: ReadonlyFloat64Array,
+    expandMargins: ReadonlyFloat64Array
+  ): void {
     this.updateTabsVisibility();
-    this.updateFromSize(sizeMode, dimensions);
+    this.updateFromSize(sizeMode, dimensions, expandMargins);
 
     this.updateTabsVisSub.resume();
     this.updateInfoSizeSub.resume();
     this.updateInfoResumeSub.resume(true);
+    this.updateChartDisplaySizeSub.resume(true);
+    this.updateChartDisplayResumeSub.resume(true);
     this.updateTabsResumeSub.resume(true);
 
     this.pposPipe.resume(true);
+
+    this.chartDisplayDataProvider.resume();
   }
 
   /**
@@ -234,9 +306,13 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   public onClose(): void {
     this.pposPipe.pause();
 
+    this.chartDisplayDataProvider.pause();
+
     this.updateTabsVisSub.pause();
     this.updateInfoSizeSub.pause();
     this.updateInfoResumeSub.pause();
+    this.updateChartDisplaySizeSub.pause();
+    this.updateChartDisplayResumeSub.pause();
 
     this.tabsRef.instance.close();
     this.infoRef.instance.pause();
@@ -252,7 +328,6 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
       this.tabsRef.instance.resume();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.updateFocusSub!.resume(true);
   }
 
@@ -264,7 +339,6 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
 
     this.tabsRef.instance.pause();
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.updateFocusSub!.pause();
     this.focusController.removeFocus();
   }
@@ -273,19 +347,32 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
    * Responds to when this display's parent view is resized while open.
    * @param sizeMode The new size mode of this display's parent view.
    * @param dimensions The new dimensions of this display, as `[width, height]` in pixels.
+   * @param expandMargins The new available margins around this display into which it can expand, as
+   * `[left, top, right, bottom]` in pixels.
    */
-  public onResize(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
-    this.updateFromSize(sizeMode, dimensions);
+  public onResize(
+    sizeMode: UiViewSizeMode,
+    dimensions: ReadonlyFloat64Array,
+    expandMargins: ReadonlyFloat64Array
+  ): void {
+    this.updateFromSize(sizeMode, dimensions, expandMargins);
   }
 
   /**
    * Updates this display when the size of its parent view changes.
    * @param sizeMode The new size mode of this display's parent view.
    * @param dimensions The new dimensions of this display, as `[width, height]` in pixels.
+   * @param expandMargins The new available margins around this display into which it can expand, as
+   * `[left, top, right, bottom]` in pixels.
    */
-  private updateFromSize(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
+  private updateFromSize(
+    sizeMode: UiViewSizeMode,
+    dimensions: ReadonlyFloat64Array,
+    expandMargins: ReadonlyFloat64Array
+  ): void {
     this.sizeMode = sizeMode;
     Vec2Math.copy(dimensions, this.dimensions);
+    this.expandMargins.set(expandMargins);
 
     // TODO: support GDU470 (portrait)
 
@@ -340,6 +427,7 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
     this.tabSpacing.set(tabSpacing);
 
     this.updateInfoSize();
+    this.updateChartDisplaySize();
   }
 
   /**
@@ -349,11 +437,13 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   public onOcclusionChange(occlusionType: UiViewOcclusionType): void {
     if (occlusionType === 'hide') {
       this.updateInfoResumeSub.pause();
+      this.updateChartDisplayResumeSub.pause();
       this.pposPipe.pause();
 
       this.infoRef.instance.pause();
     } else {
       this.updateInfoResumeSub.resume(true);
+      this.updateChartDisplayResumeSub.resume(true);
 
       this.pposPipe.resume(true);
     }
@@ -366,15 +456,21 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   public onUpdate(time: number): void {
     this.tabsRef.instance.update(time);
     this.infoRef.instance.update(time);
+    this.chartDisplayRef.instance.update(time);
   }
 
   /** @inheritDoc */
   public onUiInteractionEvent(event: UiInteractionEvent): boolean {
-    if (this.focusController.onUiInteractionEvent(event)) {
-      return true;
+    // When the chart display is expanded, it is responsible for all interaction events.
+    if (this.isChartDisplayExpanded.get()) {
+      return this.chartDisplayRef.instance.onUiInteractionEvent(event);
     }
 
     if (this.tabsRef.instance.onUiInteractionEvent(event)) {
+      return true;
+    }
+
+    if (this.focusController.onUiInteractionEvent(event)) {
       return true;
     }
 
@@ -402,12 +498,34 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   }
 
   /**
-   * Updates this display's focused component.
-   * @param allowSelection Whether the user is allowed to select the display's waypoint.
+   * Updates this display's requested knob label state.
    */
-  private updateFocus(allowSelection: boolean): void {
-    if (allowSelection) {
+  private updateKnobLabelState(): void {
+    if (this.isChartDisplayExpanded.get()) {
+      this.tabKnobLabelPipe!.pause();
+      this.normalKnobLabelPipe!.pause();
+      this.chartDisplayKnobLabelPipe!.resume(true);
+    } else {
+      this.chartDisplayKnobLabelPipe!.pause();
+      this.normalKnobLabelPipe!.resume(true);
+      this.tabKnobLabelPipe!.resume(true);
+    }
+  }
+
+  /**
+   * Updates this display's focused component.
+   */
+  private updateFocus(): void {
+    const tabsKnobLabelState = this.tabsRef.instance.knobLabelState;
+    if (
+      this.allowSelection.get()
+      && !tabsKnobLabelState.has(UiKnobId.SingleInnerPush)
+      && !tabsKnobLabelState.has(UiKnobId.LeftInnerPush)
+      && !tabsKnobLabelState.has(UiKnobId.RightInnerPush)
+    ) {
       this.focusController.focusFirst();
+    } else {
+      this.focusController.removeFocus();
     }
   }
 
@@ -500,13 +618,63 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
     }
   }
 
+  /**
+   * Updates the size of this display's chart display.
+   */
+  private updateChartDisplaySize(): void {
+    // TODO: support GDU470 (portrait)
+
+    let width: number, height: number;
+
+    if (this.isChartDisplayExpanded.get()) {
+      // The chart display is in expanded mode. In this case it covers the entire area of the waypoint information
+      // display plus the expansion margins.
+
+      const expandMargins = this.expandMargins.get();
+      width = this.dimensions[0] + expandMargins[0] + expandMargins[2];
+      height = this.dimensions[1] + expandMargins[1] + expandMargins[3];
+    } else {
+      // The chart display is not in expanded mode. In this case it is contained within the Charts tab.
+
+      const tabContentDimensions = this.tabContentDimensions.get();
+
+      // It has 2px horizontal margins from the tab content bounds on each side.
+      width = tabContentDimensions[0] - 2 * 2;
+
+      // It has 2px vertical margins from the inner border of the tab container on each side. We also need to
+      // subtract the 70px height of the chart selection button and the 4px margin between the chart selection button
+      // and the chart display.
+      height = tabContentDimensions[1] - 2 * 2 - 70 - 4;
+    }
+
+    this.chartDisplayRef.instance.setSize(width, height);
+  }
+
+  /**
+   * Updates the pause/resume state of this display's chart display.
+   */
+  private updateChartDisplayResumeState(): void {
+    if (this.chartDisplayHidden.get()) {
+      this.chartDisplayRef.instance.pause();
+    } else {
+      this.chartDisplayRef.instance.resume();
+    }
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
       <div
         class={{
           'waypoint-info': true,
-          'waypoint-info-info-in-tab': this.isInfoInTab
+          'waypoint-info-info-in-tab': this.isInfoInTab,
+          'waypoint-info-chart-display-expanded': this.isChartDisplayExpanded,
+        }}
+        style={{
+          '--waypoint-info-expand-margin-left': this.expandMargins.map(margins => `${margins[0]}px`),
+          '--waypoint-info-expand-margin-top': this.expandMargins.map(margins => `${margins[1]}px`),
+          '--waypoint-info-expand-margin-right': this.expandMargins.map(margins => `${margins[2]}px`),
+          '--waypoint-info-expand-margin-bottom': this.expandMargins.map(margins => `${margins[3]}px`),
         }}
       >
         <div class='waypoint-info-grid'>
@@ -565,10 +733,12 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
                 );
               }}
               uiService={this.props.uiService}
+              allowKnobPush={this.allowTabKnobPush}
               facLoader={this.props.facLoader}
               facility={this.waypointInfoStore.facility}
               radiosConfig={this.props.radiosConfig}
               tabContentDimensions={this.tabContentDimensions}
+              radiosDataProvider={this.props.radiosDataProvider}
               comRadioSpacingDataProvider={this.props.comRadioSpacingDataProvider}
             />
 
@@ -587,6 +757,7 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
               }}
               uiService={this.props.uiService}
               containerRef={this.props.containerRef}
+              allowKnobPush={this.allowTabKnobPush}
               facLoader={this.props.facLoader}
               waypointInfo={this.waypointInfoStore}
               tabContentDimensions={this.tabContentDimensions}
@@ -648,19 +819,26 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
             }} isEnabled={false}>
             </GenericTabbedContent>
 
-            <GenericTabbedContent tabLabel={() => {
-              return (
-                <>
-                  <img
-                    src={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_charts.png`}
-                    class='waypoint-info-tab-label-icon'
-                    style={{ '--waypoint-info-tab-label-icon-img-height': '48px' }}
-                  />
-                  <div class='waypoint-info-tab-label-text'>Charts</div>
-                </>
-              );
-            }} isEnabled={false}>
-            </GenericTabbedContent>
+            <AirportChartsTab
+              tabLabel={() => {
+                return (
+                  <>
+                    <img
+                      src={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_charts.png`}
+                      class='waypoint-info-tab-label-icon'
+                      style={{ '--waypoint-info-tab-label-icon-img-height': '48px' }}
+                    />
+                    <div class='waypoint-info-tab-label-text'>Charts</div>
+                  </>
+                );
+              }}
+              uiService={this.props.uiService}
+              containerRef={this.props.containerRef}
+              waypointInfo={this.waypointInfoStore}
+              chartsSelectionManager={this.chartsSelectionManager}
+              onSelect={() => { this.isChartsTabSelected.set(true); }}
+              onDeselect={() => { this.isChartsTabSelected.set(false); }}
+            />
           </TabbedContainer>
         </div>
         <div class={{ 'waypoint-info-info-wrapper': true, 'hidden': this.infoHidden }}>
@@ -676,6 +854,7 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
               this.isInfoInTab
             )}
             allowKnobZoom={this.tabsHidden}
+            facLoader={this.props.facLoader}
             fplSourceDataProvider={this.props.fplSourceDataProvider}
             mapBingId={this.props.mapBingId}
             gduSettingManager={this.props.gduSettingManager}
@@ -685,6 +864,17 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
             mapConfig={this.props.mapConfig}
           />
         </div>
+        <div class={{ 'waypoint-info-chart-wrapper': true, 'hidden': this.chartDisplayHidden }}>
+          <WaypointInfoChartDisplay
+            ref={this.chartDisplayRef}
+            uiService={this.props.uiService}
+            validKnobIds={this.props.validKnobIds}
+            dataProvider={this.chartDisplayDataProvider}
+            displaySettingManager={this.props.displaySettingManager}
+            chartsConfig={this.props.chartsConfig}
+            isExpanded={this.isChartDisplayExpanded}
+          />
+        </div>
       </div>
     );
   }
@@ -692,6 +882,9 @@ export class WaypointInfo extends DisplayComponent<WaypointInfoProps> implements
   /** @inheritDoc */
   public destroy(): void {
     this.thisNode && FSComponent.shallowDestroy(this.thisNode);
+
+    this.chartsSelectionManager.destroy();
+    this.chartDisplayDataProvider.destroy();
 
     this.pposPipe.destroy();
 

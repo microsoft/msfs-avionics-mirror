@@ -21,6 +21,9 @@ export interface NavReferenceBase {
   /** The magnetic bearing, in degrees, of the reference course at the reference position. */
   readonly course: Subscribable<number | null>;
 
+  /** Whether the reference course is a heading instead of a track. */
+  readonly isCourseHeading: Subscribable<boolean | null>;
+
   /** The fixed magnetic course, in degrees, of the reference localizer. Only available if the reference is a localizer. */
   readonly localizerCourse: Subscribable<number | null>;
 
@@ -92,6 +95,9 @@ export abstract class AbstractNavReferenceBase implements NavReferenceBase {
   public readonly course = Subject.create<number | null>(null);
 
   /** @inheritdoc */
+  public readonly isCourseHeading = Subject.create<boolean | null>(null);
+
+  /** @inheritdoc */
   public readonly localizerCourse = Subject.create<number | null>(null);
 
   // This is a hacky way to get a mutable subscribable to support both input and output type GeoPointInterface | null
@@ -161,6 +167,7 @@ export abstract class AbstractNavReferenceBase implements NavReferenceBase {
     ['bearing', this.bearing],
     ['distance', this.distance],
     ['course', this.course],
+    ['isCourseHeading', this.isCourseHeading],
     ['localizerCourse', this.localizerCourse],
     ['location', this.location],
     ['isLocalizer', this.isLocalizer],

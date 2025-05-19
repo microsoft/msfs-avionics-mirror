@@ -1,7 +1,8 @@
 import {
-  CompiledMapSystem, DebounceTimer, DurationFormatter, FSComponent, MapIndexedRangeModule, MapSystemBuilder, MathUtils, MutableSubscribable,
-  MutableSubscribableInputType, NumberFormatter, NumberUnitSubject, ReadonlyFloat64Array, Subject, SubscribableMapFunctions,
-  SubscribableType, Subscription, UnitType, UserSettingManager, VNode, Vec2Math, Vec2Subject
+  CompiledMapSystem, DebounceTimer, DurationFormatter, FSComponent, FacilityLoader, MapIndexedRangeModule,
+  MapSystemBuilder, MathUtils, MutableSubscribable, MutableSubscribableInputType, NumberFormatter, NumberUnitSubject,
+  ReadonlyFloat64Array, Subject, SubscribableMapFunctions, SubscribableType, Subscription, UnitType,
+  UserSettingManager, VNode, Vec2Math, Vec2Subject
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -46,6 +47,9 @@ import './MfdMapSetupPopup.css';
  * Component props for MfdMapSetupPopup.
  */
 export interface MfdMapSetupPopupProps extends UiViewProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the popup's map to display traffic, or `null` if there is no traffic system. */
   trafficSystem: TrafficSystem | null;
 
@@ -86,6 +90,8 @@ export class MfdMapSetupPopup extends AbstractUiView<MfdMapSetupPopupProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNavMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: `g3x-${this.props.uiService.instrumentIndex}-map-1`,
 

@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-epic2-shared",
-  "version": "2.0.10",
+  "version": "2.1.2",
   "description": "Working Title Epic 2 Common Definitions",
   "typings": "index.d.ts",
   "repository": {

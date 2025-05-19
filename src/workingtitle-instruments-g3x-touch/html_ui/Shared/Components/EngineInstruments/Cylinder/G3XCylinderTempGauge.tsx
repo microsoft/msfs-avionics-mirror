@@ -1,4 +1,4 @@
-import { ArrayUtils, ComponentProps, FSComponent, MathUtils, Subject, VNode, XMLHostedLogicGauge } from '@microsoft/msfs-sdk';
+import { ArrayUtils, ComponentProps, FSComponent, MappedSubject, MathUtils, Subject, SubscribableMapFunctions, VNode, XMLHostedLogicGauge } from '@microsoft/msfs-sdk';
 
 import { G3XBaseGauge } from '../G3XBaseGauge';
 import { CylinderColumn, CylinderTypes } from './CylinderTypes';
@@ -25,11 +25,18 @@ export class G3XCylinderTempGauge extends G3XBaseGauge<Partial<G3XCylinderGaugeP
   private readonly chtContainerRef = FSComponent.createRef<HTMLDivElement>();
   private readonly egtPeakCylindersContainerRef = FSComponent.createRef<HTMLDivElement>();
 
+  private readonly numCylinders = this.props.numCylinders ?? 4;
+  private readonly numColumns = this.props.isTwinEngine ? this.numCylinders * 2 : this.numCylinders;
+  private readonly currentEgtValues = ArrayUtils.create(this.numColumns, () => Subject.create(0));
+  private readonly hottestEgtCylinderValue = MappedSubject.create(
+    SubscribableMapFunctions.max(),
+    ...this.currentEgtValues,
+  );
+
   private egtMinimum = 0;
   private egtMaximum = 0;
   private chtMinimum = 0;
   private chtMaximum = 0;
-  private numColumns = 0;
   private readonly columnMap = new Array<CylinderColumn>();
   private tempOrder = new Array<number>();
   private readonly timeouts = new Array<NodeJS.Timeout>();
@@ -60,7 +67,6 @@ export class G3XCylinderTempGauge extends G3XBaseGauge<Partial<G3XCylinderGaugeP
 
   private usePeakMode = false;
   private readonly hottestChtCylinderValue = Subject.create(0);
-  private readonly hottestEgtCylinderValue = Subject.create(0);
   private peaksAppearanceOrder = new Array<Array<number>>();
 
   private readonly chtHottestTempBackgroundColor = this.hottestChtCylinderValue.map(value => {
@@ -110,8 +116,6 @@ export class G3XCylinderTempGauge extends G3XBaseGauge<Partial<G3XCylinderGaugeP
   /** @inheritDoc */
   protected initGauge(): void {
 
-    const numCylinders = this.props.numCylinders ?? 4;
-    this.numColumns = this.props.isTwinEngine ? numCylinders * 2 : numCylinders;
     this.egtMinimum = this.props.minimum?.getValueAsNumber() ?? 0;
     this.egtMaximum = this.props.maximum?.getValueAsNumber() ?? 0;
     this.chtMinimum = this.props.minimum2?.getValueAsNumber() ?? 0;
@@ -506,9 +510,7 @@ export class G3XCylinderTempGauge extends G3XBaseGauge<Partial<G3XCylinderGaugeP
     const column = this.columnMap[index];
     const engineIndex = this.props.isTwinEngine && index >= this.numColumns / 2 ? 1 : 0;
     const simulatedValue = MathUtils.clamp(column.cylinder.setEgtValue(value), this.egtMinimum, this.egtMaximum);
-    if (simulatedValue > this.hottestEgtCylinderValue.get()) {
-      this.hottestEgtCylinderValue.set(simulatedValue);
-    }
+    this.currentEgtValues[index].set(simulatedValue);
 
     if (this.usePeakMode && this.props.style?.peakTemps) {
       const enginePeaksAppearanceOrder = this.peaksAppearanceOrder[engineIndex];

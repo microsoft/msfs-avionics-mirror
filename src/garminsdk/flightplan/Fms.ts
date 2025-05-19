@@ -58,6 +58,9 @@ export type FmsOptions = {
   /** The ID of the CDI associated with the FMS. Defaults to the empty string (`''`). */
   cdiId?: string;
 
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facLoader?: FacilityLoader;
+
   /** Whether advanced VNAV is supported. Defaults to `false`. */
   isAdvancedVnav?: boolean;
 
@@ -207,7 +210,7 @@ export class Fms<ID extends string = any> {
 
   private readonly facRepo = FacilityRepository.getRepository(this.bus);
   /** A facility loader instance. */
-  public readonly facLoader = new FacilityLoader(this.facRepo);
+  public readonly facLoader: FacilityLoader;
 
   private readonly approachDetails = ObjectSubject.create<ApproachDetails>(FmsUtils.createEmptyApproachDetails());
   private needPublishApproachDetails = false;
@@ -339,6 +342,8 @@ export class Fms<ID extends string = any> {
     this.cdiControlTopicMap = {
       'cdi_src_set': `cdi_src_set${cdiTopicSuffix}`,
     };
+
+    this.facLoader = options.facLoader ?? new FacilityLoader(this.facRepo);
 
     this.isAdvancedVnav = options.isAdvancedVnav ?? false;
     this.procedureLegMapFunc = options.procedureLegMapper ?? (leg => leg);
@@ -2740,7 +2745,7 @@ export class Fms<ID extends string = any> {
         isAltitude1TempCompensated: false,
         isAltitude2TempCompensated: false,
         speed: leg.leg.speedRestriction,
-        speedDesc: FmsUtils.getPublishedSpeedDescBasedOnSegment(leg.leg.speedRestriction, segment.segmentType),
+        speedDesc: leg.leg.speedRestrictionDesc,
         speedUnit: SpeedUnit.IAS,
       };
 
@@ -2999,13 +3004,11 @@ export class Fms<ID extends string = any> {
 
     if (leg === null) { return; }
 
-    const segment = plan.getSegment(segmentIndex);
     const verticalData: SpeedConstraint = {
       speed: leg.leg.speedRestriction,
-      // There is no published speedDesc in the nav data, so they are all in knots IAS
+      // There is no published speed unit in the nav data, so they are all in knots IAS
       speedUnit: SpeedUnit.IAS,
-      // Nav data doesn't have a speed desc, so we pick one based on the segment
-      speedDesc: FmsUtils.getPublishedSpeedDescBasedOnSegment(leg.leg.speedRestriction, segment.segmentType),
+      speedDesc: leg.leg.speedRestrictionDesc,
     };
 
     this.setLegVerticalData(plan, segmentIndex, segmentLegIndex, verticalData);

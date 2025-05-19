@@ -116,6 +116,8 @@ export class DirectToWaypointTab extends AbstractTabbedContent<DirectToWaypointT
     .with(G3XWaypointMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
 
+      facilityLoader: this.props.fms.facLoader,
+
       bingId: `g3x-${this.props.uiService.gduIndex}-map-3`,
 
       dataUpdateFreq: 30,

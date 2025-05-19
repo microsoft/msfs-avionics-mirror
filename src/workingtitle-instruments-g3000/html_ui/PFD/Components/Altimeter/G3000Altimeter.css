@@ -291,9 +291,10 @@
   height: 100%;
   background: var(--altimeter-baro-bg-color);
   border-radius: 0 0 var(--altimeter-tape-bg-border-radius) 0;
-  border: var(--altimeter-tape-bottom-border);
+  border: 1px solid var(--altimeter-tape-bottom-border-color);
   border-top: none;
   font-size: var(--altimeter-baro-font-size);
+  color: var(--g3000-color-cyan);
 }
 
 .altimeter-baro-setting-value,
@@ -302,7 +303,6 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: var(--g3000-color-cyan);
   white-space: nowrap;
 }
 
@@ -332,6 +332,30 @@
 .altimeter-baro-preselect-value {
   color: var(--g3000-color-title-gray);
   letter-spacing: -1px;
+}
+
+@keyframes altimeter-baro-trans-alert-flash {
+  0% {
+    background: var(--altimeter-baro-bg-color);
+    border: 1px solid var(--altimeter-tape-bottom-border-color);
+    color: var(--g3000-color-cyan);
+  }
+
+  50% {
+    background: var(--altimeter-baro-bg-color);
+    border: 1px solid var(--altimeter-tape-bottom-border-color);
+    color: var(--g3000-color-cyan);
+  }
+
+  100% {
+    background: var(--g3000-color-cyan);
+    border: 1px solid var(--g3000-color-cyan);
+    color: var(--g3000-color-black);
+  }
+}
+
+.altimeter-baro-container.altimeter-baro-container-transition-alert {
+  animation: altimeter-baro-trans-alert-flash 1s infinite;
 }
 
 .altimeter-tape-container {

@@ -1,6 +1,6 @@
 import {
   ClockEvents, DebounceTimer, FlightPlanSegmentType, FSComponent, LegDefinition, MappedSubject, SetSubject,
-  StringUtils, Subject, Subscription, UserSetting, UserSettingManager, VNode
+  StringUtils, Subject, Subscription, UserSetting, UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { Fms, FmsUtils, GarminFacilityWaypointCache } from '@microsoft/msfs-garminsdk';
@@ -174,6 +174,7 @@ export class GtcFlightPlanPage extends GtcView<FlightPlanPageProps> {
 
   private readonly listItemHeightPx = this.gtcService.isHorizontal ? 134 : 72;
   private readonly listItemSpacingPx = this.gtcService.isHorizontal ? 2 : 1;
+  private readonly listRenderWindow = Vec2Subject.create(Vec2Math.create(0, Infinity));
 
   private readonly lastActiveLegAutoScrolledTo = Subject.create<FlightPlanLegData | undefined>(undefined);
   private readonly toLegScrollSub: Subscription;
@@ -260,6 +261,8 @@ export class GtcFlightPlanPage extends GtcView<FlightPlanPageProps> {
 
   /** @inheritdoc */
   public onAfterRender(): void {
+    this.flightPlanList.instance.renderWindow.pipe(this.listRenderWindow);
+
     this._activeComponent.set(this.flightPlanList.instance);
 
     // ---- Register Popups ----
@@ -778,10 +781,10 @@ export class GtcFlightPlanPage extends GtcView<FlightPlanPageProps> {
           isDirectToRandom={true}
         >
           <FlightPlanFromToArrow
-            isFromLegInAirway={Subject.create(false)}
-            isToLegInAirway={Subject.create(false)}
             fromIndex={Subject.create(undefined)}
             toIndex={Subject.create(0)}
+            isFromLegInAirway={Subject.create(false)}
+            isToLegInAirway={Subject.create(false)}
             listItemHeightPx={this.listItemHeightPx}
             listItemSpacingPx={this.listItemSpacingPx}
             gtcOrientation={this.gtcService.orientation}
@@ -799,10 +802,10 @@ export class GtcFlightPlanPage extends GtcView<FlightPlanPageProps> {
             isDirectToRandom={true}
           >
             <FlightPlanFromToArrow
-              isFromLegInAirway={Subject.create(false)}
-              isToLegInAirway={Subject.create(false)}
               fromIndex={Subject.create(undefined)}
               toIndex={Subject.create(0)}
+              isFromLegInAirway={Subject.create(false)}
+              isToLegInAirway={Subject.create(false)}
               listItemHeightPx={this.listItemHeightPx}
               listItemSpacingPx={this.listItemSpacingPx}
               gtcOrientation={this.gtcService.orientation}
@@ -1068,17 +1071,19 @@ export class GtcFlightPlanPage extends GtcView<FlightPlanPageProps> {
                   : this.gtcService.isHorizontal ? 683 : 366)}
             listItemSpacingPx={this.listItemSpacingPx}
             itemsPerPage={this.store.isDirectToRandomActiveWithHold.map(x => x === 'with-hold' ? 2 : x === 'no-hold' ? 3 : 5)}
+            maxRenderedItemCount={20}
             data={this.listManager.dataList}
             renderItem={this.renderItem}
             onTopVisibleIndexChanged={this.calcTopRow}
             staticTouchListChildren={(
               <FlightPlanFromToArrow
-                isFromLegInAirway={this.store.fromLegSegment.map(x => x?.airway !== undefined)}
-                isToLegInAirway={this.store.toLegSegment.map(x => x?.airway !== undefined)}
                 fromIndex={this.listManager.fromLegVisibleListIndex}
                 toIndex={this.listManager.toLegVisibleListIndex}
+                isFromLegInAirway={this.store.fromLegSegment.map(x => x?.airway !== undefined)}
+                isToLegInAirway={this.store.toLegSegment.map(x => x?.airway !== undefined)}
                 listItemHeightPx={this.listItemHeightPx}
                 listItemSpacingPx={this.listItemSpacingPx}
+                listRenderWindow={this.listRenderWindow}
                 gtcOrientation={this.gtcService.orientation}
               />
             )}

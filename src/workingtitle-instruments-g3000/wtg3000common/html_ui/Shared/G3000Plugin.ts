@@ -3,14 +3,15 @@ import { AvionicsPlugin, EventBus, FacilityLoader, FlightPathCalculator, Instrum
 import { Fms } from '@microsoft/msfs-garminsdk';
 
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
+import { G3000ChartsSourceFactory } from './Charts/G3000ChartsSource';
 import { G3000ChecklistSetDef } from './Checklist/G3000ChecklistDefinition';
 import { G3000ChecklistStateProvider } from './Checklist/G3000ChecklistStateProvider';
 import { G3000FlightPlannerId } from './CommonTypes';
+import { DisplayOverlayController } from './DisplayOverlay/DisplayOverlayController';
 import { FmsSpeedUserSettingManager } from './Settings/FmsSpeedUserSettings';
 import { PfdSensorsUserSettingManager } from './Settings/PfdSensorsUserSettings';
 import { VSpeedUserSettingManager } from './Settings/VSpeedUserSettings';
 import { WeightBalanceUserSettingManager } from './Settings/WeightBalanceUserSettings';
-import { DisplayOverlayController } from './DisplayOverlay/DisplayOverlayController';
 
 /**
  * A plugin binder for G3000 plugins.
@@ -64,6 +65,12 @@ export interface G3000Plugin<Binder extends G3000PluginBinder = G3000PluginBinde
    * @returns A VNode to render to the display overlay, or `null` to render nothing.
    */
   renderToDisplayOverlay?(): VNode | null;
+
+  /**
+   * Gets factories for additional electronic charts sources.
+   * @returns Factories for additional electronic charts sources, or `undefined` if there are no additional sources.
+   */
+  getChartsSources?(): Iterable<G3000ChartsSourceFactory> | undefined;
 
   /**
    * Gets a checklist definition to be used by the electronic checklist system.

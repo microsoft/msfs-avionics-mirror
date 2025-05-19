@@ -6,6 +6,7 @@ export * from './Annunciator';
 export * from './Autothrottle';
 export * from './BaroSelection';
 export * from './Fma';
+export * from './GpwsAlerts';
 export * from './Horizon';
 export * from './HSI';
 export * from './MachDigitalReadout';

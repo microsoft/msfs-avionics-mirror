@@ -1,8 +1,11 @@
 import {
-  ComRadioTuneEvents, ComSpacing, ConsumerSubject, FSComponent, NavRadioIndex,
-  NodeReference, RadioType, Subject, Subscribable, VNode
+  ComSpacing, FSComponent, NodeReference, RadioType, Subject, Subscribable, SubscribableMapFunctions, Subscription,
+  VNode
 } from '@microsoft/msfs-sdk';
 
+import { RadioVolumeShortcutPopup } from '../../../GduDisplay/Gdu460/RadioVolumeShortcutPopup/RadioVolumeShortcutPopup';
+import { RadiosConfig } from '../../../Shared/AvionicsConfig/RadiosConfig';
+import { G3XFailureBox } from '../../../Shared/Components/Common/G3XFailureBox';
 import { ChannelSpacing } from '../../../Shared/Components/FrequencyInput/ChannelInputSlot';
 import { FrequencyInput } from '../../../Shared/Components/FrequencyInput/FrequencyInput';
 import { NumberPad } from '../../../Shared/Components/NumberPad/NumberPad';
@@ -10,18 +13,17 @@ import { UiImgTouchButton } from '../../../Shared/Components/TouchButton/UiImgTo
 import { UiToggleTouchButton } from '../../../Shared/Components/TouchButton/UiToggleTouchButton';
 import { UiValueTouchButton } from '../../../Shared/Components/TouchButton/UiValueTouchButton';
 import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
+import { G3XNavComControlEvents } from '../../../Shared/NavCom/G3XNavComEventPublisher';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
 import { UiDialogResult, UiDialogView } from '../../../Shared/UiSystem/UiDialogView';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
 import { UiKnobId } from '../../../Shared/UiSystem/UiKnobTypes';
-import { MfdRadioVolumePopup } from '../MfdRadioVolumePopup/MfdRadioVolumePopup';
-import { RadioVolumeShortcutPopup } from '../../../GduDisplay/Gdu460/RadioVolumeShortcutPopup/RadioVolumeShortcutPopup';
-import { ComFindFrequencyDialog } from '../FindFrequencyDialog/ComFindFrequencyDialog/ComFindFrequencyDialog';
 import { UiViewProps } from '../../../Shared/UiSystem/UiView';
 import { UiViewKeys } from '../../../Shared/UiSystem/UiViewKeys';
 import { RenderedUiViewEntry, UiViewStackLayer } from '../../../Shared/UiSystem/UiViewTypes';
-import { RadiosConfig } from '../../../Shared/AvionicsConfig/RadiosConfig';
-import { G3XNavComControlEvents } from '../../../Shared/NavCom/G3XNavComEventPublisher';
+import { ComFindFrequencyDialog } from '../FindFrequencyDialog/ComFindFrequencyDialog/ComFindFrequencyDialog';
+import { MfdRadioVolumePopup } from '../MfdRadioVolumePopup/MfdRadioVolumePopup';
 
 import './ComFrequencyDialog.css';
 
@@ -71,9 +73,11 @@ type ComFrequencyDialogContext = {
  * Component props for {@link ComFrequencyDialog}.
  */
 export interface ComFrequencyDialogProps extends UiViewProps {
-
   /** Radios config. */
   radiosConfig: RadiosConfig;
+
+  /** A provider of radio data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 
   /** Whether to use the radio volume shortcut. */
   useRadioVolumeShortcut: Subscribable<boolean>;
@@ -103,11 +107,14 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
   };
 
   private radioIndex: 1 | 2 = 1;
-  private label = Subject.create('');
-  private simRadioIndex: NavRadioIndex = 1;
+  private readonly label = Subject.create('');
   private activeContext?: ComFrequencyDialogContext;
 
-  private readonly volume = ConsumerSubject.create(null, 1);
+  private readonly isRadioPowered = Subject.create(false);
+  private readonly isNotRadioPowered = this.isRadioPowered.map(SubscribableMapFunctions.not());
+  private readonly volume = Subject.create(0);
+  private readonly radioPipes: Subscription[] = [];
+
   private readonly backButtonLabel = Subject.create('');
   private readonly backButtonImgSrc = Subject.create('');
 
@@ -160,17 +167,23 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
       this.requestIsPending = true;
       this.radioIndex = input.radioIndex;
 
-      const definition = this.props.radiosConfig.comDefinitions[this.radioIndex];
+      const dataProvider = this.props.radiosDataProvider.comRadioDataProviders[this.radioIndex];
 
-      if (!definition) {
-        throw new Error(`Radio definition not found for radio index: ${this.radioIndex}`);
+      if (!dataProvider) {
+        throw new Error(`ComFrequencyDialog::request(): COM radio index ${this.radioIndex} is not supported`);
       }
-
-      this.simRadioIndex = definition.simIndex;
 
       this.label.set(this.props.radiosConfig.comDefinitions.length === 1 ? 'COM Radio' : `COM ${this.radioIndex}`);
 
-      this.volume.setConsumer(this.props.uiService.bus.getSubscriber<ComRadioTuneEvents>().on(`com_volume_${this.simRadioIndex}`));
+      for (const pipe of this.radioPipes) {
+        pipe.destroy();
+      }
+      this.radioPipes.length = 0;
+
+      this.radioPipes.push(
+        dataProvider.isPowered.pipe(this.isRadioPowered, !this.isResumed),
+        dataProvider.volume.pipe(this.volume, !this.isResumed)
+      );
 
       this.activeContext = this.contexts[input.spacing];
 
@@ -196,19 +209,25 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
 
   /** @inheritDoc */
   public onResume(): void {
-    super.onResume();
     this.isResumed = true;
+
+    for (const pipe of this.radioPipes) {
+      pipe.resume(true);
+    }
+
     this.focusController.focusRecent();
-    this.volume.resume();
     this.openRadioVolumeShortcutIfNeeded();
   }
 
   /** @inheritDoc */
   public onPause(): void {
-    super.onPause();
     this.isResumed = false;
+
+    for (const pipe of this.radioPipes) {
+      pipe.pause();
+    }
+
     this.focusController.removeFocus();
-    this.volume.pause();
     this.closeRadioVolumeShortcut();
   }
 
@@ -261,16 +280,21 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
     const isFullScreenAndMFD = !this.props.uiService.isPaneSplit.get() && this.props.uiService.operatingType.get() === 'MFD';
 
     if (
-      this.props.useRadioVolumeShortcut.get()
+      this.props.uiService.gduFormat === '460'
+      && this.props.useRadioVolumeShortcut.get()
       && this.isResumed
       && this.requestIsPending
       && !isFullScreenAndMFD
     ) {
       this.props.uiService.closePfdPopup((popup: RenderedUiViewEntry) => popup.key === UiViewKeys.RadioVolumeShortcutPopup);
-      this.props.uiService.openPfdPopup<RadioVolumeShortcutPopup>(UiViewKeys.RadioVolumeShortcutPopup, true).ref.request(
-        RadioType.Com,
-        this.radioIndex
-      );
+      this.props.uiService.openPfdPopup<RadioVolumeShortcutPopup>(
+        UiViewKeys.RadioVolumeShortcutPopup,
+        true,
+        {
+          popupType: 'normal',
+          backgroundOcclusion: 'none'
+        }
+      ).ref.request(RadioType.Com, this.radioIndex);
     }
   }
 
@@ -313,6 +337,11 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
    */
   private closeRequest(): void {
     if (this.requestIsPending) {
+      for (const pipe of this.radioPipes) {
+        pipe.destroy();
+      }
+      this.radioPipes.length = 0;
+
       if (this.activeContext) {
         this.activeContext.inputRef.instance.deactivateEditing();
         this.activeContext.hidden.set(true);
@@ -346,7 +375,7 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
           comSpacing: this.activeContext.type,
         });
 
-      if (!result.wasCancelled) {
+      if (!result.wasCancelled && this.isRadioPowered.get()) {
         if (result.payload.name) {
           this.props.uiService.bus
             .getPublisher<G3XNavComControlEvents>()
@@ -404,9 +433,10 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
           <div class='com-freq-dialog-input-row'>
             <UiImgTouchButton
               label='Find'
+              imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_find.png`}
+              isEnabled={this.isRadioPowered}
               onPressed={this.onFindPressed.bind(this)}
               class='ui-nav-button'
-              imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_find.png`}
             />
 
             <div class='com-freq-dialog-input-row-center'>
@@ -453,9 +483,20 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
           <UiValueTouchButton
             state={this.volume}
             label='Volume'
+            renderValue={
+              <>
+                <div class={{ 'hidden': this.isNotRadioPowered }}>
+                  {this.volume.map(volume => volume.toFixed(0))}%
+                </div>
+                <G3XFailureBox
+                  show={this.isNotRadioPowered}
+                  class='com-freq-dialog-volume-failure-box'
+                />
+              </>
+            }
+            isEnabled={this.isRadioPowered}
             onPressed={this.onVolumePressed.bind(this)}
             class='com-freq-dialog-volume'
-            renderValue={volume => `${volume.toFixed(0)}%`}
           />
         </div>
 
@@ -478,16 +519,18 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
 
           <UiImgTouchButton
             label='XFER'
+            imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_xfer.png`}
+            isEnabled={this.isRadioPowered}
             onPressed={this.validateValueAndClose.bind(this, true)}
             focusController={this.focusController}
             class='ui-nav-button'
-            imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_xfer.png`}
           />
 
           <UiImgTouchButton
             ref={this.enterRef}
             label='Enter'
             imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_enter.png`}
+            isEnabled={this.isRadioPowered}
             onPressed={this.validateValueAndClose.bind(this, false)}
             focusController={this.focusController}
             class='ui-nav-button'
@@ -502,7 +545,10 @@ export class ComFrequencyDialog extends AbstractUiView<ComFrequencyDialogProps> 
     this.closeRequest();
 
     this.thisNode && FSComponent.shallowDestroy(this.thisNode);
-    this.volume.destroy();
+
+    for (const pipe of this.radioPipes) {
+      pipe.destroy();
+    }
 
     super.destroy();
   }

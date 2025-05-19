@@ -6,17 +6,16 @@
 /// <reference types="@microsoft/msfs-types/Coherent/Facilities" />
 
 import {
-  AdcPublisher, AhrsPublisher, APEvents, AutopilotInstrument, BaseInstrumentPublisher, Clock, ClockEvents, ControlPublisher, EISPublisher, ElectricalPublisher,
-  EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner,
-  FlightPlanRouteManager, FlightPlanRouteUtils, FSComponent, FsInstrument, GameStateProvider, GNSSPublisher, GpsSynchronizer, InstrumentBackplane, LNavComputer,
-  NavComEvents, NavComSimVarPublisher, NavSourceType, PluginSystem, SimVarValueType, SmoothingPathCalculator, UserSettingSaveManager,
-  VNavSimVarPublisher, Wait, XPDRInstrument
+  AdcPublisher, AhrsPublisher, APEvents, AutopilotInstrument, BaseInstrumentPublisher, Clock, ClockEvents, ControlPublisher,
+  DefaultFlightPathAnticipatedDataCalculator, EISPublisher, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode,
+  FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightPlanRouteManager, FlightPlanRouteUtils, FSComponent, FsInstrument, GameStateProvider,
+  GNSSPublisher, GpsSynchronizer, InstrumentBackplane, LNavComputer, NavComEvents, NavComSimVarPublisher, NavSourceType, PluginSystem, SimVarValueType,
+  SmoothingPathCalculator, UserSettingSaveManager, VNavSimVarPublisher, Wait, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 
 import {
   DefaultsUserSettings, FgpUserSettings, FmcSimVarPublisher, FmcSimVars, FMS_MESSAGE_ID, MESSAGE_TARGET, MessageManager, MessageService, PfdMessageReceiver,
-  PFDUserSettings, WT21ControlEvents, WT21ControlPublisher, WT21FixInfoConfig, WT21FixInfoManager, WT21FmsUtils,
-  WT21SettingSaveManager
+  PFDUserSettings, WT21ControlEvents, WT21ControlPublisher, WT21FixInfoConfig, WT21FixInfoManager, WT21FmsUtils, WT21SettingSaveManager
 } from '@microsoft/msfs-wt21-shared';
 
 import { WT21APConfig } from './Autopilot/WT21APConfig';
@@ -126,7 +125,9 @@ export class WT21_FMC_Instrument implements FsInstrument {
     this.clock = new Clock(this.bus);
 
     // Flight Planning Items
-    this.facLoader = new FacilityLoader(FacilityRepository.getRepository(this.bus));
+    this.facLoader = new FacilityLoader(FacilityRepository.getRepository(this.bus), undefined, {
+      sharedFacilityCacheId: 'wt21',
+    });
     this.calculator = new FlightPathCalculator(this.facLoader, {
       defaultClimbRate: 2000,
       defaultSpeed: 220,
@@ -137,6 +138,10 @@ export class WT21_FMC_Instrument implements FsInstrument {
       maxBankAngle: 25,
       airplaneSpeedMode: FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind,
       airplaneWindMode: FlightPathAirplaneWindMode.Automatic,
+      anticipatedDataCalculator: new DefaultFlightPathAnticipatedDataCalculator(this.bus,
+        {
+          descentSpeedProfileKtsBelow10k: 220, descentSpeedProfileKtsAbove10k: 260, typicalVRef: 130
+        })
     }, this.bus);
     this.planner = FlightPlanner.getPlanner(this.bus, this.calculator, WT21FmsUtils.buildWT21LegName);
 
@@ -209,7 +214,7 @@ export class WT21_FMC_Instrument implements FsInstrument {
     // FIXME Add route predictor when FlightPlanPredictor refactored to implement FlightPlanPredictionsProvider
     this.fixInfoManager = new WT21FixInfoManager(this.bus, this.facLoader, WT21FmsUtils.PRIMARY_ACT_PLAN_INDEX, this.planner, WT21FixInfoConfig /*, this.activeRoutePredictor*/);
     this.fmsPos = new FmsPos(this.bus, this.messageService);
-    this.fms = new WT21Fms(this.bus, this.planner, this.fmsPos, this.verticalPathCalculator, this.messageService, this.fixInfoManager);
+    this.fms = new WT21Fms(this.bus, this.facLoader, this.planner, this.fmsPos, this.verticalPathCalculator, this.messageService, this.fixInfoManager);
     this.speedConstraintStore = new WT21SpeedConstraintStore(this.bus, this.planner);
 
     if (this.instrument.isPrimary) {

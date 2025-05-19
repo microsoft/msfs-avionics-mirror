@@ -57,6 +57,8 @@ export enum GarminTawsAlert {
   EcrCaution = 'TawsEcrCaution',
 
   FitTerrainCaution = 'TawsFitTerrainCaution',
+  FitTerrainGearCaution = 'TawsFitTerrainGearCaution',
+  FitTerrainFlapsCaution = 'TawsFitTerrainFlapsCaution',
   FitGearCaution = 'TawsFitGearCaution',
   FitFlapsCaution = 'TawsFitFlapsCaution',
   FitTakeoffCaution = 'TawsFitTakeoffCaution',

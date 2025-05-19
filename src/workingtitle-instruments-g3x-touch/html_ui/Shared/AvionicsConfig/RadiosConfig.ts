@@ -12,9 +12,6 @@ type RadioDefinition<SimIndexes extends number> = {
 
   /** The sim index of this definition's radio. */
   simIndex: SimIndexes;
-
-  /** The electrical logic for this definition's radio. */
-  electricity?: CompositeLogicXMLElement;
 };
 
 /**
@@ -140,12 +137,9 @@ export class RadiosConfig implements Config {
         continue;
       }
 
-      const electricLogicElement = comElement.querySelector(':scope>Electric');
-
       defs[index] = {
         index: index as 1 | 2,
         simIndex: simIndex as ComRadioIndex,
-        electricity: electricLogicElement === null ? undefined : new CompositeLogicXMLElement(baseInstrument, electricLogicElement)
       };
     }
 
@@ -193,13 +187,10 @@ export class RadiosConfig implements Config {
         supportAutoSlew = true;
       }
 
-      const electricLogicElement = navElement.querySelector(':scope>Electric');
-
       defs[index] = {
         index: index as 1 | 2,
         simIndex: index as 1 | 2,
         supportAutoSlew,
-        electricity: electricLogicElement === null ? undefined : new CompositeLogicXMLElement(baseInstrument, electricLogicElement)
       };
       actualCount++;
     }

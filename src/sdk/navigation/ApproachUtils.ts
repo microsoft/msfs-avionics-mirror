@@ -1,4 +1,5 @@
 import { BitFlags } from '../math/BitFlags';
+import { DeepReadonly } from '../utils/types/UtilityTypes';
 import {
   AdditionalApproachType, AirportFacility, ApproachIdentifier, ApproachProcedure, ApproachTypeName,
   ExtendedApproachType, FacilityFrequency, FacilityType, FixTypeFlags, FlightPlanLeg, NdbFacility, RnavTypeFlags,
@@ -82,7 +83,35 @@ export class ApproachUtils {
   public static toEmptyIdentifier(ident: ApproachIdentifier): ApproachIdentifier {
     ident.type = ApproachTypeName.Undefined;
     RunwayUtils.toEmptyIdentifier(ident.runway);
+    ident.suffix = '';
     return ident;
+  }
+
+  /**
+   * Gets the identifier corresponding to an approach procedure.
+   * @param approach The approach procedure for which to get an identifier.
+   * @param out The object to which to write the result. If not defined, then a new identifier object will be created.
+   * @returns The identifier corresponding to the specified approach procedure.
+   */
+  public static getIdentifier(approach: ApproachProcedure, out = ApproachUtils.emptyIdentifier()): ApproachIdentifier {
+    out.type = ApproachUtils.typeToName(approach.approachType);
+    out.runway.number = RunwayUtils.getNumberString(approach.runwayNumber);
+    out.runway.designator = RunwayUtils.getDesignatorLetter(approach.runwayDesignator);
+    out.suffix = approach.approachSuffix;
+    return out;
+  }
+
+  /**
+   * Checks whether two approach identifiers are equal.
+   * @param a The first identifier.
+   * @param b The second identifier.
+   * @returns Whether the two specified approach identifiers are equal.
+   */
+  public static identifierEquals(a: DeepReadonly<ApproachIdentifier>, b: DeepReadonly<ApproachIdentifier>): boolean {
+    return a.type === b.type
+      && a.runway.number === b.runway.number
+      && a.runway.designator === b.runway.designator
+      && a.suffix === b.suffix;
   }
 
   /**

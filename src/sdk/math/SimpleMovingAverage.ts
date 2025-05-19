@@ -4,6 +4,7 @@
 export class SimpleMovingAverage {
 
   private _values: number[] = [];
+  private _lastAverage = 0;
   /**
    * Class to return a numerical average from a specified number of inputs.
    * @param samples is the number of samples.
@@ -12,19 +13,18 @@ export class SimpleMovingAverage {
 
   /**
    * Returns a numerical average of the inputs.
-   * @param input is the input number.
+   * @param newestValue is the input number.
    * @returns The numerical average.
    */
-  public getAverage(input: number): number {
-    if (this._values.length === this.samples) {
-      this._values.splice(0, 1);
+  public getAverage(newestValue: number): number {
+    if (this._values.length === 0) {
+      this._values = Array(this.samples).fill(newestValue);
+      this._lastAverage = newestValue;
     }
-    this._values.push(input);
-    let sum = 0;
-    this._values.forEach((v) => {
-      sum += v;
-    });
-    return sum / this._values.length;
+    const oldestValue = this._values.splice(0, 1)[0];
+    this._values.push(newestValue);
+    this._lastAverage += ((newestValue - oldestValue) / this._values.length);
+    return this._lastAverage;
   }
 
   /**

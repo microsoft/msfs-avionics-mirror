@@ -1,12 +1,14 @@
-import { FSComponent, MutableSubscribable, VNode } from '@microsoft/msfs-sdk';
+import { FSComponent, MutableSubscribable, UnitType, VNode } from '@microsoft/msfs-sdk';
 
 import { UnitsFuelSettingMode, UnitsTemperatureSettingMode, UnitsWeightSettingMode } from '@microsoft/msfs-garminsdk';
 
+import { G3XUnitsFuelType, UnitsConfig } from '../../../Shared/AvionicsConfig/UnitsConfig';
 import { UiList } from '../../../Shared/Components/List/UiList';
 import { UiListFocusable } from '../../../Shared/Components/List/UiListFocusable';
 import { UiListItem } from '../../../Shared/Components/List/UiListItem';
 import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
-import { G3XUnitsUserSettings, G3XUnitsBaroPressureSettingMode, G3XUnitsFuelEconomySettingMode } from '../../../Shared/Settings/G3XUnitsUserSettings';
+import { G3XUnitType } from '../../../Shared/Math/G3XUnitType';
+import { G3XUnitsBaroPressureSettingMode, G3XUnitsFuelEconomySettingMode, G3XUnitsUserSettings } from '../../../Shared/Settings/G3XUnitsUserSettings';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
 import { UiViewProps } from '../../../Shared/UiSystem/UiView';
@@ -18,9 +20,17 @@ import { UiListDialogParams } from '../../Dialogs/UiListDialog';
 import './UnitsSetupView.css';
 
 /**
+ * Component props for {@link UnitsSetupView}.
+ */
+export interface UnitsSetupViewProps extends UiViewProps {
+  /** A configuration object defining options for measurement units. */
+  unitsConfig: UnitsConfig;
+}
+
+/**
  * A units setup menu.
  */
-export class UnitsSetupView extends AbstractUiView<UiViewProps> {
+export class UnitsSetupView extends AbstractUiView<UnitsSetupViewProps> {
   private readonly listRef = FSComponent.createRef<UiList<any>>();
 
   private readonly listItemLengthPx = this.props.uiService.gduFormat === '460' ? 96 : 50;
@@ -54,6 +64,87 @@ export class UnitsSetupView extends AbstractUiView<UiViewProps> {
   /** @inheritDoc */
   public onUiInteractionEvent(event: UiInteractionEvent): boolean {
     return this.listRef.instance.onUiInteractionEvent(event);
+  }
+
+  /**
+   * Gets the available fuel setting options.
+   * @returns The available fuel setting options, as an object whose keys are the options from which the user can
+   * select and whose values are the text to display for each option.
+   */
+  private getFuelSettingOptions(): Partial<Record<UnitsFuelSettingMode, string>> {
+    switch (this.props.unitsConfig.fuelType) {
+      case G3XUnitsFuelType.JetA:
+        return {
+          [UnitsFuelSettingMode.GallonsJetA]: 'Gallons (US)',
+          [UnitsFuelSettingMode.LitersJetA]: 'Liters',
+          [UnitsFuelSettingMode.Pounds]: 'Pounds (lbs)\nJet',
+          [UnitsFuelSettingMode.Kilograms]: 'Kilograms (kg)\nJet',
+        };
+      case G3XUnitsFuelType.OneHundredLL:
+        return {
+          [UnitsFuelSettingMode.Gallons100LL]: 'Gallons (US)',
+          [UnitsFuelSettingMode.Liters100LL]: 'Liters',
+          [UnitsFuelSettingMode.Pounds]: 'Pounds (lbs)\nAvgas',
+          [UnitsFuelSettingMode.Kilograms]: 'Kilograms (kg)\nAvgas',
+        };
+      case G3XUnitsFuelType.Autogas:
+        return {
+          [UnitsFuelSettingMode.GallonsAutogas]: 'Gallons (US)',
+          [UnitsFuelSettingMode.LitersAutogas]: 'Liters',
+          [UnitsFuelSettingMode.Pounds]: 'Pounds (lbs)\nAutogas',
+          [UnitsFuelSettingMode.Kilograms]: 'Kilograms (kg)\nAutogas',
+        };
+      case G3XUnitsFuelType.Sim:
+      default: {
+        const fuelName = G3XUnitType.GALLON_SIM_FUEL.convertTo(1, UnitType.POUND) < 6.1 ? 'Avgas' : 'Jet';
+        return {
+          [UnitsFuelSettingMode.GallonsSim]: 'Gallons (US)',
+          [UnitsFuelSettingMode.LitersSim]: 'Liters',
+          [UnitsFuelSettingMode.Pounds]: `Pounds (lbs)\n${fuelName}`,
+          [UnitsFuelSettingMode.Kilograms]: `Kilograms (kg)\n${fuelName}`,
+        };
+      }
+    }
+  }
+
+  /**
+   * Gets the available fuel economy setting options.
+   * @returns The available fuel economy setting options, as an object whose keys are the options from which the user
+   * can select and whose values are the text to display for each option.
+   */
+  private getFuelEconomySettingOptions(): Partial<Record<G3XUnitsFuelEconomySettingMode, string>> {
+    switch (this.props.unitsConfig.fuelType) {
+      case G3XUnitsFuelType.JetA:
+        return {
+          [G3XUnitsFuelEconomySettingMode.NauticalJetA]: 'Nautical (nm/US gal)',
+          [G3XUnitsFuelEconomySettingMode.StatuteJetA]: 'Statute (mi/US gal)',
+          [G3XUnitsFuelEconomySettingMode.MetricKmPerLJetA]: 'Metric (km/L)',
+          [G3XUnitsFuelEconomySettingMode.MetricLPer100KmJetA]: 'Metric (L/100km)',
+        };
+      case G3XUnitsFuelType.OneHundredLL:
+        return {
+          [G3XUnitsFuelEconomySettingMode.Nautical100LL]: 'Nautical (nm/US gal)',
+          [G3XUnitsFuelEconomySettingMode.Statute100LL]: 'Statute (mi/US gal)',
+          [G3XUnitsFuelEconomySettingMode.MetricKmPerL100LL]: 'Metric (km/L)',
+          [G3XUnitsFuelEconomySettingMode.MetricLPer100Km100LL]: 'Metric (L/100km)',
+        };
+      case G3XUnitsFuelType.Autogas:
+        return {
+          [G3XUnitsFuelEconomySettingMode.NauticalAutogas]: 'Nautical (nm/US gal)',
+          [G3XUnitsFuelEconomySettingMode.StatuteAutogas]: 'Statute (mi/US gal)',
+          [G3XUnitsFuelEconomySettingMode.MetricKmPerLAutogas]: 'Metric (km/L)',
+          [G3XUnitsFuelEconomySettingMode.MetricLPer100KmAutogas]: 'Metric (L/100km)',
+        };
+      case G3XUnitsFuelType.Sim:
+      default: {
+        return {
+          [G3XUnitsFuelEconomySettingMode.NauticalSim]: 'Nautical (nm/US gal)',
+          [G3XUnitsFuelEconomySettingMode.StatuteSim]: 'Statute (mi/US gal)',
+          [G3XUnitsFuelEconomySettingMode.MetricKmPerLSim]: 'Metric (km/L)',
+          [G3XUnitsFuelEconomySettingMode.MetricLPer100KmSim]: 'Metric (L/100km)',
+        };
+      }
+    }
   }
 
   /** @inheritDoc */
@@ -122,12 +213,7 @@ export class UnitsSetupView extends AbstractUiView<UiViewProps> {
               <UiListFocusable>
                 {this.renderListSelectButton(
                   settingManager.getSetting('unitsFuel'),
-                  {
-                    [UnitsFuelSettingMode.Gallons]: 'Gallons (US)',
-                    [UnitsFuelSettingMode.Liters]: 'Liters',
-                    [UnitsFuelSettingMode.Pounds]: 'Pounds (lbs)\nAvgas',
-                    [UnitsFuelSettingMode.Kilograms]: 'Kilograms (kg)\nAvgas'
-                  },
+                  this.getFuelSettingOptions(),
                   'units-setup-view-row-right'
                 )}
               </UiListFocusable>
@@ -137,12 +223,7 @@ export class UnitsSetupView extends AbstractUiView<UiViewProps> {
               <UiListFocusable>
                 {this.renderListSelectButton(
                   settingManager.getSetting('unitsFuelEconomy'),
-                  {
-                    [G3XUnitsFuelEconomySettingMode.Nautical]: 'Nautical (nm/US gal)',
-                    [G3XUnitsFuelEconomySettingMode.Statute]: 'Statute (mi/US gal)',
-                    [G3XUnitsFuelEconomySettingMode.MetricKmPerL]: 'Metric (km/L)',
-                    [G3XUnitsFuelEconomySettingMode.MetricLPer100Km]: 'Metric (L/100km)'
-                  },
+                  this.getFuelEconomySettingOptions(),
                   'units-setup-view-row-right'
                 )}
               </UiListFocusable>

@@ -347,8 +347,11 @@ export class PfdOptionsView extends AbstractUiView<PfdOptionsViewProps> {
             isEnabled={isEnabled}
             state={this.props.activeNavIndicator.source}
             renderValue={
-              NavSourceFormatter.createForIndicator(false, this.props.radiosConfig.navCount > 1, false)
-                .bind(undefined, this.props.activeNavIndicator)
+              NavSourceFormatter.createForIndicator(
+                this.props.fmsConfig.externalFplSourceCount > 1,
+                this.props.radiosConfig.navCount > 1,
+                false
+              ).bind(undefined, this.props.activeNavIndicator)
             }
             onPressed={this.onCdiSourceButtonPressed.bind(this)}
             focusController={this.focusController}

@@ -1,5 +1,5 @@
 import {
-  AirportFacility, ArraySubject, ArrivalProcedure, EnrouteTransition, FSComponent, FacilityType, FlightPlan,
+  AirportFacility, ArraySubject, ArrivalProcedure, ChartIndex, EnrouteTransition, FSComponent, FacilityType, FlightPlan,
   FlightPlanSegmentType, ICAO, LegDefinition, MappedSubject, OneWayRunway, Procedure, RunwayUtils, StringUtils,
   Subject, VNode,
 } from '@microsoft/msfs-sdk';
@@ -16,6 +16,7 @@ import { GtcFlightPlanPage } from '../FlightPlanPage/GtcFlightPlanPage';
 import { GtcProcedureSelectionPage } from './GtcProcedureSelectionPage';
 
 import './GtcProcedureSelectionPage.css';
+import { G3000ChartsAirportSelectionData, G3000ChartsSource, G3000ChartsUtils } from '@microsoft/msfs-wtg3000-common';
 
 /**
  * Allows user to configure and load an arrival into the flight plan.
@@ -291,6 +292,30 @@ export class GtcArrivalPage extends GtcProcedureSelectionPage {
     return undefined;
   }
 
+  /** @inheritDoc */
+  protected async createAirportChartData(
+    selectedAirport: AirportFacility,
+    chartsSource: G3000ChartsSource,
+    chartIndex: ChartIndex<string>
+  ): Promise<G3000ChartsAirportSelectionData> {
+    const arrivalPages = await G3000ChartsUtils.getPageDataFromMetadata(chartsSource.getArrivalCharts(chartIndex))
+      .catch(() => []);
+
+    return {
+      icao: selectedAirport.icaoStruct,
+      source: chartsSource.uid,
+      arrivalPages,
+      infoPages: [],
+      departurePages: [],
+      approachPages: [],
+    };
+  }
+
+  /** @inheritDoc */
+  protected onAirportChartDataRefreshed(): void {
+    this.updateChartPreviewData();
+  }
+
   /**
    * Creates a procedure preview plan with the current selections.
    */
@@ -489,6 +514,53 @@ export class GtcArrivalPage extends GtcProcedureSelectionPage {
         runwayTransitionIndex: this.selectedRunwayTransitionIndex.get(),
         runwayDesignation: runway === -1 || runway === undefined ? '' : runway.designation
       });
+    }
+
+    this.updateChartPreviewData();
+  }
+
+  /**
+   * Updates this page's chart preview data from the currently selected procedure.
+   */
+  private updateChartPreviewData(): void {
+    const airport = this.selectedAirport.get();
+    const procedureIndex = this.selectedArrivalIndex.get();
+
+    const arrival = airport?.arrivals[procedureIndex];
+
+    if (
+      !arrival
+      || !this.airportChartData
+      || this.airportChartData.source === null
+      || !ICAO.valueEquals(airport.icaoStruct, this.airportChartData.icao)
+    ) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const source = this.chartsSources.get(this.airportChartData.source);
+
+    if (!source) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const runway = this.selectedRunway.get();
+
+    const page = source.getArrivalPage(
+      this.airportChartData.arrivalPages,
+      arrival.name,
+      arrival.enRouteTransitions[this.selectedTransitionIndex.get()]?.name ?? '',
+      runway !== undefined && runway !== -1 ? RunwayUtils.getIdentifierFromOneWayRunway(runway) : RunwayUtils.emptyIdentifier()
+    );
+
+    if (page) {
+      this.chartPreviewData.set({
+        source: source.uid,
+        pageData: page,
+      });
+    } else {
+      this.chartPreviewData.set(null);
     }
   }
 

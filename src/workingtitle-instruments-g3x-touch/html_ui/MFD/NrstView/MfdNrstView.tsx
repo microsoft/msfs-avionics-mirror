@@ -1,6 +1,7 @@
 import {
-  CompiledMapSystem, DebounceTimer, FSComponent, FilteredMapSubject, MapIndexedRangeModule, MapSystemBuilder,
-  MappedSubject, ReadonlyFloat64Array, Subject, Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath
+  CompiledMapSystem, DebounceTimer, FSComponent, FacilityLoader, FilteredMapSubject, MapIndexedRangeModule,
+  MapSystemBuilder, MappedSubject, ReadonlyFloat64Array, Subject, Subscription, UserSettingManager, VNode, Vec2Math,
+  Vec2Subject, VecNMath
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys, MapRangeController, MapWaypointHighlightModule, TouchPad, TrafficSystem } from '@microsoft/msfs-garminsdk';
@@ -47,6 +48,9 @@ import './MfdNrstView.css';
  * Component props for {@link MfdNrstView}.
  */
 export interface MfdNrstViewProps extends UiViewProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the page's map to display traffic, or `null` if there is no traffic system. */
   trafficSystem: TrafficSystem | null;
 
@@ -124,6 +128,8 @@ export class MfdNrstView extends AbstractUiView<MfdNrstViewProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNearestMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: `g3x-${this.props.uiService.instrumentIndex}-map-1`,
 

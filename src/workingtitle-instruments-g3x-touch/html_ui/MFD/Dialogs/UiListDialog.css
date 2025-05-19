@@ -11,7 +11,7 @@
 }
 
 .ui-list-dialog {
-  width: var(--ui-list-dialog-width);
+  width: var(--ui-list-dialog-requested-width, var(--ui-list-dialog-width));
   font-size: var(--ui-list-dialog-font-size);
   background: var(--g3x-color-black);
   border: 3px solid var(--g3x-color-border-gray);

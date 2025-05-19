@@ -4,11 +4,11 @@
 /// <reference types="@microsoft/msfs-types/js/netbingmap" />
 
 import {
-  AdcPublisher, AnnunciationType, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, CasEvents, Clock, CompositeLogicXMLHost, ControlPublisher, ControlSurfacesPublisher,
-  DebounceTimer, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner,
-  FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents, LNavObsSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher,
-  NavComInstrument, NavComSimVarPublisher, NavProcessor, PluginSystem, SimVarValueType, SoundServer, Subject, TrafficInstrument, UnitType,
-  UserSettingSaveManager, VNavSimVarPublisher, Wait, XMLGaugeConfigFactory, XMLWarningFactory, XPDRInstrument
+  AdcPublisher, AmbientPublisher, AnnunciationType, AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, CasEvents, Clock, CompositeLogicXMLHost,
+  ControlPublisher, ControlSurfacesPublisher, DebounceTimer, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode,
+  FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FSComponent, GNSSPublisher, HEventPublisher, InstrumentBackplane, InstrumentEvents,
+  LNavObsSimVarPublisher, MinimumsControlEvents, MinimumsSimVarPublisher, NavComInstrument, NavComSimVarPublisher, NavProcessor, PluginSystem, SimVarValueType,
+  SoundServer, Subject, TrafficInstrument, UnitType, UserSettingSaveManager, VNavSimVarPublisher, Wait, XMLGaugeConfigFactory, XMLWarningFactory, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 
 import { AdcSystem, Fms, GarminAdsb, NavIndicatorController, TrafficAdvisorySystem } from '@microsoft/msfs-garminsdk';
@@ -122,6 +122,7 @@ class WTG1000_PFD extends BaseInstrument {
   private readonly soundServer: SoundServer;
   private readonly minimumsPublisher: MinimumsSimVarPublisher;
   private readonly controlSurfacesPublisher: ControlSurfacesPublisher;
+  private readonly ambientPublisher: AmbientPublisher;
 
   private lastCalculate = 0;
 
@@ -193,6 +194,8 @@ class WTG1000_PFD extends BaseInstrument {
 
     this.controlSurfacesPublisher = new ControlSurfacesPublisher(this.bus, 3);
 
+    this.ambientPublisher = new AmbientPublisher(this.bus);
+
     this.clock = new Clock(this.bus);
 
     this.facLoader = new FacilityLoader(FacilityRepository.getRepository(this.bus));
@@ -233,6 +236,8 @@ class WTG1000_PFD extends BaseInstrument {
     this.backplane.addInstrument('traffic', this.trafficInstrument);
 
     this.backplane.addPublisher('ControlSurfaces', this.controlSurfacesPublisher);
+
+    this.backplane.addPublisher('ambient', this.ambientPublisher);
 
     this.gaugeFactory = new XMLGaugeConfigFactory(this, this.bus);
     this.airframeOptions = new G1000AirframeOptionsManager(this, this.bus);

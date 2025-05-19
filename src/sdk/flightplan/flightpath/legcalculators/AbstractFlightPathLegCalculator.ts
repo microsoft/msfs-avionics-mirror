@@ -2,10 +2,12 @@ import { LatLonInterface } from '../../../geo/GeoInterfaces';
 import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
 import { UnitType } from '../../../math/NumberUnit';
-import { Facility, FacilityType, FlightPlanLeg, LegType, VorFacility } from '../../../navigation/Facilities';
+import { FacilityType, FlightPlanLeg, LegType, VorFacility } from '../../../navigation/Facilities';
 import { FacilityUtils } from '../../../navigation/FacilityUtils';
+import { IcaoValue } from '../../../navigation/Icao';
 import { ICAO } from '../../../navigation/IcaoUtils';
 import { LegCalculations, LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions, FlightPathLegCalculator } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -22,17 +24,20 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
    * @param canSkipWhenActive Whether this calculator can skip leg calculations when the leg to calculate is the active
    * flight plan leg.
    */
-  public constructor(protected readonly facilityCache: Map<string, Facility>, protected readonly canSkipWhenActive: boolean) {
+  public constructor(
+    protected readonly facilityCache: FlightPathCalculatorFacilityCache,
+    protected readonly canSkipWhenActive: boolean
+  ) {
   }
 
   /**
-   * Gets a geographical position from an ICAO string.
-   * @param icao An ICAO string.
+   * Gets a geographical position from an ICAO value.
+   * @param icao An ICAO value.
    * @param out A GeoPoint object to which to write the result.
    * @returns The geographical position corresponding to the ICAO string, or undefined if one could not be obtained.
    */
-  protected getPositionFromIcao(icao: string, out: GeoPoint): GeoPoint | undefined {
-    const facility = this.facilityCache.get(icao);
+  protected getPositionFromIcao(icao: IcaoValue, out: GeoPoint): GeoPoint | undefined {
+    const facility = this.facilityCache.getFacility(icao);
     return facility ? out.set(facility) : undefined;
   }
 
@@ -40,12 +45,12 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
    * Gets the magnetic variation, in degrees, at a facility. If the facility is a VOR and it has a nominal database
    * magnetic variation, then that value will be returned. Otherwise, the model magnetic variation at the facility's
    * position will be returned.
-   * @param icao The ICAO of the facility.
+   * @param icao The ICAO value of the facility.
    * @returns The magnetic variation, in degrees, at the specified facility, or `undefined` if the specified facility
    * could not be retrieved.
    */
-  protected getMagVarFromIcao(icao: string): number | undefined {
-    const facility = this.facilityCache.get(icao);
+  protected getMagVarFromIcao(icao: IcaoValue): number | undefined {
+    const facility = this.facilityCache.getFacility(icao);
 
     if (facility) {
       if (FacilityUtils.isFacilityType(facility, FacilityType.VOR)) {
@@ -63,11 +68,11 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
    * Gets the geographic position for a flight plan leg terminator.
    * @param leg A flight plan leg.
    * @param out A GeoPoint object to which to write the result.
-   * @param icao The ICAO string of the leg's terminator fix. If not defined, then the terminator fix will be retrieved
+   * @param icao The ICAO value of the leg's terminator fix. If not defined, then the terminator fix will be retrieved
    * from the flight plan leg, if necessary.
    * @returns The position of the leg terminator, or `undefined` if it could not be determined.
    */
-  protected getTerminatorPosition(leg: FlightPlanLeg, out: GeoPoint, icao?: string): GeoPoint | undefined {
+  protected getTerminatorPosition(leg: FlightPlanLeg, out: GeoPoint, icao?: IcaoValue): GeoPoint | undefined {
     if (leg.lat !== undefined && leg.lon !== undefined) {
       return out.set(leg.lat, leg.lon);
     } else {
@@ -82,13 +87,13 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
           case LegType.IF:
           case LegType.RF:
           case LegType.TF:
-            return this.getPositionFromIcao(leg.fixIcao, out);
+            return this.getPositionFromIcao(leg.fixIcaoStruct, out);
           case LegType.FC: {
-            const origin = this.getPositionFromIcao(leg.fixIcao, out);
+            const origin = this.getPositionFromIcao(leg.fixIcaoStruct, out);
             if (origin) {
               const course = leg.trueDegrees
                 ? leg.course
-                : MagVar.magneticToTrue(leg.course, this.getMagVarFromIcao(leg.fixIcao) ?? MagVar.get(origin));
+                : MagVar.magneticToTrue(leg.course, this.getMagVarFromIcao(leg.fixIcaoStruct) ?? MagVar.get(origin));
 
               return origin.offset(course, UnitType.METER.convertTo(leg.distance, UnitType.GA_RADIAN));
             }
@@ -114,7 +119,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
     if (leg.lat !== undefined && leg.lon !== undefined) {
       return MagVar.get(leg.lat, leg.lon);
     } else {
-      return this.getMagVarFromIcao(leg.fixIcao);
+      return this.getMagVarFromIcao(leg.fixIcaoStruct);
     }
   }
 
@@ -148,11 +153,11 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
   protected getLegMagVar(leg: FlightPlanLeg, defaultPoint?: LatLonInterface): number | undefined;
   // eslint-disable-next-line jsdoc/require-jsdoc
   protected getLegMagVar(leg: FlightPlanLeg, defaultPoint?: LatLonInterface): number | undefined {
-    const facIcao = (leg.originIcao && ICAO.isFacility(leg.originIcao, FacilityType.VOR)) ? leg.originIcao
-      : (leg.fixIcao && ICAO.isFacility(leg.fixIcao, FacilityType.VOR)) ? leg.fixIcao
+    const facIcao = ICAO.isValueFacility(leg.originIcaoStruct, FacilityType.VOR) ? leg.originIcaoStruct
+      : ICAO.isValueFacility(leg.fixIcaoStruct, FacilityType.VOR) ? leg.fixIcaoStruct
         : undefined;
 
-    const facility = facIcao !== undefined ? this.facilityCache.get(facIcao) as VorFacility | undefined : undefined;
+    const facility = facIcao !== undefined ? this.facilityCache.getFacility(facIcao) as VorFacility | undefined : undefined;
 
     return facility
       // The sign of magnetic variation on VOR facilities is the opposite of the standard east = positive convention.
@@ -173,7 +178,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
       case LegType.HF:
       case LegType.HM:
       case LegType.HA: {
-        const terminatorPos = this.getTerminatorPosition(leg, AbstractFlightPathLegCalculator.__geoPointCache[0], leg.fixIcao);
+        const terminatorPos = this.getTerminatorPosition(leg, AbstractFlightPathLegCalculator.__geoPointCache[0], leg.fixIcaoStruct);
         if (terminatorPos) {
           return leg.trueDegrees ? leg.course : MagVar.magneticToTrue(leg.course, this.getLegMagVar(leg, terminatorPos));
         }
@@ -184,7 +189,7 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
       case LegType.FC:
       case LegType.FD:
       case LegType.FM: {
-        const originPos = this.getPositionFromIcao(leg.fixIcao, AbstractFlightPathLegCalculator.__geoPointCache[0]);
+        const originPos = this.getPositionFromIcao(leg.fixIcaoStruct, AbstractFlightPathLegCalculator.__geoPointCache[0]);
         if (originPos) {
           return leg.trueDegrees ? leg.course : MagVar.magneticToTrue(leg.course, this.getLegMagVar(leg, originPos));
         }
@@ -199,12 +204,12 @@ export abstract class AbstractFlightPathLegCalculator implements FlightPathLegCa
       case LegType.VI:
       case LegType.VM:
       case LegType.VR:
-        return leg.trueDegrees ? leg.course : MagVar.magneticToTrue(leg.course, this.getMagVarFromIcao(leg.originIcao) ?? 0);
+        return leg.trueDegrees ? leg.course : MagVar.magneticToTrue(leg.course, this.getMagVarFromIcao(leg.originIcaoStruct) ?? 0);
 
       case LegType.IF:
         // If the leg is an IF for a runway fix, then use runway heading as the course.
-        if (ICAO.isFacility(leg.fixIcao, FacilityType.RWY)) {
-          const facility = this.facilityCache.get(leg.fixIcao);
+        if (ICAO.isValueFacility(leg.fixIcaoStruct, FacilityType.RWY)) {
+          const facility = this.facilityCache.getFacility(leg.fixIcaoStruct);
           if (facility && FacilityUtils.isFacilityType(facility, FacilityType.RWY)) {
             return facility.runway.course;
           }

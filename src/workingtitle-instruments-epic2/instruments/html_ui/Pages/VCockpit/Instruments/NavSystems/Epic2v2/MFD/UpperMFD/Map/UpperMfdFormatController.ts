@@ -17,41 +17,48 @@ const NORTH_UP_LAYER_KEYS = [
   ...EpicMapCommon.NORTH_UP_FORMAT_COMMON_LAYER_KEYS,
 ] as readonly string[];
 
-const MAP_FORMAT_CONFIGS: Readonly<Record<MapDisplayMode, MapFormatConfig>> = {
-  [MapDisplayMode.NorthUp]: {
-    rotationType: MapRotation.NorthUp,
-    compassType: 'center',
-    targetProjectedOffsetY: 0,
-    compassRadius: MapSystemCommon.northUpCompassRadius,
-    mapHeight: UpperMfdPaneSizes.twoThirds.height,
-    layerKeys: NORTH_UP_LAYER_KEYS,
-    ...EpicMapCommon.NORTH_UP_DEFAULT_CONFIG,
-  },
-  [MapDisplayMode.HeadingUp]: {
-    rotationType: MapRotation.HeadingUp,
-    compassType: 'arc',
-    targetProjectedOffsetY: MapSystemCommon.hdgTrkUpOffsetY,
-    compassRadius: MapSystemCommon.hdgTrkUpCompassRadius,
-    mapHeight: UpperMfdPaneSizes.twoThirds.height,
-    layerKeys: HDG_TRK_UP_LAYER_KEYS,
-    ...EpicMapCommon.HDG_TRK_UP_DEFAULT_CONFIG,
-  },
-  [MapDisplayMode.TrackUp]: {
-    rotationType: MapRotation.TrackUp,
-    compassType: 'arc',
-    targetProjectedOffsetY: MapSystemCommon.hdgTrkUpOffsetY,
-    compassRadius: MapSystemCommon.hdgTrkUpCompassRadius,
-    mapHeight: UpperMfdPaneSizes.twoThirds.height,
-    layerKeys: HDG_TRK_UP_LAYER_KEYS,
-    ...EpicMapCommon.HDG_TRK_UP_DEFAULT_CONFIG,
-  },
-};
-
 /**
  * A map system controller that controls the display settings of the various format
  * and terrain/wxr combinations.
  */
 export class UpperMfdFormatController extends MapFormatController {
+  /**
+   * Gets a record of map format configs corresponding to a display mode
+   * @param isVsdEnabled Whether the VSD display is enabled
+   * @returns A record of map format configs corresponding
+   */
+  private static getMapFormatConfigs(isVsdEnabled: boolean): Readonly<Record<MapDisplayMode, MapFormatConfig>> {
+    return {
+      [MapDisplayMode.NorthUp]: {
+        rotationType: MapRotation.NorthUp,
+        compassType: 'center',
+        targetProjectedOffsetY: (isVsdEnabled ? -70 : 0),
+        compassRadius: MapSystemCommon.northUpCompassRadius,
+        mapHeight: UpperMfdPaneSizes.twoThirds.height,
+        layerKeys: NORTH_UP_LAYER_KEYS,
+        ...EpicMapCommon.NORTH_UP_DEFAULT_CONFIG,
+      },
+      [MapDisplayMode.HeadingUp]: {
+        rotationType: MapRotation.HeadingUp,
+        compassType: 'arc',
+        targetProjectedOffsetY: MapSystemCommon.hdgTrkUpOffsetY - (isVsdEnabled ? 70 : 0),
+        compassRadius: MapSystemCommon.hdgTrkUpCompassRadius,
+        mapHeight: UpperMfdPaneSizes.twoThirds.height,
+        layerKeys: HDG_TRK_UP_LAYER_KEYS,
+        ...EpicMapCommon.HDG_TRK_UP_DEFAULT_CONFIG,
+      },
+      [MapDisplayMode.TrackUp]: {
+        rotationType: MapRotation.TrackUp,
+        compassType: 'arc',
+        targetProjectedOffsetY: MapSystemCommon.hdgTrkUpOffsetY - (isVsdEnabled ? 70 : 0),
+        compassRadius: MapSystemCommon.hdgTrkUpCompassRadius,
+        mapHeight: UpperMfdPaneSizes.twoThirds.height,
+        layerKeys: HDG_TRK_UP_LAYER_KEYS,
+        ...EpicMapCommon.HDG_TRK_UP_DEFAULT_CONFIG,
+      },
+    };
+  }
+
   /**
    * Creates an instance of the MapFormatController.
    * @param context The map system context to use with this controller.
@@ -61,9 +68,9 @@ export class UpperMfdFormatController extends MapFormatController {
     context: MapSystemContext<MapFormatControllerModules>,
     private readonly mfdSettings: UserSettingManager<MfdAliasedUserSettingTypes>
   ) {
-    const currentMapFormatConfig = MappedSubject.create(([mapFormat]) => {
-      return MAP_FORMAT_CONFIGS[mapFormat];
-    }, mfdSettings.getSetting('mapDisplayMode'));
+    const currentMapFormatConfig = MappedSubject.create(([mapFormat, isVsdEnabled]) => {
+      return UpperMfdFormatController.getMapFormatConfigs(isVsdEnabled)[mapFormat];
+    }, mfdSettings.getSetting('mapDisplayMode'), mfdSettings.getSetting('vsdEnabled'));
 
     super(
       context,
@@ -107,8 +114,7 @@ export class UpperMfdFormatController extends MapFormatController {
   private hideAllMapFormatLayers(): void {
     const allLayerKeys = new Set<string>();
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [_, formatConfig] of Object.entries(MAP_FORMAT_CONFIGS)) {
+    for (const formatConfig of Object.values(UpperMfdFormatController.getMapFormatConfigs(false))) {
       formatConfig.layerKeys.forEach(x => allLayerKeys.add(x));
     }
 

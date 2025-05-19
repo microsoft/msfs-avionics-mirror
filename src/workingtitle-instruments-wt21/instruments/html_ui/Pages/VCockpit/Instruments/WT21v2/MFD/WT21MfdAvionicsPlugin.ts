@@ -1,6 +1,6 @@
 import { DisplayComponent, NodeReference, VNode } from '@microsoft/msfs-sdk';
 
-import { WT21AvionicsPlugin, WT21PluginBinder } from '@microsoft/msfs-wt21-shared';
+import { WT21AvionicsPlugin, WT21ChecklistSetDef, WT21ChecklistStateProvider, WT21PluginBinder } from '@microsoft/msfs-wt21-shared';
 
 import { MfdTextPagesContext, SystemsPageComponent } from './Components';
 
@@ -50,4 +50,18 @@ export abstract class WT21MfdAvionicsPlugin extends WT21AvionicsPlugin<WT21MfdPl
    * @param context the MFD text page context
    */
   registerExtraMfdTextPages?(context: MfdTextPagesContext): void;
+
+  /**
+   * Gets a checklist definition to be used by the electronic checklist system.
+   * @returns A checklist definition, or `undefined` if checklists are not to be supported.
+   */
+  getChecklistDef?(): WT21ChecklistSetDef | undefined;
+
+  /**
+   * Lifecycle method called when the electronic checklist system is initialized.
+   * @param checklistDef The checklist definition used by the checklist system, or `undefined` if checklists are not
+   * supported.
+   * @param checklistStateProvider A provider of checklist state, or `undefined` if checklists are not supported.
+   */
+  onChecklistInit?(checklistDef: WT21ChecklistSetDef | undefined, checklistStateProvider?: WT21ChecklistStateProvider): void;
 }

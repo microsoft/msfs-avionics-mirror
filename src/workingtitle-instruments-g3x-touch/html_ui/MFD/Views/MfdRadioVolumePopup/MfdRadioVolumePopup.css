@@ -1,91 +1,57 @@
-.mfd-radio-volume-popup {
-  padding-left: 5px;
-  padding-right: 5px;
-  padding-bottom: 5px;
-}
+.gdu-460-display .mfd-radio-volume-popup {
+  padding: 0px 5px 5px;
 
-.mfd-radio-volume-popup-controls {
-  display: flex;
-  flex-direction: row;
-  height: 100%;
+  --mfd-radio-volume-popup-title-height: 34px;
+
+  --mfd-radio-volume-popup-button-size: 80px;
+  --mfd-radio-volume-popup-button-img-size: 46px;
+
+  --mfd-radio-volume-popup-slider-width: 242px;
+  --mfd-radio-volume-popup-slider-height: 80px;
+  --mfd-radio-volume-popup-slider-margin: 0px 2px;
+  --mfd-radio-volume-popup-slider-font-size: 20px;
+
+  --mfd-radio-volume-popup-slider-label-left: 4px;
+  --mfd-radio-volume-popup-slider-label-top: 2px;
 }
 
 .mfd-radio-volume-popup-title {
-  height: 34px;
+  height: var(--mfd-radio-volume-popup-title-height);
   width: 100%;
   text-align: center;
   font-size: var(--ui-view-title-font-size);
 }
 
-.mfd-radio-volume-popup-slider {
-  width: 242px;
-  height: 80px;
-  margin-left: 2px;
-  margin-right: 2px;
-}
-
-.mfd-radio-volume-popup .touch-slider-slider-container {
-  border: 4px;
-  border-style: solid;
-  border-color: var(--touch-button-border-color);
-  border-radius: 2px;
-}
-
-.mfd-radio-volume-popup-slider-occlude {
-  fill: white;
+.mfd-radio-volume-popup-controls {
+  display: flex;
+  flex-flow: row nowrap;
 }
 
 .mfd-radio-volume-popup-button {
-  width: 80px;
-  height: 80px;
+  width: var(--mfd-radio-volume-popup-button-size);
+  height: var(--mfd-radio-volume-popup-button-size);
+
+  --touch-button-img-img-center-y: 50%;
 }
 
-.mfd-radio-volume-popup-button::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 42px;
-  height: 42px;
-  margin-top: -21px;
-  margin-left: -21px;
-  border-radius: 50%;
-  background-color: var(--g3x-color-white);
+.mfd-radio-volume-popup-button .touch-button-img-img {
+  width: var(--mfd-radio-volume-popup-button-img-size);
+  height: var(--mfd-radio-volume-popup-button-img-size);
 }
 
-.mfd-radio-volume-popup .touch-slider-disabled .mfd-radio-volume-popup-slider-label {
-  filter: grayscale(50%) brightness(40%);
+.mfd-radio-volume-popup-slider {
+  width: var(--mfd-radio-volume-popup-slider-width);
+  height: var(--mfd-radio-volume-popup-slider-height);
+  margin: var(--mfd-radio-volume-popup-slider-margin);
+  font-size: var(--mfd-radio-volume-popup-slider-font-size);
 }
 
-.mfd-radio-volume-popup-slider-label {
-  font-size: 24px;
-  position: absolute;
-  left: 4px;
-  top: 2px;
+.mfd-radio-volume-popup-slider .touch-slider-slider-background {
+  background: var(--g3x-color-disabled-gray);
 }
 
-.mfd-radio-volume-popup-slider-vol-label {
-  font-size: 24px;
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
-}
-
-.mfd-radio-volume-popup .touch-slider-slider-container {
-  margin: var(--touch-slider-slider-container-margin);
-  background: var(--g3x-color-black);
-  border: solid var(--touch-slider-slider-container-border-width);
-  border-image-slice: 1;
-  border-image-source: linear-gradient(to right, #2d3c4b, #949fa9);
-}
-
-.mfd-radio-volume-popup .touch-slider-slider-foreground {
-  background-size: cover;
-}
-
-.mfd-radio-volume-popup .touch-slider-slider-foreground {
-  background-color: var(--g3x-color-white);
-  background-size: cover;
+.mfd-radio-volume-popup-slider .touch-slider-slider-foreground {
+  background: linear-gradient(to right, #25811b, #46f232);
 }
 
 .mfd-radio-volume-popup-slider-occlude {
@@ -97,9 +63,15 @@
   fill: var(--g3x-color-black);
 }
 
-.mfd-radio-volume-popup-slider-background {
+.mfd-radio-volume-popup-slider-label {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  fill: var(--g3x-color-gray);
+  left: var(--mfd-radio-volume-popup-slider-label-left);
+  top: var(--mfd-radio-volume-popup-slider-label-top);
+}
+
+.mfd-radio-volume-popup-slider-failure-box {
+  width: var(--mfd-radio-volume-popup-slider-width);
+  height: var(--mfd-radio-volume-popup-slider-height);
+  margin: var(--mfd-radio-volume-popup-slider-margin);
+  font-size: var(--mfd-radio-volume-popup-slider-font-size);
 }

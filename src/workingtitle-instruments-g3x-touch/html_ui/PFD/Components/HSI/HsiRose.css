@@ -333,6 +333,15 @@
   display: inline-block;
 }
 
+.hsi-rose-hdg-leg {
+  position: absolute;
+  left: 0px;
+  top: var(--hsi-rose-xtk-top);
+  transform: translateX(-50%);
+  color: var(--g3x-color-magenta);
+  white-space: nowrap;
+}
+
 .touch-button.hsi-rose-button {
   position: absolute;
   left: calc(-1 * var(--hsi-rose-compass-radius));

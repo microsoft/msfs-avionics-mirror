@@ -1,20 +1,47 @@
 import { DataStore } from '../data/DataStore';
 import { EventBus } from '../data/EventBus';
+import { SubscribableUtils } from '../sub/SubscribableUtils';
 import { Subscription } from '../sub/Subscription';
 import { UserSetting, UserSettingValue } from './UserSetting';
+
+/**
+ * A definition describing a user setting to be saved by {@link UserSettingSaveManager}.
+ */
+export type UserSettingSaveManagerSettingDef<ValueType extends UserSettingValue> = {
+  /** The setting to save. */
+  setting: UserSetting<ValueType>;
+
+  /**
+   * A function that validates a loaded value before it is applied to the setting. If not defined, then all loaded
+   * values will be applied to the setting as-is.
+   * @param loadValue The loaded value.
+   * @param setting The setting to which the loaded value should be applied.
+   * @returns The value that should be applied to the setting.
+   */
+  loadValidator?: (loadValue: unknown, setting: UserSetting<ValueType>) => ValueType;
+};
 
 /**
  * A UserSettingSaveManager entry for a setting.
  */
 type UserSettingSaveManagerEntry<T extends UserSettingValue> = {
   /** A setting. */
-  setting: UserSetting<T>,
+  setting: UserSetting<T>;
 
   /** A subscription to the setting. */
-  subscription: Subscription,
+  subscription: Subscription;
 
   /** The data store keys to which the setting's value should be automatically saved. */
-  autoSaveDataStoreKeys: string[]
+  autoSaveDataStoreKeys: string[];
+
+  /**
+   * A function that validates a loaded value before it is applied to the setting. If not defined, then all loaded
+   * values will be applied to the setting as-is.
+   * @param loadValue The loaded value.
+   * @param setting The setting to which the loaded value should be applied.
+   * @returns The value that should be applied to the setting.
+   */
+  loadValidator?: (loadValue: unknown, setting: UserSetting<T>) => T;
 }
 
 /**
@@ -31,19 +58,33 @@ export class UserSettingSaveManager {
   private isAlive = true;
 
   /**
-   * Constructor.
+   * Creates a new instance of UserSettingSaveManager.
    * @param settings This manager's managed settings.
    * @param bus The event bus.
    */
-  constructor(settings: UserSetting<UserSettingValue>[], bus: EventBus) {
+  public constructor(
+    settings: readonly (UserSetting<UserSettingValue> | UserSettingSaveManagerSettingDef<UserSettingValue>)[],
+    bus: EventBus
+  ) {
     const subscriber = bus.getSubscriber<any>();
 
-    this.entries = Array.from(settings, setting => {
+    this.entries = Array.from(settings, settingOrDef => {
+      let setting: UserSetting<UserSettingValue>;
+      let loadValidator: ((loadValue: unknown, setting: UserSetting<UserSettingValue>) => UserSettingValue) | undefined;
+
+      if (SubscribableUtils.isSubscribable(settingOrDef)) {
+        setting = settingOrDef;
+      } else {
+        setting = settingOrDef.setting;
+        loadValidator = settingOrDef.loadValidator;
+      }
+
       const autoSaveDataStoreKeys: string[] = [];
       return {
         setting,
         subscription: subscriber.on(setting.definition.name).whenChanged().handle(this.onSettingChanged.bind(this, autoSaveDataStoreKeys), true),
-        autoSaveDataStoreKeys
+        autoSaveDataStoreKeys,
+        loadValidator
       };
     });
   }
@@ -75,7 +116,7 @@ export class UserSettingSaveManager {
       const dataStoreKey = UserSettingSaveManager.getDataStoreKey(entry.setting, key);
       const storedValue = DataStore.get(dataStoreKey);
       if (storedValue !== undefined) {
-        entry.setting.value = storedValue;
+        entry.setting.set(entry.loadValidator ? entry.loadValidator(storedValue, entry.setting) : storedValue);
       }
     }
   }
@@ -93,7 +134,7 @@ export class UserSettingSaveManager {
     for (let i = 0; i < this.entries.length; i++) {
       const entry = this.entries[i];
       const dataStoreKey = UserSettingSaveManager.getDataStoreKey(entry.setting, key);
-      DataStore.set(dataStoreKey, entry.setting.value);
+      DataStore.set(dataStoreKey, entry.setting.get());
     }
   }
 

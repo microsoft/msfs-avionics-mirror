@@ -183,15 +183,15 @@ export class DynamicList<DataType extends DynamicListData> {
         const index = this.sortedIndexes[i];
         if (!visibleOnly || this.data.get(index).isVisible?.get() !== false) {
           fn(this.renderedNodes[index].instance as T | undefined, iteratorIndex);
+          iteratorIndex++;
         }
-        iteratorIndex++;
       }
     } else {
       for (let i = 0; i < this.renderedNodes.length; i++) {
         if (!visibleOnly || this.data.get(i).isVisible?.get() !== false) {
           fn(this.renderedNodes[i].instance as T | undefined, iteratorIndex);
+          iteratorIndex++;
         }
-        iteratorIndex++;
       }
     }
   }

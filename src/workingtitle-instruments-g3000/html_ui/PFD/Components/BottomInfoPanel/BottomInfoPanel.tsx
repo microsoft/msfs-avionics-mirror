@@ -9,8 +9,8 @@ import {
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  G3000DmeInfoNavIndicator, G3000NavIndicators, G3000NavInfoNavIndicator, PfdAliasedUserSettingTypes, PfdIndex,
-  PfdSensorsUserSettingTypes, RadiosConfig
+  FmsConfig, G3000DmeInfoNavIndicator, G3000NavIndicators, G3000NavInfoNavIndicator, PfdAliasedUserSettingTypes,
+  PfdIndex, PfdSensorsUserSettingTypes, RadiosConfig
 } from '@microsoft/msfs-wtg3000-common';
 
 import { BottomInfoPanelCellAContent, PfdLayoutConfig } from '../../Config/PfdLayoutConfig';
@@ -21,7 +21,7 @@ import { NavStatusBoxConfig } from '../NavStatusBox/NavStatusBoxConfig';
 import { WindDisplay } from '../Wind/WindDisplay';
 import { SpeedInfo } from './SpeedInfo/SpeedInfo';
 import { DefaultSpeedInfoDataProvider } from './SpeedInfo/SpeedInfoDataProvider';
-import { TemperatureInfo } from './TemperatureInfo/TemperatureInfo';
+import { TemperatureInfo, TemperatureInfoFormat } from './TemperatureInfo/TemperatureInfo';
 import { DefaultTemperatureInfoDataProvider } from './TemperatureInfo/TemperatureInfoDataProvider';
 import { TimeInfo } from './TimeInfo/TimeInfo';
 import { DefaultTimeInfoDataProvider } from './TimeInfo/TimeInfoDataProvider';
@@ -43,6 +43,9 @@ export interface BottomInfoPanelProps extends ComponentProps {
 
   /** The radios configuration object. */
   radiosConfig: RadiosConfig;
+
+  /** The FMS configuration object. */
+  fmsConfig: FmsConfig;
 
   /** The configuration object for the navigation status box. */
   navStatusBoxConfig: NavStatusBoxConfig;
@@ -118,7 +121,8 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
     )
     : undefined;
 
-  private readonly temperatureInfoDataProvider = this.props.layoutConfig.bottomInfoCellAContent.includes(BottomInfoPanelCellAContent.Temperature)
+  private readonly temperatureInfoDataProvider = this.props.layoutConfig.bottomInfoCellAContent
+    .find(content => content === BottomInfoPanelCellAContent.Temperature || content === BottomInfoPanelCellAContent.TemperatureOat)
     ? new DefaultTemperatureInfoDataProvider(
       this.props.bus,
       this.props.pfdSensorsSettingManager.getSetting('pfdAdcIndex')
@@ -206,9 +210,10 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
     const [left, right] = this.props.layoutConfig.bottomInfoCellAContent;
 
     const renderTable: Record<BottomInfoPanelCellAContent, () => VNode | null> = {
-      [BottomInfoPanelCellAContent.Empty]: () => <div class='bottom-info-cell-a-empty' />,
+      [BottomInfoPanelCellAContent.Empty]: () => null,
       [BottomInfoPanelCellAContent.Speed]: this.renderSpeedInfo.bind(this),
-      [BottomInfoPanelCellAContent.Temperature]: this.renderTemperatureInfo.bind(this),
+      [BottomInfoPanelCellAContent.Temperature]: this.renderTemperatureInfo.bind(this, TemperatureInfoFormat.Normal),
+      [BottomInfoPanelCellAContent.TemperatureOat]: this.renderTemperatureInfo.bind(this, TemperatureInfoFormat.Oat),
       [BottomInfoPanelCellAContent.Wind]: this.renderWindDisplay.bind(this),
       [BottomInfoPanelCellAContent.Time]: this.renderTimeInfo.bind(this),
     };
@@ -217,11 +222,15 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
 
     return (
       <div class={`bottom-info-cell-a ${isTimeIncluded ? 'bottom-info-cell-a-full' : ''}`}>
-        <div class='bottom-info-cell-a-slot bottom-info-cell-a-slot-left'>{renderTable[left]()}</div>
+        <div class={`bottom-info-cell-a-slot bottom-info-cell-a-slot-left bottom-info-cell-a-slot-${left}`}>
+          {renderTable[left]()}
+        </div>
         {left !== BottomInfoPanelCellAContent.Time && right !== BottomInfoPanelCellAContent.Time && (
           <div class='bottom-info-separator bottom-info-separator-a-middle' />
         )}
-        <div class='bottom-info-cell-a-slot bottom-info-cell-a-slot-right'>{renderTable[right]()}</div>
+        <div class={`bottom-info-cell-a-slot bottom-info-cell-a-slot-right bottom-info-cell-a-slot-${right}`}>
+          {renderTable[right]()}
+        </div>
       </div>
     );
   }
@@ -246,16 +255,18 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
 
   /**
    * Renders this panel's temperature information display.
+   * @param format The format of the display.
    * @returns This panel's temperature information display, as a VNode, or `null` if this panel does not have such a
    * display.
    */
-  private renderTemperatureInfo(): VNode | null {
+  private renderTemperatureInfo(format: TemperatureInfoFormat): VNode | null {
     if (this.temperatureInfoDataProvider === undefined) {
       return null;
     }
 
     return (
       <TemperatureInfo
+        format={format}
         dataProvider={this.temperatureInfoDataProvider}
         unitsSettingManager={this.props.unitsSettingManager}
         declutter={this.props.declutter}
@@ -356,7 +367,8 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
           <BearingInfo
             bus={this.props.bus}
             index={1}
-            adfRadioCount={this.props.radiosConfig.adfCount}
+            radiosConfig={this.props.radiosConfig}
+            fmsConfig={this.props.fmsConfig}
             indicator={this.props.navIndicators.get('bearingPointer1')}
             unitsSettingManager={this.props.unitsSettingManager}
             declutter={this.declutterBearingInfo ?? this.props.declutter}
@@ -368,7 +380,8 @@ export class BottomInfoPanel extends DisplayComponent<BottomInfoPanelProps> {
           <BearingInfo
             bus={this.props.bus}
             index={2}
-            adfRadioCount={this.props.radiosConfig.adfCount}
+            radiosConfig={this.props.radiosConfig}
+            fmsConfig={this.props.fmsConfig}
             indicator={this.props.navIndicators.get('bearingPointer2')}
             unitsSettingManager={this.props.unitsSettingManager}
             declutter={this.declutterBearingInfo ?? this.props.declutter}

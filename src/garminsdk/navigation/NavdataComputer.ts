@@ -82,6 +82,17 @@ class LNavDataTopicPublisher<T extends keyof BaseLNavDataEvents> {
 }
 
 /**
+ * Data describing a nominal flight path-defining geo circle tracked by LNAV.
+ */
+type NominalPathGeoCircle = {
+  /** The index of the flight path vector associated with the geo circle. */
+  vectorIndex: number;
+
+  /** The geo circle. */
+  circle: GeoCircle;
+};
+
+/**
  * Computes Garmin LNAV-related data.
  */
 export class NavdataComputer {
@@ -148,7 +159,10 @@ export class NavdataComputer {
     gpScale: 0
   });
 
-  private readonly nominalPathCircle = { vectorIndex: -1, circle: new GeoCircle(Vec3Math.create(), 0) };
+  private readonly nominalPathCircle: NominalPathGeoCircle = {
+    vectorIndex: -1,
+    circle: new GeoCircle(Vec3Math.create(), 0),
+  };
 
   private primaryPlanOriginFacility?: AirportFacility;
   private primaryPlanDestinationFacility?: AirportFacility;
@@ -189,8 +203,10 @@ export class NavdataComputer {
       'lnavdata_dtk_true': new LNavDataTopicPublisher<'lnavdata_dtk_true'>(this.publisher, `lnavdata_dtk_true${lnavTopicSuffix}`, 0),
       'lnavdata_dtk_mag': new LNavDataTopicPublisher<'lnavdata_dtk_mag'>(this.publisher, `lnavdata_dtk_mag${lnavTopicSuffix}`, 0),
       'lnavdata_xtk': new LNavDataTopicPublisher<'lnavdata_xtk'>(this.publisher, `lnavdata_xtk${lnavTopicSuffix}`, 0),
+      'lnavdata_is_steer_heading': new LNavDataTopicPublisher<'lnavdata_is_steer_heading'>(this.publisher, `lnavdata_is_steer_heading${lnavTopicSuffix}`, false),
       'lnavdata_next_dtk_true': new LNavDataTopicPublisher<'lnavdata_next_dtk_true'>(this.publisher, `lnavdata_next_dtk_true${lnavTopicSuffix}`, 0),
       'lnavdata_next_dtk_mag': new LNavDataTopicPublisher<'lnavdata_next_dtk_mag'>(this.publisher, `lnavdata_next_dtk_mag${lnavTopicSuffix}`, 0),
+      'lnavdata_next_is_steer_heading': new LNavDataTopicPublisher<'lnavdata_next_is_steer_heading'>(this.publisher, `lnavdata_next_is_steer_heading${lnavTopicSuffix}`, false),
       'lnavdata_cdi_scale': new LNavDataTopicPublisher<'lnavdata_cdi_scale'>(this.publisher, `lnavdata_cdi_scale${lnavTopicSuffix}`, 0),
       'lnavdata_cdi_scale_label': new LNavDataTopicPublisher<'lnavdata_cdi_scale_label'>(this.publisher, `lnavdata_cdi_scale_label${lnavTopicSuffix}`, CDIScaleLabel.Enroute),
       'lnavdata_waypoint_bearing_true': new LNavDataTopicPublisher<'lnavdata_waypoint_bearing_true'>(this.publisher, `lnavdata_waypoint_bearing_true${lnavTopicSuffix}`, 0),
@@ -423,10 +439,12 @@ export class NavdataComputer {
     let dtkVectorIndex = -1;
     let dtkTrue = 0;
     let dtkMag = 0;
+    let isSteerHeading = false;
     let nextDtkLegIndex = -1;
     let nextDtkVectorIndex = -1;
     let nextDtkTrue = 0;
     let nextDtkMag = 0;
+    let nextIsSteerHeading = false;
     let distance = 0;
     let waypointBearingTrue = 0;
     let waypointBearingMag = 0;
@@ -467,7 +485,8 @@ export class NavdataComputer {
       // and won't go into suspend at the end of the leg.
       if (
         nextLeg !== undefined
-        && nextLeg.calculated?.startLat !== undefined && nextLeg.calculated?.startLon !== undefined
+        && nextLeg.calculated
+        && nextLeg.calculated.startLat !== undefined && nextLeg.calculated.startLon !== undefined
         && !isSuspended
         && nextLeg.leg.type !== LegType.Discontinuity
         && (!BitFlags.isAny(nextLeg.flags, LegDefinitionFlags.MissedApproach) || this.isMaprActive.get())
@@ -476,8 +495,22 @@ export class NavdataComputer {
         if (result.vectorIndex >= 0) {
           nextDtkLegIndex = nextLegIndex;
           nextDtkVectorIndex = result.vectorIndex;
-          nextDtkTrue = result.circle.bearingAt(this.geoPointCache[0].set(nextLeg.calculated.startLat, nextLeg.calculated.startLon), Math.PI);
-          nextDtkMag = MagVar.trueToMagnetic(nextDtkTrue, nextLeg.calculated.startLat, nextLeg.calculated.startLon);
+
+          const vector = nextLeg.calculated.flightPath[result.vectorIndex];
+          if (vector.heading === null) {
+            nextDtkTrue = result.circle.bearingAt(this.geoPointCache[0].set(nextLeg.calculated.startLat, nextLeg.calculated.startLon), Math.PI);
+            nextDtkMag = MagVar.trueToMagnetic(nextDtkTrue, nextLeg.calculated.startLat, nextLeg.calculated.startLon);
+            nextIsSteerHeading = false;
+          } else {
+            if (vector.isHeadingTrue) {
+              nextDtkTrue = vector.heading;
+              nextDtkMag = MagVar.trueToMagnetic(nextDtkTrue, nextLeg.calculated.startLat, nextLeg.calculated.startLon);
+            } else {
+              nextDtkMag = vector.heading;
+              nextDtkTrue = MagVar.magneticToTrue(nextDtkTrue, nextLeg.calculated.startLat, nextLeg.calculated.startLon);
+            }
+            nextIsSteerHeading = true;
+          }
         }
       }
 
@@ -527,10 +560,23 @@ export class NavdataComputer {
           }
         }
 
-        if (circle !== undefined) {
-          xtk = UnitType.GA_RADIAN.convertTo(circle.distance(this.planePos), UnitType.NMILE);
-          dtkTrue = circle.bearingAt(this.planePos, Math.PI);
-          dtkMag = MagVar.trueToMagnetic(dtkTrue, magVar);
+        if (dtkVector && circle) {
+          if (dtkVector.heading === null) {
+            xtk = UnitType.GA_RADIAN.convertTo(circle.distance(this.planePos), UnitType.NMILE);
+            dtkTrue = circle.bearingAt(this.planePos, Math.PI);
+            dtkMag = MagVar.trueToMagnetic(dtkTrue, magVar);
+            isSteerHeading = false;
+          } else {
+            xtk = 0;
+            if (dtkVector.isHeadingTrue) {
+              dtkTrue = dtkVector.heading;
+              dtkMag = MagVar.trueToMagnetic(nextDtkTrue, magVar);
+            } else {
+              dtkMag = dtkVector.heading;
+              dtkTrue = MagVar.magneticToTrue(nextDtkTrue, magVar);
+            }
+            isSteerHeading = true;
+          }
 
           const dtkLeg = dtkLegIndex === nextLegIndex ? nextLeg! : currentLeg!;
           switch (dtkLeg.leg.type) {
@@ -539,13 +585,11 @@ export class NavdataComputer {
               toFrom = this.lnavLegDistanceRemaining.get() < 0 ? VorToFrom.FROM : VorToFrom.TO;
               break;
             default:
-              if (dtkVector && circle) {
-                if (circle.isGreatCircle()) {
-                  const angleAlong = circle.angleAlong(this.planePos, this.geoPointCache[0].set(dtkVector.endLat, dtkVector.endLon), Math.PI);
-                  toFrom = angleAlong > Math.PI ? VorToFrom.FROM : VorToFrom.TO;
-                } else {
-                  toFrom = this.lnavLegDistanceRemaining.get() < 0 ? VorToFrom.FROM : VorToFrom.TO;
-                }
+              if (circle.isGreatCircle()) {
+                const angleAlong = circle.angleAlong(this.planePos, this.geoPointCache[0].set(dtkVector.endLat, dtkVector.endLon), Math.PI);
+                toFrom = angleAlong > Math.PI ? VorToFrom.FROM : VorToFrom.TO;
+              } else {
+                toFrom = this.lnavLegDistanceRemaining.get() < 0 ? VorToFrom.FROM : VorToFrom.TO;
               }
           }
         }
@@ -555,8 +599,10 @@ export class NavdataComputer {
     this.eventBusTopicPublishers['lnavdata_dtk_true'].publish(dtkTrue);
     this.eventBusTopicPublishers['lnavdata_dtk_mag'].publish(dtkMag);
     this.eventBusTopicPublishers['lnavdata_xtk'].publish(xtk);
+    this.eventBusTopicPublishers['lnavdata_is_steer_heading'].publish(isSteerHeading);
     this.eventBusTopicPublishers['lnavdata_next_dtk_true'].publish(nextDtkTrue);
     this.eventBusTopicPublishers['lnavdata_next_dtk_mag'].publish(nextDtkMag);
+    this.eventBusTopicPublishers['lnavdata_next_is_steer_heading'].publish(nextIsSteerHeading);
     this.eventBusTopicPublishers['lnavdata_waypoint_bearing_true'].publish(waypointBearingTrue);
     this.eventBusTopicPublishers['lnavdata_waypoint_bearing_mag'].publish(waypointBearingMag);
     this.eventBusTopicPublishers['lnavdata_waypoint_distance'].publish(distance);
@@ -994,17 +1040,14 @@ export class NavdataComputer {
    * @param vectorIndex The index of the vector currently tracked by LNAV.
    * @param transitionMode The current LNAV transition mode.
    * @param out The object to which to write the result.
-   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
-   * @param out.circle The geo circle.
    * @returns The geo circle describing the initial path of a flight plan leg.
    */
   private getNominalPathCircle(
     leg: LegDefinition,
     vectorIndex: number,
     transitionMode: LNavTransitionMode,
-    // eslint-disable-next-line jsdoc/require-jsdoc
-    out: { vectorIndex: number, circle: GeoCircle }
-  ): typeof out {
+    out: NominalPathGeoCircle
+  ): NominalPathGeoCircle {
     out.vectorIndex = -1;
 
     if (!leg.calculated) {
@@ -1067,15 +1110,13 @@ export class NavdataComputer {
    * defined by the course at the end of the leg.
    * @param legCalc The calculations for the flight plan leg.
    * @param out The object to which to write the result.
-   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
-   * @param out.circle The geo circle.
    * @returns The geo circle describing the initial path of a flight plan leg.
    */
   private getNominalPathCircleForEndCourseLeg(
     legCalc: LegCalculations,
     // eslint-disable-next-line jsdoc/require-jsdoc
-    out: { vectorIndex: number, circle: GeoCircle }
-  ): typeof out {
+    out: NominalPathGeoCircle
+  ): NominalPathGeoCircle {
     out.vectorIndex = -1;
 
     const nominalVectorIndex = legCalc.flightPath.length - 1;
@@ -1105,15 +1146,12 @@ export class NavdataComputer {
    * Gets the geo circle describing the nominal path tracked by LNAV for a hold leg.
    * @param legCalc The calculations for the hold leg.
    * @param out The object to which to write the result.
-   * @param out.vectorIndex The index of the flight path vector associated with the geo circle.
-   * @param out.circle The geo circle.
    * @returns The geo circle describing the initial path of a flight plan leg.
    */
   private getNominalPathCircleForHoldLeg(
     legCalc: LegCalculations,
-    // eslint-disable-next-line jsdoc/require-jsdoc
-    out: { vectorIndex: number, circle: GeoCircle }
-  ): typeof out {
+    out: NominalPathGeoCircle
+  ): NominalPathGeoCircle {
     out.vectorIndex = -1;
 
     // The last base flight path vector for hold legs should always be the inbound leg

@@ -1,5 +1,5 @@
 import {
-  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FlightPlanner, FSComponent, MappedSubject, Subject, UserSettingManager, VNode
+  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FacilityLoader, FlightPlanner, FSComponent, MappedSubject, Subject, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -20,6 +20,9 @@ interface MfdHsiProps extends ComponentProps {
 
   /** The instrument configuration object */
   instrumentConfig: InstrumentConfig;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
@@ -114,6 +117,7 @@ export class MfdHsi extends DisplayComponent<MfdHsiProps> {
               ref={this.hsiContainerRef}
               bus={this.props.bus}
               instrumentConfig={this.props.instrumentConfig}
+              facLoader={this.props.facLoader}
               flightPlanner={this.props.flightPlanner}
               tcas={this.props.tcas}
               waypointAlerter={this.waypointAlerter}

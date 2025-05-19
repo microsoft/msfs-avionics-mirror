@@ -1,6 +1,7 @@
 import { Annunciation, XMLAnnunciationFactory } from '@microsoft/msfs-sdk';
 
 import { AutopilotConfig } from '../Autopilot/AutopilotConfig';
+import { G3000ChartsConfig } from '../Charts/G3000ChartsConfig';
 import { ChecklistConfig } from '../Checklist/ChecklistConfig';
 import { AvionicsType } from '../CommonTypes';
 import { MapConfig } from '../Components/Map/MapConfig';
@@ -82,6 +83,9 @@ export class AvionicsConfig {
   /** A config which defines options for the message system. */
   public readonly message: MessageSystemConfig;
 
+  /** A config which defines options for electronic charts. */
+  public readonly charts: G3000ChartsConfig;
+
   /** A config which defines options for electronic checklists. */
   public readonly checklist: ChecklistConfig;
 
@@ -117,6 +121,7 @@ export class AvionicsConfig {
     this.map = this.parseMapConfig(root.querySelector(':scope>Map'));
     this.performance = this.parsePerformanceConfig(root.querySelector(':scope>Performance'));
     this.message = this.parseMessageConfig(root.querySelector(':scope>Message'));
+    this.charts = this.parseChartsConfig(root.querySelector(':scope>Charts'));
     this.checklist = this.parseChecklistConfig(root.querySelector(':scope>Checklist'));
     this.horizon = this.parseHorizonConfig(root.querySelector(':scope>Horizon'));
 
@@ -460,6 +465,23 @@ export class AvionicsConfig {
     }
 
     return new MessageSystemConfig(undefined);
+  }
+
+  /**
+   * Parses an electronic charts configuration object from a configuration document element.
+   * @param element A configuration document element.
+   * @returns The lectronic charts configuration defined by the configuration document element.
+   */
+  private parseChartsConfig(element: Element | null): G3000ChartsConfig {
+    if (element !== null) {
+      try {
+        return new G3000ChartsConfig(element);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new G3000ChartsConfig(undefined);
   }
 
   /**

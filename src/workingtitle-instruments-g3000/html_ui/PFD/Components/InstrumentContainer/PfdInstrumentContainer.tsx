@@ -1,11 +1,11 @@
 import {
-  AuralAlertActivation, AuralAlertControlEvents, AuralAlertRegistrationManager, CasSystem,
+  AuralAlertActivation, AuralAlertControlEvents, AuralAlertRegistrationManager, CasSystem, ConsumerSubject,
   DefaultTcasAdvisoryDataProvider, EventBus, FSComponent, MappedSubject, PluginSystem, SetSubject, Subject,
-  UserSettingManager, Vec2Math, Vec2Subject, VNode
+  SubscribableMapFunctions, UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
-  AltimeterDataProvider, AltitudeAlerter, AltitudeAlertState, DateTimeUserSettings,
+  AltimeterDataProvider, AltitudeAlerter, AltitudeAlertState, BaroTransitionAlertEvents, DateTimeUserSettings,
   DefaultAirspeedIndicatorDataProvider, DefaultAoaDataProvider, DefaultMarkerBeaconDataProvider,
   DefaultNavStatusBoxDataProvider, DefaultObsSuspDataProvider, DefaultTcasRaCommandDataProvider, DmeUserSettings, Fms,
   FmsPositionMode, GpsIntegrityDataProvider, HsiGpsIntegrityAnnunciationMode, MinimumsAlerter, MinimumsAlertState,
@@ -170,6 +170,14 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     true
   );
 
+  private readonly isBaroTransitionAltitudeAlertActive = ConsumerSubject.create(null, false).pause();
+  private readonly isBaroTransitionLevelAlertActive = ConsumerSubject.create(null, false).pause();
+  private readonly isBaroTransitionAlertActive = MappedSubject.create(
+    SubscribableMapFunctions.or(),
+    this.isBaroTransitionAltitudeAlertActive,
+    this.isBaroTransitionLevelAlertActive
+  );
+
   private readonly aoaDataProvider = new DefaultAoaDataProvider(
     this.props.bus,
     1,
@@ -307,13 +315,26 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     const cdiNavIndicator = this.props.navIndicators.get('activeSource');
     const pfdMapSettingManager = MapUserSettings.getPfdManager(this.props.bus, this.pfdIndex);
 
-    this.softKeyMenuSystem.registerMenu('root', menuSystem => new PfdRootSoftKeyMenu(menuSystem, this.pfdIndex, cdiNavIndicator, this.obsSuspDataProvider, this.props.pfdSettingManager, this.props.config.radios, this.declutterManager.declutter, false));
+    this.softKeyMenuSystem.registerMenu(
+      'root',
+      menuSystem => new PfdRootSoftKeyMenu(
+        menuSystem,
+        this.pfdIndex,
+        cdiNavIndicator,
+        this.obsSuspDataProvider,
+        this.props.pfdSettingManager,
+        this.props.config.radios,
+        this.props.config.fms,
+        this.declutterManager.declutter,
+        false
+      )
+    );
 
     this.softKeyMenuSystem.registerMenu('pfd-map-settings', menuSystem => new PfdMapSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, pfdMapSettingManager, false));
     this.softKeyMenuSystem.registerMenu('map-layout', menuSystem => new MapLayoutSoftKeyMenu(menuSystem, this.props.pfdSettingManager));
     this.softKeyMenuSystem.registerMenu('data-link-settings', menuSystem => new DataLinkSettingsSoftKeyMenu(menuSystem, false));
 
-    this.softKeyMenuSystem.registerMenu('pfd-settings', menuSystem => new PfdSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, this.props.config.radios, false));
+    this.softKeyMenuSystem.registerMenu('pfd-settings', menuSystem => new PfdSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, this.props.config.radios, this.props.config.fms, false));
     this.softKeyMenuSystem.registerMenu('attitude-overlays', menuSystem => new AttitudeOverlaysSoftKeyMenu(menuSystem, this.props.pfdSettingManager, false));
 
     this.softKeyMenuSystem.registerMenu('other-pfd-settings', menuSystem => new OtherPfdSettingsSoftKeyMenu(menuSystem, this.props.pfdSettingManager, false));
@@ -324,14 +345,27 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     this.softKeyMenuSystem.registerMenu('adc-settings', menuSystem => new AdcSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.config.sensors.adcCount, this.pfdSensorsAliasedSettingManager, false));
     this.softKeyMenuSystem.registerMenu('ahrs-settings', menuSystem => new AhrsSettingsSoftKeyMenu(menuSystem, this.props.config.sensors.ahrsCount, this.pfdSensorsAliasedSettingManager, false));
 
-    this.softKeyMenuSystem.registerMenu('root-split', menuSystem => new PfdRootSoftKeyMenu(menuSystem, this.pfdIndex, cdiNavIndicator, this.obsSuspDataProvider, this.props.pfdSettingManager, this.props.config.radios, this.declutterManager.declutter, true));
+    this.softKeyMenuSystem.registerMenu(
+      'root-split',
+      menuSystem => new PfdRootSoftKeyMenu(
+        menuSystem,
+        this.pfdIndex,
+        cdiNavIndicator,
+        this.obsSuspDataProvider,
+        this.props.pfdSettingManager,
+        this.props.config.radios,
+        this.props.config.fms,
+        this.declutterManager.declutter,
+        true
+      )
+    );
 
     this.softKeyMenuSystem.registerMenu('pfd-map-settings-split', menuSystem => new PfdMapSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, pfdMapSettingManager, true));
     this.softKeyMenuSystem.registerMenu('map-overlays-1', menuSystem => new MapOverlays1SoftKeyMenu(menuSystem, pfdMapSettingManager));
     this.softKeyMenuSystem.registerMenu('map-overlays-2', menuSystem => new MapOverlays2SoftKeyMenu(menuSystem, pfdMapSettingManager));
     this.softKeyMenuSystem.registerMenu('data-link-settings-split', menuSystem => new DataLinkSettingsSoftKeyMenu(menuSystem, true));
 
-    this.softKeyMenuSystem.registerMenu('pfd-settings-split', menuSystem => new PfdSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, this.props.config.radios, true));
+    this.softKeyMenuSystem.registerMenu('pfd-settings-split', menuSystem => new PfdSettingsSoftKeyMenu(menuSystem, this.pfdIndex, this.props.pfdSettingManager, this.props.config.radios, this.props.config.fms, true));
     this.softKeyMenuSystem.registerMenu('attitude-overlays-split', menuSystem => new AttitudeOverlaysSoftKeyMenu(menuSystem, this.props.pfdSettingManager, true));
     this.softKeyMenuSystem.registerMenu('svt-settings', menuSystem => new SvtSettingsSoftKeyMenu(menuSystem, this.props.pfdSettingManager));
 
@@ -389,9 +423,13 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
       }, true);
     }
 
+    const sub = this.props.bus.getSubscriber<AvionicsStatusEvents & BaroTransitionAlertEvents>();
+
+    this.isBaroTransitionAltitudeAlertActive.setConsumer(sub.on(`baro_transition_alert_altitude_active_${this.pfdIndex}`));
+    this.isBaroTransitionLevelAlertActive.setConsumer(sub.on(`baro_transition_alert_level_active_${this.pfdIndex}`));
+
     // Handle avionics global power state.
-    this.props.bus.getSubscriber<AvionicsStatusEvents>()
-      .on(`avionics_status_${AvionicsStatusUtils.getUid('PFD', this.pfdIndex)}`)
+    sub.on(`avionics_status_${AvionicsStatusUtils.getUid('PFD', this.pfdIndex)}`)
       .handle(this.onAvionicsStatusChanged.bind(this));
 
     // Aural alerts.
@@ -444,6 +482,9 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     this.updateSize(size, width, height);
     this.isInSplitMode.set(size === DisplayPaneSizeMode.Half);
 
+    this.isBaroTransitionAltitudeAlertActive.resume();
+    this.isBaroTransitionLevelAlertActive.resume();
+
     this.hsiDataProvider.resume();
     this.vdiDataProvider.resume();
 
@@ -465,6 +506,9 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
     this.airspeedIndicatorRef.instance.sleep();
     this.altimeterRef.instance.sleep();
     this.hsiRef.instance.sleep();
+
+    this.isBaroTransitionAltitudeAlertActive.pause();
+    this.isBaroTransitionLevelAlertActive.pause();
 
     this.hsiDataProvider.pause();
     this.vdiDataProvider.pause();
@@ -577,6 +621,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
         <Fma
           bus={this.props.bus}
           flightPlanner={this.props.fms.flightPlanner}
+          fmsConfig={this.props.config.fms}
           supportAutothrottle={this.props.config.autothrottle}
           pluginOptions={pluginAfcsStatusBoxOptions}
         />
@@ -614,6 +659,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           dataProvider={this.props.altimeterDataProvider}
           altitudeAlertState={this.altitudeAlerter.state}
           minimumsAlertState={this.minimumsAlerter.state}
+          isBaroTransitionAlertActive={this.isBaroTransitionAlertActive}
           pfdSettingManager={this.props.pfdSettingManager}
           declutter={this.declutterManager.declutter}
         />
@@ -675,6 +721,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           flightPlanner={this.props.fms.flightPlanner}
           trafficSystem={this.props.trafficSystem}
           pfdIndex={this.pfdIndex}
+          fmsConfig={this.props.config.fms}
           mapConfig={this.props.config.map}
           pfdSensorsSettingManager={this.props.pfdSensorsSettingManager}
           pfdMapLayoutSettingManager={this.props.pfdSettingManager}
@@ -709,7 +756,8 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           this.declutterBearingInfoBanner && (
             <BearingInfoBanner
               bus={this.props.bus}
-              adfRadioCount={this.props.config.radios.adfCount}
+              radiosConfig={this.props.config.radios}
+              fmsConfig={this.props.config.fms}
               navIndicators={this.props.navIndicators}
               unitsSettingManager={UnitsUserSettings.getManager(this.props.bus)}
               isHsiMapEnabled={this.isHsiMapEnabled}
@@ -751,6 +799,7 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
           pfdIndex={this.pfdIndex}
           layoutConfig={this.props.instrumentConfig.layout}
           radiosConfig={this.props.config.radios}
+          fmsConfig={this.props.config.fms}
           navStatusBoxConfig={this.props.instrumentConfig.navStatusBox}
           navIndicators={this.props.navIndicators}
           gpsIntegrityDataProvider={this.props.gpsIntegrityDataProvider}
@@ -790,6 +839,9 @@ export class PfdInstrumentContainer extends DisplayPaneView<PfdInstrumentContain
   /** @inheritDoc */
   public destroy(): void {
     this.thisNode && FSComponent.shallowDestroy(this.thisNode);
+
+    this.isBaroTransitionAltitudeAlertActive.destroy();
+    this.isBaroTransitionLevelAlertActive.destroy();
 
     this.altitudeAlerter.destroy();
     this.minimumsAlerter.destroy();

@@ -4,11 +4,11 @@ import {
   Subscription, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
-import { ObsSuspModes, TrafficSystem, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
+import { NavReferenceSource, ObsSuspModes, TrafficSystem, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
 
 import {
-  BearingDisplay, DisplayPaneViewEvent, G3000FlightPlannerId, MapConfig, PfdIndex, PfdMapLayoutSettingMode,
-  PfdMapLayoutUserSettingTypes, PfdSensorsUserSettingManager
+  BearingDisplay, DisplayPaneViewEvent, FmsConfig, G3000FlightPlannerId, G3000NavSourceName, MapConfig, PfdIndex,
+  PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes, PfdSensorsUserSettingManager
 } from '@microsoft/msfs-wtg3000-common';
 
 import { HsiDataProvider } from './HsiDataProvider';
@@ -30,6 +30,9 @@ export interface HSIProps extends ComponentProps {
 
   /** The index of the PFD to which the HSI belongs. */
   pfdIndex: PfdIndex;
+
+  /** A configuration object defining options for the FMS. */
+  fmsConfig: FmsConfig;
 
   /** A configuration object defining options for the HSI map. */
   mapConfig: MapConfig;
@@ -70,6 +73,11 @@ export class Hsi extends DisplayComponent<HSIProps> {
   ).pause();
   private readonly selectedHeadingValue = BasicNavAngleSubject.create(BasicNavAngleUnit.create(true).createNumber(0));
 
+  private readonly dtkCrsHidden = MappedSubject.create(
+    ([course, isCourseHeading]) => course === null || isCourseHeading === true,
+    this.props.dataProvider.activeNavIndicator.course,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading
+  ).pause();
   private readonly dtkCrsMag = Subject.create(0);
   private readonly dtkCrsState = MappedSubject.create(
     this.dtkCrsMag,
@@ -91,24 +99,17 @@ export class Hsi extends DisplayComponent<HSIProps> {
   private isAlive = true;
 
   private cdiSourceSub?: Subscription;
+  private dtkCrsHiddenSub?: Subscription;
   private navCoursePipe?: Subscription;
   private obsCoursePipe?: Subscription;
+  private dtkCrsSourceStateSub?: Subscription;
   private headingDataFailedSub?: Subscription;
   private gpsDataFailedSub?: Subscription;
   private declutterSub?: Subscription;
 
   /** @inheritDoc */
   public onAfterRender(): void {
-
-    this.cdiSourceSub = this.props.dataProvider.activeNavIndicator.source.sub(source => {
-      if (source?.getType() === NavSourceType.Gps) {
-        this.rootCssClass.add('hsi-active-nav-gps');
-        this.rootCssClass.delete('hsi-active-nav-nav');
-      } else {
-        this.rootCssClass.add('hsi-active-nav-nav');
-        this.rootCssClass.delete('hsi-active-nav-gps');
-      }
-    }, false, true);
+    this.cdiSourceSub = this.props.dataProvider.activeNavIndicator.source.sub(this.onCdiSourceChanged.bind(this), false, true);
 
     this.selectedHeadingState.sub(([selectedHeadingMag, magVar]) => {
       this.selectedHeadingValue.set(selectedHeadingMag, magVar);
@@ -118,18 +119,20 @@ export class Hsi extends DisplayComponent<HSIProps> {
       this.dtkCrsValue.set(dtkCrsMag, magVar);
     }, true);
 
-    const navCoursePipe = this.navCoursePipe = this.props.dataProvider.activeNavIndicator.course.pipe(this.dtkCrsMag, course => course ?? 0, true);
-    const obsCoursePipe = this.obsCoursePipe = this.props.dataProvider.obsCourse.pipe(this.dtkCrsMag, true);
+    this.navCoursePipe = this.props.dataProvider.activeNavIndicator.course.pipe(this.dtkCrsMag, course => course ?? 0, true);
+    this.obsCoursePipe = this.props.dataProvider.obsCourse.pipe(this.dtkCrsMag, true);
 
-    const dtkCrsSourceStateSub = this.dtkCrsSourceState.sub(([cdiSource, obsSuspMode]) => {
+    this.dtkCrsSourceStateSub = this.dtkCrsSourceState.sub(([cdiSource, obsSuspMode]) => {
       if (cdiSource?.getType() === NavSourceType.Gps && obsSuspMode === ObsSuspModes.OBS) {
-        navCoursePipe.pause();
-        obsCoursePipe.resume(true);
+        this.navCoursePipe!.pause();
+        this.obsCoursePipe!.resume(true);
       } else {
-        obsCoursePipe.pause();
-        navCoursePipe.resume(true);
+        this.obsCoursePipe!.pause();
+        this.navCoursePipe!.resume(true);
       }
     }, false, true);
+
+    this.dtkCrsHiddenSub = this.dtkCrsHidden.sub(this.onDtkCrsVisibilityChanged.bind(this), false, true);
 
     this.headingDataFailedSub = this.props.dataProvider.isHeadingDataFailed.sub(isFailed => {
       this.rootCssClass.toggle('heading-data-failed', isFailed);
@@ -139,65 +142,9 @@ export class Hsi extends DisplayComponent<HSIProps> {
       this.rootCssClass.toggle('gps-data-failed', isFailed);
     }, false, true);
 
-    this.declutterSub = this.props.declutter.sub(declutter => {
-      if (declutter) {
-        this.selectedHeadingState.pause();
+    this.declutterSub = this.props.declutter.sub(this.onDeclutterChanged.bind(this), false, true);
 
-        this.dtkCrsState.pause();
-
-        this.dtkCrsSourceState.pause();
-        dtkCrsSourceStateSub.pause();
-
-        navCoursePipe.pause();
-        obsCoursePipe.pause();
-
-        this.hdgSyncModeHidden.pause();
-
-        this.hdgCrsHidden.set(true);
-      } else {
-        this.selectedHeadingState.resume();
-
-        this.dtkCrsSourceState.resume();
-        dtkCrsSourceStateSub.resume(true);
-
-        this.dtkCrsState.resume();
-
-        this.hdgSyncModeHidden.resume();
-
-        this.hdgCrsHidden.set(false);
-      }
-    }, false, true);
-
-    this.isAwake.sub(isAwake => {
-      if (isAwake) {
-        this.cdiSourceSub!.resume(true);
-        this.headingDataFailedSub!.resume(true);
-        this.gpsDataFailedSub!.resume(true);
-        this.declutterSub!.resume(true);
-      } else {
-        this.cdiSourceSub!.pause();
-        this.headingDataFailedSub!.pause();
-        this.gpsDataFailedSub!.pause();
-        this.declutterSub!.pause();
-
-        this.rootCssClass.toggle('heading-data-failed', false);
-        this.rootCssClass.toggle('gps-data-failed', false);
-
-        this.selectedHeadingState.pause();
-
-        this.dtkCrsState.pause();
-
-        this.dtkCrsSourceState.pause();
-        dtkCrsSourceStateSub.pause();
-
-        navCoursePipe.pause();
-        obsCoursePipe.pause();
-
-        this.hdgSyncModeHidden.pause();
-
-        this.hdgCrsHidden.set(true);
-      }
-    }, true);
+    this.isAwake.sub(this.onIsAwakeChanged.bind(this), true);
   }
 
   /**
@@ -266,6 +213,104 @@ export class Hsi extends DisplayComponent<HSIProps> {
     }
   }
 
+  /**
+   * Responds to when whether this HSI is awake changes.
+   * @param isAwake Whether this HSI is awake.
+   */
+  private onIsAwakeChanged(isAwake: boolean): void {
+    if (isAwake) {
+      this.cdiSourceSub!.resume(true);
+      this.headingDataFailedSub!.resume(true);
+      this.gpsDataFailedSub!.resume(true);
+      this.declutterSub!.resume(true);
+    } else {
+      this.cdiSourceSub!.pause();
+      this.headingDataFailedSub!.pause();
+      this.gpsDataFailedSub!.pause();
+      this.declutterSub!.pause();
+
+      this.rootCssClass.toggle('heading-data-failed', false);
+      this.rootCssClass.toggle('gps-data-failed', false);
+
+      this.pauseDeclutterSubscriptions();
+
+      this.hdgCrsHidden.set(true);
+    }
+  }
+
+  /**
+   * Responds to when the CDI source changes.
+   * @param source The new CDI source.
+   */
+  private onCdiSourceChanged(source: NavReferenceSource<G3000NavSourceName> | null): void {
+    if (source?.getType() === NavSourceType.Gps) {
+      this.rootCssClass.add('hsi-active-nav-gps');
+      this.rootCssClass.delete('hsi-active-nav-nav');
+    } else {
+      this.rootCssClass.add('hsi-active-nav-nav');
+      this.rootCssClass.delete('hsi-active-nav-gps');
+    }
+  }
+
+  /**
+   * Responds to when whether this HSI is decluttered changes.
+   * @param declutter Whether this HSI is decluttered.
+   */
+  private onDeclutterChanged(declutter: boolean): void {
+    if (declutter) {
+      this.pauseDeclutterSubscriptions();
+
+      this.hdgCrsHidden.set(true);
+    } else {
+      this.selectedHeadingState.resume();
+
+      this.dtkCrsHidden.resume();
+      this.dtkCrsHiddenSub!.resume(true);
+
+      this.hdgSyncModeHidden.resume();
+
+      this.hdgCrsHidden.set(false);
+    }
+  }
+
+  /**
+   * Pauses subscriptions that are not required when this HSI is decluttered.
+   */
+  private pauseDeclutterSubscriptions(): void {
+    this.selectedHeadingState.pause();
+
+    this.dtkCrsHidden.pause();
+    this.dtkCrsHiddenSub!.pause();
+    this.pauseDtkCrsHiddenSubscriptions();
+
+    this.hdgSyncModeHidden.pause();
+  }
+
+  /**
+   * Responds to when this HSI's DTK/CRS display's visibility changes.
+   * @param isHidden Whether the DTK/CRS display is hidden.
+   */
+  private onDtkCrsVisibilityChanged(isHidden: boolean): void {
+    if (isHidden) {
+      this.pauseDtkCrsHiddenSubscriptions();
+    } else {
+      this.dtkCrsSourceState.resume();
+      this.dtkCrsSourceStateSub!.resume(true);
+      this.dtkCrsState.resume();
+    }
+  }
+
+  /**
+   * Pauses subscriptions that are not required when this HSI's DTK/CRS display is hidden.
+   */
+  private pauseDtkCrsHiddenSubscriptions(): void {
+    this.dtkCrsState.pause();
+    this.dtkCrsSourceState.pause();
+    this.dtkCrsSourceStateSub!.pause();
+    this.navCoursePipe!.pause();
+    this.obsCoursePipe!.pause();
+  }
+
   /** @inheritDoc */
   public render(): VNode {
     return (
@@ -283,7 +328,17 @@ export class Hsi extends DisplayComponent<HSIProps> {
           </div>
           <div class={{ 'hsi-hdg-box-sync-mode': true, 'hidden': this.hdgSyncModeHidden }}>SYNC MODE</div>
         </div>
-        <div class={{ 'hsi-hdgcrs-box': true, 'hsi-crs-box': true, 'hidden': this.hdgCrsHidden }}>
+        <div
+          class={{
+            'hsi-hdgcrs-box': true,
+            'hsi-crs-box': true,
+            'hidden': MappedSubject.create(
+              SubscribableMapFunctions.or(),
+              this.hdgCrsHidden,
+              this.dtkCrsHidden
+            )
+          }}
+        >
           <div class="hsi-hdgcrs-box-title">{this.dtkCrsTitleText}</div>
           <BearingDisplay
             ref={this.crsRef}
@@ -296,6 +351,7 @@ export class Hsi extends DisplayComponent<HSIProps> {
         <HsiRose
           ref={this.roseRef}
           bus={this.props.bus}
+          fmsConfig={this.props.fmsConfig}
           dataProvider={this.props.dataProvider}
           unitsSettingManager={this.props.unitsSettingManager}
           show={MappedSubject.create(([showMap, isAwake]) => !showMap && isAwake, this.showMap, this.isAwake)}
@@ -306,6 +362,7 @@ export class Hsi extends DisplayComponent<HSIProps> {
           flightPlanner={this.props.flightPlanner}
           trafficSystem={this.props.trafficSystem}
           pfdIndex={this.props.pfdIndex}
+          fmsConfig={this.props.fmsConfig}
           config={this.props.mapConfig}
           dataProvider={this.props.dataProvider}
           pfdSensorsSettingManager={this.props.pfdSensorsSettingManager}
@@ -330,6 +387,8 @@ export class Hsi extends DisplayComponent<HSIProps> {
     this.showMap.destroy();
 
     this.selectedHeadingState.destroy();
+
+    this.dtkCrsHidden.destroy();
     this.dtkCrsSourceState.destroy();
     this.dtkCrsSourceState.destroy();
 

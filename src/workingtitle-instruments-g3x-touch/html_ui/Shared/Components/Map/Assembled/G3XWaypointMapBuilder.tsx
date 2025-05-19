@@ -3,7 +3,7 @@
 import {
   FacilityLoader, FacilityRepository, FlightPlanner, FSComponent, MapOwnAirplaneIconOrientation,
   MapOwnAirplanePropsKey, MapRangeModule, MapSystemBuilder, MapSystemContext, MapSystemGenericController,
-  NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable,
+  MapSystemKeys, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable,
   SubscribableUtils, Subscription, UnitFamily, UnitType, UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -42,6 +42,9 @@ export type G3XWaypointMapTrafficIconOptions = Pick<TrafficIconOptions, 'iconSiz
 export type G3XWaypointMapOptions = {
   /** The format of the map's parent GDU. */
   gduFormat: GduFormat;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
@@ -246,6 +249,9 @@ export class G3XWaypointMapBuilder {
     options.showDetailIndicatorTitle ??= true;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.WaypointSelection, () => new WaypointMapSelectionModule())
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,
@@ -371,7 +377,7 @@ export class G3XWaypointMapBuilder {
           drawEntirePlan: false,
           waypointRecordManagerFactory: (context, renderer) => {
             return new MapDefaultFlightPlanWaypointRecordManager(
-              new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+              context[MapSystemKeys.FacilityLoader],
               GarminFacilityWaypointCache.getCache(context.bus),
               renderer,
               MapWaypointRenderRole.FlightPlanInactive,

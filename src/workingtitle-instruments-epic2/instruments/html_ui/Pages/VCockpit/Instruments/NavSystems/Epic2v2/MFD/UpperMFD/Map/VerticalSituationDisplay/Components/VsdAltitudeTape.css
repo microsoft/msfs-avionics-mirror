@@ -1,0 +1,62 @@
+.vsd-altitude-tape {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  height: 100%;
+  width: 84px;
+  overflow: hidden;
+}
+
+.vsd-altitude-tape-border {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 89px;
+  height: 100%;
+}
+
+.vsd-altitude-tape-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.vsd-altitude-tape-ref-mark {
+  position: absolute;
+  top: 180px;
+  left: 3px;
+  width: 13px;
+  height: 4px;
+}
+
+.vsd-altitude-tape path,
+.vsd-altitude-tape line {
+  fill: none;
+  stroke: var(--epic2-color-white);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.vsd-altitude-tape path.shadow,
+.vsd-altitude-tape line.shadow {
+  stroke: var(--epic2-color-black);
+  stroke-opacity: 0.5;
+  stroke-width: 3px;
+  fill: none;
+}
+
+.vsd-altitude-tape text {
+  font-size: 32px;
+  stroke-width: 1px;
+  stroke: var(--epic2-color-black);
+  fill: var(--epic2-color-white);
+  paint-order: stroke;
+}
+
+.vsd-altitude-tape text.small-alt-text {
+  font-size: 26px;
+}

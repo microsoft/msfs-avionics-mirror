@@ -136,6 +136,8 @@ export class GarminTaws<ID extends string> extends AbstractTerrainSystem<ID> {
     [GarminTawsAlert.IoiCaution]: 8,
     [GarminTawsAlert.EcrCaution]: 7,
     [GarminTawsAlert.FitTerrainCaution]: 6,
+    [GarminTawsAlert.FitTerrainGearCaution]: 6,
+    [GarminTawsAlert.FitTerrainFlapsCaution]: 6,
     [GarminTawsAlert.FitTakeoffCaution]: 6,
     [GarminTawsAlert.PdaCaution]: 5,
     [GarminTawsAlert.FitGearCaution]: 4,

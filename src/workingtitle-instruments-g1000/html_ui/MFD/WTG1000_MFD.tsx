@@ -3,7 +3,7 @@
 /// <reference types="@microsoft/msfs-types/js/simvar" />
 
 import {
-  AdcPublisher, AltitudeSelectManagerAccelFilter, AltitudeSelectManagerAccelType, APRadioNavInstrument,
+  AdcPublisher, AltitudeSelectManagerAccelFilter, AltitudeSelectManagerAccelType, AmbientPublisher, APRadioNavInstrument,
   AutopilotInstrument, AvionicsSystem, BaseInstrumentPublisher, Clock, ClockEvents, CompositeLogicXMLHost,
   ConsumerValue, ControlPublisher, EISPublisher, ElectricalPublisher, EventBus, EventSubscriber, FacilityLoader,
   FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner,
@@ -115,6 +115,7 @@ class WTG1000_MFD extends BaseInstrument {
   private readonly controlPublisher: ControlPublisher;
   private readonly electricalPublisher: ElectricalPublisher;
   private readonly navComSimVarPublisher: NavComSimVarPublisher;
+  private readonly ambientPublisher: AmbientPublisher;
 
   private readonly lNavObsPublisher: LNavObsSimVarPublisher;
   private readonly vNavPublisher: VNavSimVarPublisher;
@@ -200,6 +201,7 @@ class WTG1000_MFD extends BaseInstrument {
     this.vNavPublisher = new VNavSimVarPublisher(this.bus);
     this.apRadioNav = new APRadioNavInstrument(this.bus);
     this.navComSimVarPublisher = new NavComSimVarPublisher(this.bus);
+    this.ambientPublisher = new AmbientPublisher(this.bus);
 
     this.hEventPublisher = new HEventPublisher(this.bus);
     this.g1000ControlPublisher = new G1000ControlPublisher(this.bus);
@@ -235,6 +237,7 @@ class WTG1000_MFD extends BaseInstrument {
     this.backplane.addPublisher('navComSimVar', this.navComSimVarPublisher);
     this.backplane.addPublisher('minimums', this.minimumsPublisher);
     this.backplane.addPublisher('g1000ap', this.g1000ApPublisher);
+    this.backplane.addPublisher('ambient', this.ambientPublisher);
 
     this.backplane.addInstrument('ap', this.apInstrument);
     this.backplane.addInstrument('apRadioNav', this.apRadioNav);
@@ -675,7 +678,10 @@ class WTG1000_MFD extends BaseInstrument {
 
     this.flightPlanRouteSyncManager.init(
       manager,
-      new GarminPrimaryFlightPlanRouteLoader(this.fms, { userFacilityScope: G1000FacilityUtils.USER_FACILITY_SCOPE }),
+      new GarminPrimaryFlightPlanRouteLoader(this.fms, {
+        userFacilityScope: G1000FacilityUtils.USER_FACILITY_SCOPE,
+        allowRnpArApproaches: false,
+      }),
       new GarminPrimaryFlightPlanRouteProvider(this.fms)
     );
 

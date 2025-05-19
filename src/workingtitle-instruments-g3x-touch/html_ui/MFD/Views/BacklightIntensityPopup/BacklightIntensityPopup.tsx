@@ -239,7 +239,6 @@ export class BacklightIntensityPopup extends AbstractUiView<BacklightIntensityPo
                 <svg viewBox='0 0 100 100' preserveAspectRatio='none' class='backlight-intensity-popup-slider-occlude'>
                   <path d='M 0 0 h 100 l -100 100 Z' />
                 </svg>
-                <div class='backlight-intensity-popup-slider-inset-overlay' />
                 <div class='backlight-intensity-popup-slider-inset-readout'>{this.backlightLevelText}</div>
               </div>
             }

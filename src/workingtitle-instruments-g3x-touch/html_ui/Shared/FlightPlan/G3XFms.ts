@@ -55,6 +55,9 @@ export type G3XFmsOptions = {
    */
   useSimObsState: boolean;
 
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facLoader?: FacilityLoader;
+
   /**
    * Configuration options for external flight plan data sources, indexed by external source index. If not defined,
    * then external sources will not be supported.
@@ -103,6 +106,7 @@ export class G3XFms {
       {
         lnavIndex: options.lnavIndex,
         useSimObsState: options.useSimObsState,
+        facLoader: options.facLoader,
         navRadioIndexes: [],
         disableApproachAvailablePublish: true
       }
@@ -126,6 +130,7 @@ export class G3XFms {
             useSimObsState: externalFplSourceOption.useSimObsState,
             vnavIndex: externalFplSourceOption.vnavIndex,
             cdiId: externalFplSourceOption.cdiId,
+            facLoader: this.facLoader,
             disableApproachAvailablePublish: true
           }
         );
@@ -610,7 +615,7 @@ export class G3XFms {
     const plan = this.internalFms.getPrimaryFlightPlan();
     const existingApproachData = plan.getUserData<Readonly<G3XFmsFplLoadedApproachData>>(G3XFmsFplUserDataKey.LoadedApproach);
     const isExistingApproachEqual = existingApproachData
-      && existingApproachData.airportIcao === facility.icao
+      && ICAO.valueEquals(existingApproachData.airportIcaoStruct, facility.icaoStruct)
       && existingApproachData.approachIndex === approachIndex;
 
     if (existingApproachData && !isExistingApproachEqual) {
@@ -619,6 +624,7 @@ export class G3XFms {
 
     if (!isExistingApproachEqual) {
       const approachData: G3XFmsFplLoadedApproachData = {
+        airportIcaoStruct: facility.icaoStruct,
         airportIcao: facility.icao,
         approachIndex,
         approach
@@ -666,13 +672,14 @@ export class G3XFms {
       return;
     }
 
-    const isLastNonDestLegToAirport = plan.findLeg(
+    const lastNonDestLeg = plan.findLeg(
       (leg, segment) => {
         return segment.segmentType !== FlightPlanSegmentType.Destination
           && !BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo);
       },
       true
-    )?.leg.fixIcao === approachData.airportIcao;
+    );
+    const isLastNonDestLegToAirport = lastNonDestLeg && ICAO.valueEquals(lastNonDestLeg.leg.fixIcaoStruct, approachData.airportIcaoStruct);
 
     if (isLastNonDestLegToAirport) {
       // The last non-destination leg is to the removed approach airport. In this case, we should not set the
@@ -688,7 +695,10 @@ export class G3XFms {
       let needSetDestinationAirport = true;
       const destinationSegment = FmsUtils.getDestinationSegment(plan);
       if (destinationSegment) {
-        if (destinationSegment.legs.length === 1 && destinationSegment.legs[0].leg.fixIcao === approachData.airportIcao) {
+        if (
+          destinationSegment.legs.length === 1
+          && ICAO.valueEquals(destinationSegment.legs[0].leg.fixIcaoStruct, approachData.airportIcaoStruct)
+        ) {
           needSetDestinationAirport = false;
         }
       }
@@ -1128,7 +1138,8 @@ export class G3XFms {
 
     const vfrApproachData = plan.getUserData<Readonly<FmsFplVfrApproachData>>(FmsFplUserDataKey.VfrApproach);
     if (
-      plan.procedureDetails.approachFacilityIcao === approachData.airportIcao
+      plan.procedureDetails.approachFacilityIcaoStruct
+      && ICAO.valueEquals(plan.procedureDetails.approachFacilityIcaoStruct, approachData.airportIcaoStruct)
       && vfrApproachData
       && vfrApproachData.isVtf === isVtf
       && vfrApproachData.approachIndex === approachData.approachIndex
@@ -1142,7 +1153,7 @@ export class G3XFms {
     } else {
       // The VFR approach is not already inserted into the flight plan.
       try {
-        const facility = await this.facLoader.getFacility(FacilityType.Airport, approachData.airportIcao);
+        const facility = await this.facLoader.getFacility(FacilityType.Airport, approachData.airportIcaoStruct);
 
         if (activateApproachOpId !== this.activateApproachOpId) {
           return;
@@ -1158,7 +1169,7 @@ export class G3XFms {
 
         const lastLeg = plan.findLeg(leg => !BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo), true);
 
-        if (lastLeg?.leg.fixIcao === approachData.airportIcao) {
+        if (lastLeg && ICAO.valueEquals(lastLeg.leg.fixIcaoStruct, approachData.airportIcaoStruct)) {
           const { segmentIndex, segmentLegIndex } = FmsUtils.getLegIndexes(plan, lastLeg) as LegIndexes;
           await this.removeWaypoint(segmentIndex, segmentLegIndex);
         } else {

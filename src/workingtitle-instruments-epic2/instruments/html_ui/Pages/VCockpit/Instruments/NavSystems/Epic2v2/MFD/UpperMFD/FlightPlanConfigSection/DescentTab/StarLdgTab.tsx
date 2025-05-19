@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { EventBus, FSComponent, MappedSubject, PerformancePlanRepository, Subject, VNode } from '@microsoft/msfs-sdk';
+import { EventBus, FSComponent, MappedSubject, PerformancePlanRepository, Subject, SubscribableMapFunctions, VNode } from '@microsoft/msfs-sdk';
 
 import {
   AirspeedCasInputFormat, AltitudeFeetInputFormat, ButtonBoxArrow, ButtonMenu, Epic2Fms, Epic2FmsUtils, Epic2PerformancePlan, Epic2VSpeedController,
@@ -19,12 +19,14 @@ interface StarLdgTabProps extends TabContentProps {
   readonly modalService: ModalService;
   /** The flight plan store.  */
   readonly activeFlightPlanStore: FlightPlanStore;
+  /** The pending flight plan store.  */
+  readonly pendingFlightPlanStore: FlightPlanStore;
   /** The FMS. */
   readonly fms: Epic2Fms;
   /** The performance plan repository. */
   readonly perfPlanRepository: PerformancePlanRepository<Epic2PerformancePlan>;
   /** The vspeed controller */
-  readonly vSpeedController: Epic2VSpeedController
+  readonly vSpeedController: Epic2VSpeedController;
 }
 
 const RNAV_MINIMA_LABELS = {
@@ -45,6 +47,12 @@ export class StarLdgTab extends TabContent<StarLdgTabProps> {
   private readonly highestRnavMinima = Subject.create(RnavMinima.None);
   private readonly activeRnavMinima = this.props.activeFlightPlanStore.selectedRnavMinima;
   private readonly isRnavMinimaEnabled = this.highestRnavMinima.map((minima) => minima !== RnavMinima.None);
+
+  private readonly starInsertAvailable = MappedSubject.create(
+    SubscribableMapFunctions.or(),
+    this.props.activeFlightPlanStore.originFacility.map((v) => v !== undefined),
+    this.props.pendingFlightPlanStore.originFacility.map((v) => v !== undefined),
+  );
 
   private readonly vSpeedDefinitions = [] as VSpeedInputTabDefinition[];
 
@@ -156,7 +164,7 @@ export class StarLdgTab extends TabContent<StarLdgTabProps> {
               class="star-ldg-dest-button"
               variant={'small'}
               onPressed={() => this.props.modalService.open<DepartureArrivalModal>(ModalKey.DepartureArrival)!.modal.setActiveTab('arrival')}
-              isEnabled={this.props.activeFlightPlanStore.destinationFacility.map((v) => v !== undefined)}
+              isEnabled={this.starInsertAvailable}
             />
             <div class="star-ldg-nav-menu">
               <ButtonMenu buttons={[

@@ -1,9 +1,10 @@
 import {
   AdcPublisher, AhrsPublisher, AircraftInertialPublisher, AntiIcePublisher, AutopilotInstrument, AvionicsSystem, AvionicsSystemState, BaseInstrumentPublisher,
-  BrakeSimvarPublisher, Clock, ControlSurfacesPublisher, DebounceTimer, EISPublisher, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository,
-  FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightTimerPublisher, FSComponent, FsInstrument, FuelSystemSimVarPublisher,
-  GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher, InstrumentBackplane, MappedSubject, MinimumsSimVarPublisher,
-  NavComSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator, Subject, TrafficInstrument, VNavSimVarPublisher, Wait, XPDRInstrument
+  BrakeSimvarPublisher, Clock, ControlSurfacesPublisher, DebounceTimer, DefaultFlightPathAnticipatedDataCalculator, EISPublisher, ElectricalPublisher, EventBus,
+  FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightTimerPublisher,
+  FSComponent, FsInstrument, FuelSystemSimVarPublisher, GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher, InstrumentBackplane, MappedSubject,
+  MinimumsSimVarPublisher, NavComSimVarPublisher, SBASGroupName, SimVarValueType, SmoothingPathCalculator, Subject, TrafficInstrument, VNavSimVarPublisher,
+  Wait, XPDRInstrument
 } from '@microsoft/msfs-sdk';
 
 import { Epic2ApPanelPublisher } from './Autopilot/Epic2ApPanelPublisher';
@@ -65,7 +66,9 @@ export abstract class Epic2FsInstrument implements FsInstrument {
   protected readonly cockpitUserSettings = CockpitUserSettings.getManager(this.bus);
 
   protected readonly facRepo = FacilityRepository.getRepository(this.bus);
-  protected readonly facLoader = new FacilityLoader(this.facRepo);
+  protected readonly facLoader = new FacilityLoader(this.facRepo, undefined, {
+    sharedFacilityCacheId: 'epic2',
+  });
   protected readonly nearestContext = new Epic2NearestContext(this.bus, this.facLoader);
 
   protected readonly mfdUserSettingsManager = new MfdUserSettingManager(this.bus, [DisplayUnitIndices.MfdUpper, DisplayUnitIndices.MfdLower], this.config);
@@ -89,6 +92,10 @@ export abstract class Epic2FsInstrument implements FsInstrument {
       maxBankAngle: 25,
       airplaneSpeedMode: FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind,
       airplaneWindMode: FlightPathAirplaneWindMode.Automatic,
+      anticipatedDataCalculator: new DefaultFlightPathAnticipatedDataCalculator(this.bus,
+        {
+          descentSpeedProfileKtsBelow10k: 220, descentSpeedProfileKtsAbove10k: 260, typicalVRef: 130
+        })
     },
     this.bus
   );

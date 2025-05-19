@@ -1,0 +1,40 @@
+.gtc-horizontal .baro-trans-alert-altitude-dialog {
+  --baro-trans-alert-altitude-dialog-revert-button-right: 24px;
+  --baro-trans-alert-altitude-dialog-revert-button-bottom: 10px;
+  --baro-trans-alert-altitude-dialog-revert-button-width: 234px;
+  --baro-trans-alert-altitude-dialog-revert-button-height: 124px;
+  --baro-trans-alert-altitude-dialog-revert-button-font-size: 35px;
+}
+
+.gtc-vertical .baro-trans-alert-altitude-dialog {
+  --baro-trans-alert-altitude-dialog-revert-button-right: 12px;
+  --baro-trans-alert-altitude-dialog-revert-button-bottom: 5px;
+  --baro-trans-alert-altitude-dialog-revert-button-width: 125px;
+  --baro-trans-alert-altitude-dialog-revert-button-height: 68px;
+  --baro-trans-alert-altitude-dialog-revert-button-font-size: 16px;
+}
+
+.baro-trans-alert-altitude-dialog-input .cursor-input-inactive {
+  position: absolute;
+  left: 0px;
+  top: 50%;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+}
+
+.baro-trans-alert-altitude-dialog-input-inactive-value-text {
+  background: var(--g3000-color-cyan);
+}
+
+.baro-trans-alert-altitude-dialog-revert-button {
+  position: absolute;
+  right: var(--baro-trans-alert-altitude-dialog-revert-button-right);
+  bottom: var(--baro-trans-alert-altitude-dialog-revert-button-bottom);
+  width: var(--baro-trans-alert-altitude-dialog-revert-button-width);
+  height: var(--baro-trans-alert-altitude-dialog-revert-button-height);
+  font-size: var(--baro-trans-alert-altitude-dialog-revert-button-font-size);
+}

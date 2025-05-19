@@ -17,12 +17,13 @@ import {
 import { LabelBarPluginHandlers } from './Components';
 import { GtcConfig } from './Config';
 import {
-  GtcAirwaySelectionDialog, GtcAltitudeDialog, GtcBaroPressureDialog, GtcCourseDialog, GtcDistanceDialog,
-  GtcDuplicateWaypointDialog, GtcDurationDialog, GtcDurationDialogMSS, GtcFindWaypointDialog, GtcFmsSpeedDialog,
-  GtcFrequencyDialog, GtcIntegerDialog, GtcLatLonDialog, GtcListDialog, GtcLoadFrequencyDialog,
-  GtcLocalTimeOffsetDialog, GtcMessageDialog, GtcMinimumsSourceDialog, GtcMinuteDurationDialog, GtcMomentArmDialog,
-  GtcRunwayLengthDialog, GtcSpeedConstraintDialog, GtcSpeedDialog, GtcTemperatureDialog, GtcTextDialog,
-  GtcUserWaypointDialog, GtcVnavAltitudeDialog, GtcVnavFlightPathAngleDialog, GtcWaypointDialog, GtcWeightDialog
+  GtcAirwaySelectionDialog, GtcAltitudeDialog, GtcBaroPressureDialog, GtcBaroTransitionAlertAltitudeDialog,
+  GtcCourseDialog, GtcDistanceDialog, GtcDuplicateWaypointDialog, GtcDurationDialog, GtcDurationDialogMSS,
+  GtcFindWaypointDialog, GtcFmsSpeedDialog, GtcFrequencyDialog, GtcIntegerDialog, GtcLatLonDialog, GtcListDialog,
+  GtcLoadFrequencyDialog, GtcLocalTimeOffsetDialog, GtcMessageDialog, GtcMinimumsSourceDialog, GtcMinuteDurationDialog,
+  GtcMomentArmDialog, GtcRunwayLengthDialog, GtcSpeedConstraintDialog, GtcSpeedDialog, GtcTemperatureDialog,
+  GtcTextDialog, GtcUserWaypointDialog, GtcVnavAltitudeDialog, GtcVnavFlightPathAngleDialog, GtcWaypointDialog,
+  GtcWeightDialog
 } from './Dialog';
 import { G3000GtcPlugin, G3000GtcPluginBinder } from './G3000GTCPlugin';
 import { G3000GtcViewContext } from './G3000GtcViewContext';
@@ -33,8 +34,8 @@ import {
 import { GtcDefaultPositionHeadingDataProvider, GtcUserWaypointEditController } from './Navigation';
 import {
   GtcAdvancedVnavProfilePage, GtcAirportInfoPage, GtcApproachPage, GtcArrivalPage, GtcAudioRadiosPopup,
-  GtcAvionicsSettingsPage, GtcChecklistPage, GtcConnextWeatherSettingsPage, GtcDeparturePage, GtcDirectToPage,
-  GtcFlapSpeedsPage, GtcFlightPlanPage, GtcHoldPage, GtcInitialFuelPage, GtcInitializationPage,
+  GtcAvionicsSettingsPage, GtcChartsPage, GtcChecklistPage, GtcConnextWeatherSettingsPage, GtcDeparturePage,
+  GtcDirectToPage, GtcFlapSpeedsPage, GtcFlightPlanPage, GtcHoldPage, GtcInitialFuelPage, GtcInitializationPage,
   GtcIntersectionInfoPage, GtcLandingDataPage, GtcMapSettingsPage, GtcMfdHomePage, GtcMinimumsPage, GtcNavComHome,
   GtcNdbInfoPage, GtcNearestAirportPage, GtcNearestDirectoryPage, GtcNearestIntersectionPage, GtcNearestNdbPage,
   GtcNearestUserWaypointPage, GtcNearestVorPage, GtcNearestWeatherPage, GtcPerfPage, GtcPfdHomePage,
@@ -44,7 +45,7 @@ import {
   GtcWaypointInfoDirectoryPage, GtcWeatherRadarSettingsPage, GtcWeatherSelectionPage, GtcWeightBalanceConfigPage,
   GtcWeightBalancePage, GtcWeightFuelPage,
 } from './Pages';
-import { GtcMapPointerControlPopup } from './Popups';
+import { GtcChartsOptionsPopup, GtcChartsPanZoomControlPopup, GtcMapPointerControlPopup } from './Popups';
 
 import './WTG3000_GTC.css';
 
@@ -166,6 +167,8 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
   private async doInit(): Promise<void> {
     await this.initPlugins();
 
+    this.initChartSources(this.pluginSystem);
+
     await this.initChecklist(this.pluginSystem);
 
     this.backplane.init();
@@ -234,7 +237,8 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       wptInfoSelectedNdb: Subject.create<FacilityWaypoint<NdbFacility> | null>(null),
       wptInfoSelectedUserWpt: Subject.create<FacilityWaypoint<UserFacility> | null>(null),
       userWptEditController: this.userWaypointEditController,
-      existingUserWptArray: this.existingUserWaypointsArray
+      existingUserWptArray: this.existingUserWaypointsArray,
+      chartsSources: this.chartsSources
     };
 
     this.registerViews(context);
@@ -346,6 +350,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             gtcService={gtcService}
             controlMode={controlMode}
             radiosConfig={this.config.radios}
+            fmsConfig={this.config.fms}
             activeNavIndicator={this.navIndicators.get('activeSource')}
             obsSuspDataProvider={context.obsSuspDataProvider}
           />
@@ -626,6 +631,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             planIndex={Fms.PRIMARY_PLAN_INDEX}
             store={this.flightPlanStore!}
             calculator={this.flightPathCalculator}
+            chartsSources={context.chartsSources}
           />
         );
       }
@@ -643,6 +649,7 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             planIndex={Fms.PRIMARY_PLAN_INDEX}
             store={this.flightPlanStore!}
             calculator={this.flightPathCalculator}
+            chartsSources={context.chartsSources}
           />
         );
       }
@@ -660,8 +667,41 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
             planIndex={Fms.PRIMARY_PLAN_INDEX}
             store={this.flightPlanStore!}
             calculator={this.flightPathCalculator}
+            chartsSources={context.chartsSources}
             allowRnpAr={this.config.fms.approach.supportRnpAr}
             minimumsDataProvider={context.minimumsDataProvider}
+          />
+        );
+      }
+    );
+
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.Charts, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcChartsPage
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex}
+            fms={this.fms}
+            flightPlanStore={this.flightPlanStore!}
+            positionDataProvider={context.posHeadingDataProvider}
+            chartsSources={context.chartsSources}
+          />
+        );
+      }
+    );
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.ChartsOptions, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcChartsOptionsPopup
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex}
+            chartsSources={context.chartsSources}
           />
         );
       }
@@ -1079,6 +1119,11 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       GtcViewKeys.MapPointerControl, 'MFD',
       (gtcService, controlMode, displayPaneIndex) => <GtcMapPointerControlPopup gtcService={gtcService} controlMode={controlMode} displayPaneIndex={displayPaneIndex} />
     );
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.ChartsPanZoomControl, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => <GtcChartsPanZoomControlPopup gtcService={gtcService} controlMode={controlMode} displayPaneIndex={displayPaneIndex} />
+    );
 
     // ---- NAV/COM ----
 
@@ -1463,6 +1508,20 @@ export class WTG3000GtcInstrument extends WTG3000FsInstrument {
       GtcViewKeys.MinuteDurationDialog, 'MFD',
       (gtcService, controlMode, displayPaneIndex) =>
         <GtcMinuteDurationDialog gtcService={gtcService} controlMode={controlMode} displayPaneIndex={displayPaneIndex} />
+    );
+
+    this.gtcService.registerView(
+      GtcViewLifecyclePolicy.Transient,
+      GtcViewKeys.BaroTransitionAlertAltitudeDialog, 'MFD',
+      (gtcService, controlMode, displayPaneIndex) => {
+        return (
+          <GtcBaroTransitionAlertAltitudeDialog
+            gtcService={gtcService}
+            controlMode={controlMode}
+            displayPaneIndex={displayPaneIndex}
+          />
+        );
+      }
     );
 
     this.gtcService.registerView(

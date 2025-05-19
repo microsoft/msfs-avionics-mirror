@@ -156,6 +156,16 @@ export class NextGenTawsAnnunciationDefs {
         text: 'TERRAIN'
       },
 
+      [GarminTawsAlert.FitTerrainGearCaution]: {
+        level: TerrainSystemAnnunciationLevel.Caution,
+        text: 'TERRAIN'
+      },
+
+      [GarminTawsAlert.FitTerrainFlapsCaution]: {
+        level: TerrainSystemAnnunciationLevel.Caution,
+        text: 'TERRAIN'
+      },
+
       [GarminTawsAlert.FitGearCaution]: {
         level: TerrainSystemAnnunciationLevel.Caution,
         text: 'TERRAIN'

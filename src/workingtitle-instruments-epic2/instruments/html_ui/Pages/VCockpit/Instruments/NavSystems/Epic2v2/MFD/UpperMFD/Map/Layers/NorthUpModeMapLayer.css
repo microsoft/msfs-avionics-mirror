@@ -42,6 +42,14 @@
   height: 100%;
 }
 
+.map-with-vsd-enabled .north-up-overlay .range-ring {
+  top: -70px;
+}
+
 .north-up-overlay .map-range-numbers {
   position: absolute;
+}
+
+.map-with-vsd-enabled .north-up-overlay .map-range-numbers {
+  transform: translate3d(0, -70px, 0);
 }

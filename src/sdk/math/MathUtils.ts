@@ -14,8 +14,17 @@ export class MathUtils {
   /** Twice the value of pi. */
   public static readonly TWO_PI = Math.PI * 2;
 
-  /** Half the value of pi. */
+  /** One half the value of pi. */
   public static readonly HALF_PI = Math.PI / 2;
+
+  /** One third the value of pi. */
+  public static readonly THIRD_PI = Math.PI / 3;
+
+  /** One quarter the value of pi. */
+  public static readonly QUARTER_PI = Math.PI / 4;
+
+  /** One sixth the value of pi. */
+  public static readonly SIXTH_PI = Math.PI / 6;
 
   /** Square root of 3. */
   public static readonly SQRT3 = Math.sqrt(3);

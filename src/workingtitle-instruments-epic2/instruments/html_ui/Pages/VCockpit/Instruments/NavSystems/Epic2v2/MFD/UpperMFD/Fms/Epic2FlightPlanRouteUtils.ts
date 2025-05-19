@@ -1,8 +1,8 @@
 import { Epic2ExtraLegDefinitionFlags } from '@microsoft/msfs-epic2-shared';
 import {
-  ApproachUtils, ArrayUtils, BitFlags, FacilityLoader, FacilityType, FlightPlan, FlightPlanLeg, FlightPlanRoute,
-  FlightPlanRouteEnrouteLeg, FlightPlanRouteUtils, FlightPlanSegmentType, FlightPlanUtils, ICAO, LegDefinitionFlags,
-  LegType, RunwayUtils
+  AirportFacilityDataFlags, ApproachUtils, ArrayUtils, BitFlags, FacilityLoader, FacilityType, FlightPlan,
+  FlightPlanLeg, FlightPlanRoute, FlightPlanRouteEnrouteLeg, FlightPlanRouteUtils, FlightPlanSegmentType,
+  FlightPlanUtils, ICAO, LegDefinitionFlags, LegType, RunwayUtils
 } from '@microsoft/msfs-sdk';
 
 /**
@@ -26,8 +26,12 @@ export class Epic2FlightPlanRouteUtils {
 
     const procedureDetails = flightPlan.procedureDetails;
 
-    const originAirport = flightPlan.originAirport !== undefined && ICAO.isStringV1Facility(flightPlan.originAirport, FacilityType.Airport)
-      ? await facLoader.getFacility(FacilityType.Airport, flightPlan.originAirport).catch(() => undefined)
+    const originAirport = flightPlan.originAirportIcao && ICAO.isValueFacility(flightPlan.originAirportIcao, FacilityType.Airport)
+      ? await facLoader.getFacility(
+        FacilityType.Airport,
+        flightPlan.originAirportIcao,
+        AirportFacilityDataFlags.Departures
+      ).catch(() => undefined)
       : undefined;
 
     if (originAirport) {
@@ -38,7 +42,11 @@ export class Epic2FlightPlanRouteUtils {
       }
 
       // The flight plan route only supports departures on the origin airport.
-      if (procedureDetails.departureFacilityIcao === flightPlan.originAirport && procedureDetails.departureIndex >= 0) {
+      if (
+        procedureDetails.departureFacilityIcaoStruct
+        && ICAO.valueEquals(procedureDetails.departureFacilityIcaoStruct, originAirport.icaoStruct)
+        && procedureDetails.departureIndex >= 0
+      ) {
         const departure = originAirport.departures[procedureDetails.departureIndex];
         if (departure) {
           route.departure = departure.name;
@@ -50,8 +58,12 @@ export class Epic2FlightPlanRouteUtils {
       }
     }
 
-    const destinationAirport = flightPlan.destinationAirport !== undefined && ICAO.isStringV1Facility(flightPlan.destinationAirport, FacilityType.Airport)
-      ? await facLoader.getFacility(FacilityType.Airport, flightPlan.destinationAirport).catch(() => undefined)
+    const destinationAirport = flightPlan.destinationAirportIcao && ICAO.isValueFacility(flightPlan.destinationAirportIcao, FacilityType.Airport)
+      ? await facLoader.getFacility(
+        FacilityType.Airport,
+        flightPlan.destinationAirportIcao,
+        AirportFacilityDataFlags.Arrivals | AirportFacilityDataFlags.Approaches
+      ).catch(() => undefined)
       : undefined;
 
     if (destinationAirport) {
@@ -62,7 +74,11 @@ export class Epic2FlightPlanRouteUtils {
       }
 
       // The flight plan route only supports arrivals on the destination airport.
-      if (procedureDetails.arrivalFacilityIcao === flightPlan.destinationAirport && procedureDetails.arrivalIndex >= 0) {
+      if (
+        procedureDetails.arrivalFacilityIcaoStruct
+        && ICAO.valueEquals(procedureDetails.arrivalFacilityIcaoStruct, destinationAirport.icaoStruct)
+        && procedureDetails.arrivalIndex >= 0
+      ) {
         const arrival = destinationAirport.arrivals[procedureDetails.arrivalIndex];
         if (arrival) {
           route.arrival = arrival.name;
@@ -74,7 +90,11 @@ export class Epic2FlightPlanRouteUtils {
       }
 
       // The flight plan route only supports approaches on the destination airport.
-      if (procedureDetails.approachFacilityIcao === flightPlan.destinationAirport && procedureDetails.approachIndex >= 0) {
+      if (
+        procedureDetails.approachFacilityIcaoStruct
+        && ICAO.valueEquals(procedureDetails.approachFacilityIcaoStruct, destinationAirport.icaoStruct)
+        && procedureDetails.approachIndex >= 0
+      ) {
         const approach = destinationAirport.approaches[procedureDetails.approachIndex];
         if (approach) {
           route.approach.type = ApproachUtils.typeToName(approach.approachType);
@@ -94,28 +114,31 @@ export class Epic2FlightPlanRouteUtils {
     for (const segment of flightPlan.segmentsOfType(FlightPlanSegmentType.Enroute)) {
       if (segment.airway) {
         const exit = ArrayUtils.peekLast(segment.legs);
-        if (exit) {
+        if (exit && segment.airway.length < 8) {
           const enrouteLeg = FlightPlanRouteUtils.emptyEnrouteLeg();
           enrouteLeg.fixIcao = exit.leg.fixIcaoStruct;
           enrouteLeg.via = segment.airway;
           route.enroute.push(enrouteLeg);
+          continue;
         }
-      } else {
-        const enrouteLegs = await Promise.all(
-          segment.legs
-            .filter(leg => {
-              // Ignore discontinuity legs and any legs in direct-to sequences and displaced legs (all displaced legs
-              // come from procedure segments, and they may contain non-TF leg types).
-              return FlightPlanUtils.isDiscontinuityLeg(leg.leg.type)
-                || !BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo | Epic2ExtraLegDefinitionFlags.DisplacedActiveLeg);
-            })
-            .map(leg => Epic2FlightPlanRouteUtils.legToFlightPlanRouteEnrouteLeg(facLoader, leg.leg))
-        );
+        // If we weren't able to get a valid airway name or exit, then we will let the code fall through to below,
+        // which will effectively flatten the airway into a sequence of direct legs.
+      }
 
-        for (const leg of enrouteLegs) {
-          if (!FlightPlanRouteUtils.isEnrouteLegEmpty(leg)) {
-            route.enroute.push(leg);
-          }
+      const enrouteLegs = await Promise.all(
+        segment.legs
+          .filter(leg => {
+            // Ignore discontinuity legs and any legs in direct-to sequences and displaced legs (all displaced legs
+            // come from procedure segments, and they may contain non-TF leg types).
+            return FlightPlanUtils.isDiscontinuityLeg(leg.leg.type)
+              || !BitFlags.isAny(leg.flags, LegDefinitionFlags.DirectTo | Epic2ExtraLegDefinitionFlags.DisplacedActiveLeg);
+          })
+          .map(leg => Epic2FlightPlanRouteUtils.legToFlightPlanRouteEnrouteLeg(facLoader, leg.leg))
+      );
+
+      for (const leg of enrouteLegs) {
+        if (!FlightPlanRouteUtils.isEnrouteLegEmpty(leg)) {
+          route.enroute.push(leg);
         }
       }
     }
@@ -165,7 +188,7 @@ export class Epic2FlightPlanRouteUtils {
           out.fixIcao = leg.fixIcaoStruct;
           break;
         case FacilityType.USR: {
-          const facility = await facLoader.getFacility(FacilityType.USR, leg.fixIcao).catch(() => undefined);
+          const facility = await facLoader.getFacility(FacilityType.USR, leg.fixIcaoStruct).catch(() => undefined);
           if (facility) {
             out.hasLatLon = true;
             out.lat = facility.lat;

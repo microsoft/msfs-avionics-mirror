@@ -8,7 +8,8 @@ import {
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  G3000AutopilotUtils, G3000AutothrottleEvents, G3000AutothrottleFmaData, G3000AutothrottleStatus, G3000FlightPlannerId
+  FmsConfig, G3000AutopilotUtils, G3000AutothrottleEvents, G3000AutothrottleFmaData, G3000AutothrottleStatus,
+  G3000FlightPlannerId
 } from '@microsoft/msfs-wtg3000-common';
 
 import { AfcsStatusBoxPluginOptions } from './AfcsStatusBoxPluginOptions';
@@ -29,6 +30,9 @@ export interface FmaProps {
 
   /** Whether the FMA supports autothrottle. */
   supportAutothrottle: boolean;
+
+  /** The FMS configuration object. */
+  fmsConfig: FmsConfig;
 
   /**
    * An array of options defined by plugins. The array should be ordered such that options defined by plugins that
@@ -555,7 +559,7 @@ export class Fma extends DisplayComponent<FmaProps> {
       case APLateralModes.VOR:
         return 'VOR';
       case APLateralModes.GPSS:
-        return 'FMS';
+        return this.props.fmsConfig.navSourceLabelText;
       case APLateralModes.ROLL:
         return 'ROL';
       case APLateralModes.LEVEL:
@@ -583,7 +587,7 @@ export class Fma extends DisplayComponent<FmaProps> {
       case APLateralModes.VOR:
         return 'VOR';
       case APLateralModes.GPSS:
-        return 'FMS';
+        return this.props.fmsConfig.navSourceLabelText;
       case APLateralModes.ROLL:
         return 'ROL';
       case APLateralModes.LEVEL:
@@ -622,10 +626,10 @@ export class Fma extends DisplayComponent<FmaProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class='fma'>
+      <div class='fma' data-checklist='checklist-afcs-status'>
         {this.props.supportAutothrottle && (
           <>
-            <div class='fma-autothrottle'>
+            <div class='fma-autothrottle' data-checklist='checklist-afcs-status-autothrottle'>
               <div class='fma-autothrottle-top'>
                 <div class={this.autothrottleActiveCssClass}>{this.autothrottleActiveModeText}</div>
                 <div class={this.autothrottleIasCssClass}>{this.autothrottleTargetIasText}<span class='numberunit-unit-small'>KT</span></div>
@@ -638,7 +642,7 @@ export class Fma extends DisplayComponent<FmaProps> {
             <div class='fma-separator fma-separator-autothrottle' />
           </>
         )}
-        <div class='fma-lateral'>
+        <div class='fma-lateral' data-checklist='checklist-afcs-status-lateral'>
           <FmaModeSlot
             active={this.lateralSlotActiveData}
             class='fma-lateral-active'
@@ -646,7 +650,7 @@ export class Fma extends DisplayComponent<FmaProps> {
           <div class='fma-armed fma-lateral-armed'>{this.lateralArmedText}</div>
         </div>
         <div class='fma-separator fma-separator-lateral' />
-        <div class='fma-center'>
+        <div class='fma-center' data-checklist='checklist-afcs-status-center'>
           <div class='fma-center-top'>
             <FmaMasterSlot state={this.apSlotState} class='fma-master-ap'>AP</FmaMasterSlot>
             <FmaMasterSlot state={this.ydSlotState} class='fma-master-yd'>YD</FmaMasterSlot>
@@ -658,7 +662,7 @@ export class Fma extends DisplayComponent<FmaProps> {
           )}
         </div>
         <div class='fma-separator fma-separator-vertical' />
-        <div class='fma-vertical'>
+        <div class='fma-vertical' data-checklist='checklist-afcs-status-vertical'>
           <div class='fma-vertical-col fma-vertical-vnav'>
             <div class='fma-vertical-vnav-active'>{this.vnavActiveText}</div>
             <div class='fma-armed fma-vertical-vnav-armed'>{this.vnavArmedText}</div>

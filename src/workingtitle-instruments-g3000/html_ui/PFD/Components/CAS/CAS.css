@@ -3,7 +3,7 @@
   5%,
   45% {
     color: var(--g3000-color-yellow);
-    background-color: var(--g3000-color-pfd-box-background);
+    background-color: var(--g3000-color-black);
   }
 
   55%,
@@ -20,7 +20,7 @@
   45% {
     color: var(--g3000-color-red);
     ;
-    background-color: var(--g3000-color-pfd-box-background);
+    background-color: var(--g3000-color-black);
   }
 
   55%,

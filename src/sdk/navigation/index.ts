@@ -22,5 +22,7 @@ export * from './NearestContext';
 export * from './NearestLodBoundarySearchSession';
 export * from './NearestSubscription';
 export * from './RunwayUtils';
+export * from './TerrainProfileLoader';
+export * from './TerrainProfileLoaderTypes';
 export * from './Waypoint';
 export * from './Wind';

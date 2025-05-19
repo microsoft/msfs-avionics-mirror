@@ -1,12 +1,18 @@
-import { ComRadioIndex, ConsumerSubject, FSComponent, NavComEvents, NavRadioIndex, RadioType, Subject, VNode } from '@microsoft/msfs-sdk';
-import { TouchSlider } from '@microsoft/msfs-garminsdk';
+import {
+  FSComponent, MappedSubject, MathUtils, RadioType, SimVarValueType, Subject, SubscribableMapFunctions, Subscription,
+  VNode
+} from '@microsoft/msfs-sdk';
 
-import { UiViewProps } from '../../../Shared/UiSystem/UiView';
+import { RadiosConfig } from '../../../Shared/AvionicsConfig/RadiosConfig';
+import { G3XFailureBox } from '../../../Shared/Components/Common/G3XFailureBox';
+import { UiImgTouchButton } from '../../../Shared/Components/TouchButton/UiImgTouchButton';
+import { UiTouchSlider } from '../../../Shared/Components/TouchSlider/UiTouchSlider';
+import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
-import { UiTouchButton } from '../../../Shared/Components/TouchButton/UiTouchButton';
-import { UiKnobId } from '../../../Shared/UiSystem/UiKnobTypes';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
-import { RadiosConfig } from '../../../Shared';
+import { UiKnobId } from '../../../Shared/UiSystem/UiKnobTypes';
+import { UiViewProps } from '../../../Shared/UiSystem/UiView';
 
 import './MfdRadioVolumePopup.css';
 
@@ -14,28 +20,169 @@ import './MfdRadioVolumePopup.css';
  * Component props for the {@link MfdRadioVolumePopup}
  */
 export interface MfdVolumeRadioPopupProps extends UiViewProps {
-  /**
-   * radios config.
-   */
+  /** A configuration object that defines options for radios. */
   radiosConfig: RadiosConfig;
+
+  /** A provider of radio data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 }
 
 /**
- * Volume slider popup view.
+ * An MFD popup that allows the user to adjust radio volume.
  */
 export class MfdRadioVolumePopup extends AbstractUiView<MfdVolumeRadioPopupProps> {
+  private thisNode?: VNode;
 
-  private radioIndex: 1 | 2 = 1;
-  private radioType: RadioType.Com | RadioType.Nav = RadioType.Com;
-  private simRadioIndex: ComRadioIndex | NavRadioIndex = 1;
-  /**
-   * Volume slider popup view.
-   * range: 0 - 100
-   */
-  private readonly volume = ConsumerSubject.create(null, 0);
+  private volumeSetKeyEvent: string | null = null;
+
   private readonly label = Subject.create('');
 
-  private thisNode?: VNode;
+  private readonly isRadioPowered = Subject.create(false);
+  private readonly isNotRadioPowered = this.isRadioPowered.map(SubscribableMapFunctions.not());
+  private readonly volume = Subject.create(0);
+  private readonly radioPipes: Subscription[] = [];
+
+  private isResumed = false;
+
+  /** @inheritDoc */
+  public onAfterRender(thisNode: VNode): void {
+    this.thisNode = thisNode;
+
+    this.isRadioPowered.sub(isPowered => {
+      if (isPowered) {
+        this._knobLabelState.set([
+          [UiKnobId.SingleOuter, 'Large Step'],
+          [UiKnobId.SingleInner, 'Small Step'],
+          [UiKnobId.LeftOuter, 'Large Step'],
+          [UiKnobId.LeftInner, 'Small Step'],
+          [UiKnobId.RightOuter, 'Large Step'],
+          [UiKnobId.RightInner, 'Small Step'],
+        ]);
+      } else {
+        this._knobLabelState.clear();
+      }
+    }, true);
+  }
+
+  /**
+   * Requests this popup to bind its controls to a specific radio.
+   * @param radioType The type of radio to bind.
+   * @param radioIndex The G3X Touch-assigned index of the radio to bind.
+   * @throws Error if the requested radio is not supported.
+   */
+  public request(radioType: RadioType.Com | RadioType.Nav, radioIndex: 1 | 2): void {
+    const dataProvider = radioType === RadioType.Com
+      ? this.props.radiosDataProvider.comRadioDataProviders[radioIndex]
+      : this.props.radiosDataProvider.navRadioDataProviders[radioIndex];
+
+    if (!dataProvider) {
+      throw new Error(`MfdRadioVolumePopup::request(): ${radioType} radio index ${radioIndex} is not supported`);
+    }
+
+    if (radioType === RadioType.Com) {
+      this.volumeSetKeyEvent = `K:${radioType}${dataProvider.simIndex}_VOLUME_SET`;
+
+      this.label.set(this.props.radiosConfig.comDefinitions.length === 1 ? 'COM Radio Volume' : `COM ${radioIndex} Volume`);
+    } else {
+      this.volumeSetKeyEvent = `K:${radioType}${dataProvider.simIndex}_VOLUME_SET_EX1`;
+
+      this.label.set(this.props.radiosConfig.navDefinitions.length === 1 ? 'NAV Radio Volume' : `NAV ${radioIndex} Volume`);
+    }
+
+    for (const pipe of this.radioPipes) {
+      pipe.destroy();
+    }
+    this.radioPipes.length = 0;
+
+    this.radioPipes.push(
+      dataProvider.isPowered.pipe(this.isRadioPowered, !this.isResumed),
+      dataProvider.volume.pipe(this.volume, !this.isResumed)
+    );
+  }
+
+  /** @inheritDoc */
+  public onResume(): void {
+    this.isResumed = true;
+
+    for (const pipe of this.radioPipes) {
+      pipe.resume(true);
+    }
+  }
+
+  /** @inheritDoc */
+  public onPause(): void {
+    this.isResumed = false;
+
+    for (const pipe of this.radioPipes) {
+      pipe.pause();
+    }
+  }
+
+  /** @inheritDoc */
+  public onClose(): void {
+    for (const pipe of this.radioPipes) {
+      pipe.destroy();
+    }
+    this.radioPipes.length = 0;
+
+    this.volumeSetKeyEvent = null;
+  }
+
+  /** @inheritDoc */
+  public onUiInteractionEvent(event: UiInteractionEvent): boolean {
+    if (this.volumeSetKeyEvent === null) {
+      return false;
+    }
+
+    switch (event) {
+      case UiInteractionEvent.SingleKnobInnerInc:
+      case UiInteractionEvent.LeftKnobInnerInc:
+      case UiInteractionEvent.RightKnobInnerInc:
+        this.changeVolume(1);
+        return true;
+      case UiInteractionEvent.SingleKnobOuterInc:
+      case UiInteractionEvent.LeftKnobOuterInc:
+      case UiInteractionEvent.RightKnobOuterInc:
+        this.changeVolume(10);
+        return true;
+      case UiInteractionEvent.SingleKnobInnerDec:
+      case UiInteractionEvent.LeftKnobInnerDec:
+      case UiInteractionEvent.RightKnobInnerDec:
+        this.changeVolume(-1);
+        return true;
+      case UiInteractionEvent.SingleKnobOuterDec:
+      case UiInteractionEvent.LeftKnobOuterDec:
+      case UiInteractionEvent.RightKnobOuterDec:
+        this.changeVolume(-10);
+        return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Changes the volume of this popup's bound radio.
+   * @param delta The amount to change the volume, as a percent.
+   */
+  private changeVolume(delta: number): void {
+    if (this.volumeSetKeyEvent === null || this.isNotRadioPowered.get()) {
+      return;
+    }
+
+    SimVar.SetSimVarValue(this.volumeSetKeyEvent, SimVarValueType.Number, MathUtils.clamp(this.volume.get() + delta, 0, 100));
+  }
+
+  /**
+   * Responds to when this popup's slider value changes.
+   * @param value The new slider value.
+   */
+  private onSliderValueChanged(value: number): void {
+    if (this.volumeSetKeyEvent === null || this.isNotRadioPowered.get()) {
+      return;
+    }
+
+    SimVar.SetSimVarValue(this.volumeSetKeyEvent, SimVarValueType.Number, value * 100);
+  }
 
   /** @inheritDoc */
   public render(): VNode | null {
@@ -45,29 +192,25 @@ export class MfdRadioVolumePopup extends AbstractUiView<MfdVolumeRadioPopupProps
           {this.label}
         </div>
         <div class='mfd-radio-volume-popup-controls'>
-          <UiTouchButton
+          <UiImgTouchButton
+            imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/Map/map_range_minus.png`}
+            isEnabled={MappedSubject.create(
+              ([isPowered, volume]) => isPowered && volume > 0,
+              this.isRadioPowered,
+              this.volume
+            )}
+            onPressed={this.changeVolume.bind(this, -1)}
             class='mfd-radio-volume-popup-button'
-            onPressed={this.decreaseVolume.bind(this)}
-            isEnabled={this.volume.map(val => val > 0)}
           />
-          <TouchSlider
+          <UiTouchSlider
             bus={this.props.uiService.bus}
             orientation='to-right'
             state={this.volume.map(val => (val / 100))}
-            isEnabled={true}
-            onValueChanged={(changedValue): void => {
-              const radio = `${this.radioType}${this.simRadioIndex}`;
-              const event = this.radioType === RadioType.Nav ? '_VOLUME_SET_EX1' : '_VOLUME_SET';
-              SimVar.SetSimVarValue(`K:${radio}${event}`, 'number', changedValue * 100);
-            }}
-            background={
-              <svg viewBox='0 0 1 1' preserveAspectRatio='none' class='mfd-radio-volume-popup-slider-background'>
-                <path d='m 0 1 l 1 0 l 0 -1 z' />
-              </svg>
-            }
-            foreground={
+            isVisible={this.isRadioPowered}
+            onValueChanged={this.onSliderValueChanged.bind(this)}
+            inset={
               <svg viewBox='0 0 1 1' preserveAspectRatio='none' class='mfd-radio-volume-popup-slider-occlude'>
-                <path d='m 0 0 l 0 1 l 1 -1 z' />
+                <path d='M 0 0 v 1 l 1 -1 z' />
               </svg>
             }
             focusOnDrag
@@ -77,129 +220,37 @@ export class MfdRadioVolumePopup extends AbstractUiView<MfdVolumeRadioPopupProps
             class='mfd-radio-volume-popup-slider'
           >
             <div class='mfd-radio-volume-popup-slider-label'>{this.volume.map(val => `${val.toFixed()}%`)}</div>
-          </TouchSlider>
-          <UiTouchButton
+          </UiTouchSlider>
+          <G3XFailureBox
+            show={this.isNotRadioPowered}
+            label='VOL'
+            class='mfd-radio-volume-popup-slider-failure-box'
+          />
+          <UiImgTouchButton
+            imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/Map/map_range_plus.png`}
+            isEnabled={MappedSubject.create(
+              ([isPowered, volume]) => isPowered && volume < 100,
+              this.isRadioPowered,
+              this.volume
+            )}
+            onPressed={this.changeVolume.bind(this, 1)}
             class='mfd-radio-volume-popup-button'
-            onPressed={this.increaseVolume.bind(this)}
-            isEnabled={this.volume.map(val => val < 100)}
           />
         </div>
       </div>
     );
   }
 
-  /**
-   * Request the volume slider popup.
-   * @param radioType type of radio
-   * @param radioIndex - 1 or 2
-   * @throws Error if simRadioIndex is not 1 or 2
-   */
-  public request(radioType: RadioType.Com | RadioType.Nav, radioIndex: 1 | 2): void {
-    this.radioIndex = radioIndex;
-    this.radioType = radioType;
-
-    const definition = radioType === RadioType.Com
-      ? this.props.radiosConfig.comDefinitions[this.radioIndex]
-      : this.props.radiosConfig.navDefinitions[this.radioIndex];
-
-    if (!definition) {
-      throw new Error(`Radio definition not found for radio index: ${this.radioIndex}`);
-    }
-
-    this.simRadioIndex = definition.simIndex;
-
-    switch (radioType) {
-      case RadioType.Com:
-        this.label.set(this.props.radiosConfig.comDefinitions.length === 1 ? 'COM Radio' : `COM ${radioIndex}`);
-        break;
-      case RadioType.Nav:
-        this.label.set(this.props.radiosConfig.navDefinitions.length === 1 ? 'NAV Radio' : `NAV ${radioIndex}`);
-        break;
-    }
-
-    if (this.simRadioIndex === 1 || this.simRadioIndex === 2) {
-      this.volume.setConsumer(this.props.uiService.bus.getSubscriber<NavComEvents>().on(
-          `${this.radioType === RadioType.Nav ? 'nav' : 'com'}_volume_${this.simRadioIndex}`
-        )
-      );
-    } else {
-      throw new Error(`Volume popup is not supported for radio index: ${this.simRadioIndex}`);
-    }
-  }
-
-  /** @inheritDoc */
-  public onAfterRender(thisNode: VNode): void {
-    this.thisNode = thisNode;
-
-    this._knobLabelState.set([
-      [UiKnobId.SingleOuter, 'Volume'],
-      [UiKnobId.SingleInner, 'Volume'],
-      [UiKnobId.LeftOuter, 'Volume'],
-      [UiKnobId.LeftInner, 'Volume'],
-      [UiKnobId.RightOuter, 'Volume'],
-      [UiKnobId.RightInner, 'Volume'],
-    ]);
-  }
-
-  /** @inheritDoc */
-  public onUiInteractionEvent(event: UiInteractionEvent): boolean {
-    const radio = `${this.radioType}${this.simRadioIndex}`;
-    switch (event) {
-      case UiInteractionEvent.SingleKnobInnerInc:
-      case UiInteractionEvent.LeftKnobInnerInc:
-      case UiInteractionEvent.RightKnobInnerInc:
-      case UiInteractionEvent.SingleKnobOuterInc:
-      case UiInteractionEvent.RightKnobOuterInc:
-      case UiInteractionEvent.LeftKnobOuterInc:
-        SimVar.SetSimVarValue(`K:${radio}_VOLUME_INC`, 'number', 0);
-        return true;
-      case UiInteractionEvent.SingleKnobInnerDec:
-      case UiInteractionEvent.SingleKnobOuterDec:
-      case UiInteractionEvent.RightKnobInnerDec:
-      case UiInteractionEvent.RightKnobOuterDec:
-      case UiInteractionEvent.LeftKnobOuterDec:
-      case UiInteractionEvent.LeftKnobInnerDec:
-        SimVar.SetSimVarValue(`K:${radio}_VOLUME_DEC`, 'number', 0);
-        return true;
-    }
-
-    return this.focusController.onUiInteractionEvent(event);
-  }
-
-  /**
-   * increase volume
-   */
-  private increaseVolume(): void {
-    const radio = `${this.radioType}${this.simRadioIndex}`;
-    SimVar.SetSimVarValue(`K:${radio}_VOLUME_INC`, 'number', 0);
-  }
-
-  /**
-   * decrease volume
-   */
-  private decreaseVolume(): void {
-    const radio = `${this.radioType}${this.simRadioIndex}`;
-    SimVar.SetSimVarValue(`K:${radio}_VOLUME_DEC`, 'number', 0);
-  }
-
-  /** @inheritDoc */
-  public onPause(): void {
-    super.onPause();
-    this.volume.pause();
-  }
-
-  /** @inheritDoc */
-  public onResume(): void {
-    super.onResume();
-    this.volume.resume();
-  }
-
   /** @inheritDoc */
   public destroy(): void {
-    super.destroy();
-    this.volume.destroy();
+    for (const pipe of this.radioPipes) {
+      pipe.destroy();
+    }
+
     if (this.thisNode) {
       FSComponent.shallowDestroy(this.thisNode);
     }
+
+    super.destroy();
   }
 }

@@ -14,10 +14,10 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
-    "@microsoft/msfs-garminsdk": "2.0.7",
-    "@microsoft/msfs-sdk": "2.0.7",
-    "@microsoft/msfs-wtg1000": "2.0.9",
     "@microsoft/msfs-types": "1.14.6",
+    "@microsoft/msfs-garminsdk": "2.1.1",
+    "@microsoft/msfs-sdk": "2.1.1",
+    "@microsoft/msfs-wtg1000": "2.0.12",
     "@rollup/plugin-image": "^3.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "rollup": "^4.7.23",

@@ -22,6 +22,7 @@ import { MfdMapSideButtons } from './MfdMapInfo/MfdMapSideButtons';
 import { MfdMapTopButtons } from './MfdMapInfo/MfdMapTopButtons';
 import { PlanFormatController, PlanFormatControllerContext } from './PlanFormatController';
 import { UpperMfdFormatController } from './UpperMfdFormatController';
+import { VerticalSituationDisplay } from './VerticalSituationDisplay/VerticalSituationDisplay';
 
 /** The properties for the {@link MfdMap} component. */
 interface MfdMapProps extends ComponentProps {
@@ -97,6 +98,10 @@ export class MfdMap extends DisplayComponent<MfdMapProps> {
 
     return (
       MapSystemBuilder.create(this.props.bus)
+        .withContext(MapSystemKeys.FacilityLoader, () => {
+          return this.props.facLoader;
+        })
+
         .withBing(
           'map-mfd-bing-id',
           { opacity: this.terrWxContrast },
@@ -218,7 +223,7 @@ export class MfdMap extends DisplayComponent<MfdMapProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div ref={this.navMapContainerRef} class="map-container">
+      <div ref={this.navMapContainerRef} class={{ 'map-container': true, 'map-with-vsd-enabled': this.props.settings.getSetting('vsdEnabled') }}>
         <SectionOutline bus={this.props.bus}>
           {this.mapSystem.map}
           <MfdMapSideButtons modalService={this.props.modalService} bus={this.props.bus} settings={this.props.settings} />
@@ -227,6 +232,7 @@ export class MfdMap extends DisplayComponent<MfdMapProps> {
           <ActivatePlanButtonBar fms={this.props.fms} />
           <HoldButton fms={this.props.fms} bus={this.props.bus} store={this.props.store} />
           <VectorsButton fms={this.props.fms} bus={this.props.bus} store={this.props.store} />
+          <VerticalSituationDisplay inertialDataProvider={this.props.inertialDataProvider} altitudeDataProvider={this.props.altitudeDataProvider} bus={this.props.bus} store={this.props.store} fms={this.props.fms} settings={this.props.settings} />
         </SectionOutline>
       </div>
     );

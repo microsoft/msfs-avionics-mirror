@@ -7,6 +7,9 @@ export enum LidoChartType {
   /** Standard Instrument Departure. */
   Sid = 'SID',
 
+  /** SID Procedure Text. */
+  SidPt = 'SIDPT',
+
   /** SID Initial Climb */
   SidInitialClimb = 'SID Initial Climb',
 

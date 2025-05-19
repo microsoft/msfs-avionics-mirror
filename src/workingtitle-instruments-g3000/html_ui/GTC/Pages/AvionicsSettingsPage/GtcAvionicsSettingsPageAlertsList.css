@@ -1,3 +1,21 @@
+.gtc-horizontal .avionics-settings-page-alerts-list {
+  --avionics-settings-page-baro-trans-alert-edit-icon-right: 12px;
+  --avionics-settings-page-baro-trans-alert-edit-icon-scale: 1.8;
+}
+
+.gtc-vertical .avionics-settings-page-alerts-list {
+  --avionics-settings-page-baro-trans-alert-edit-icon-right: 6px;
+  --avionics-settings-page-baro-trans-alert-edit-icon-scale: 1;
+}
+
+.avionics-settings-page-baro-trans-alert-edit-icon {
+  position: absolute;
+  right: var(--avionics-settings-page-baro-trans-alert-edit-icon-right);
+  top: 50%;
+  transform: translateY(-50%) scale(var(--avionics-settings-page-baro-trans-alert-edit-icon-scale));
+  transform-origin: 100% 50%;
+}
+
 .avionics-settings-page-row-right.avionics-settings-page-touchdown-settings-button {
   --touch-button-text-color: var(--g3000-color-white);
 }

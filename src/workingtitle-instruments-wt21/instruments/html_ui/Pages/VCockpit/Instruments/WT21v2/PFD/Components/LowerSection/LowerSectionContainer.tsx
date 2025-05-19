@@ -1,4 +1,4 @@
-import { ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FacilityLoader, FlightPlanner, FSComponent, Subscribable, VNode } from '@microsoft/msfs-sdk';
 
 import {
   ElapsedTime, GuiDialog, GuiDialogProps, HSIContainer, InstrumentConfig, LeftInfoPanel, PerformancePlan, RightInfoPanel, WaypointAlerter, WT21FixInfoManager,
@@ -22,6 +22,9 @@ interface LowerSectionContainerProps extends ComponentProps {
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   activeMenu: Subscribable<GuiDialog<GuiDialogProps> | null>;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** An instance of the flight planner. */
   flightPlanner: FlightPlanner;
@@ -57,6 +60,7 @@ export class LowerSectionContainer extends DisplayComponent<LowerSectionContaine
         <div class="hsi-center">
           <HSIContainer
             bus={this.props.bus}
+            facLoader={this.props.facLoader}
             flightPlanner={this.props.flightPlanner}
             tcas={this.props.tcas}
             instrumentConfig={this.props.instrumentConfig}

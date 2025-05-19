@@ -6,7 +6,7 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import { UnsLNavConfig } from '../../Config/LNavConfigBuilder';
-import { UnsApproachState, UnsExtraLegDefinitionFlags, UnsFlightPlans, UnsFms, UnsFmsUtils, UnsLegAnnotationFormat } from '../../Fms';
+import { UnsApproachState, UnsExtraLegDefinitionFlags, UnsFlightAreas, UnsFlightPlans, UnsFms, UnsFmsUtils, UnsLegAnnotationFormat } from '../../Fms';
 import { UnsApproachEvents } from '../../Fms/Navigation/UnsApproachStateController';
 import { UnsLNavDataEvents } from '../../Fms/Navigation/UnsLNavDataEvents';
 import { UnsLnavControlEvents, UnsLnavMode, UnsLnavSteeringStateEvents } from '../../Fms/Navigation/UnsLnavSteeringController';
@@ -118,6 +118,15 @@ enum NavPageHdgSelState {
  * Store for {@link UnsNavPage}
  */
 class UnsNavPageStore {
+  private static FLIGHT_AREA_TEXT_MAP: Record<UnsFlightAreas, string> = {
+    [UnsFlightAreas.Approach]: 'A',
+    [UnsFlightAreas.Arrival]: 'T',
+    [UnsFlightAreas.Departure]: 'T',
+    [UnsFlightAreas.EnRoute]: 'E',
+    [UnsFlightAreas.MissedApproach]: 'A',
+    [UnsFlightAreas.Oceanic]: 'E'
+  };
+
   /**
    * Ctor
    *
@@ -172,13 +181,13 @@ class UnsNavPageStore {
 
   public readonly nextLeg = Subject.create<NavLeg | null>(null, () => false);
 
-  public readonly xtk = ConsumerSubject.create(this.bus.getSubscriber<LNavEvents>().on(`lnav_xtk_${this.lnavIndex}`), null);
+  public readonly xtk = ConsumerSubject.create(this.bus.getSubscriber<LNavEvents>().on(`lnav_xtk_${this.lnavIndex}`).atFrequency(1), null);
 
-  public readonly dtk = ConsumerSubject.create(this.bus.getSubscriber<LNavEvents>().on(`lnav_dtk_${this.lnavIndex}`), null);
+  public readonly dtk = ConsumerSubject.create(this.bus.getSubscriber<LNavEvents>().on(`lnav_dtk_${this.lnavIndex}`).atFrequency(1), null);
 
   public readonly track = ConsumerSubject.create(this.bus.getSubscriber<GNSSEvents>().on('track_deg_magnetic').atFrequency(1), null);
 
-  public readonly heading = ConsumerSubject.create(this.bus.getSubscriber<AhrsEvents>().on('hdg_deg'), null);
+  public readonly heading = ConsumerSubject.create(this.bus.getSubscriber<AhrsEvents>().on('hdg_deg').atFrequency(1), null);
 
   public readonly tke = MappedSubject.create(([track, dtk]) => (track ?? NaN) - (dtk ?? NaN), this.track, this.dtk);
 
@@ -188,13 +197,17 @@ class UnsNavPageStore {
 
   public readonly windVelocity = ConsumerSubject.create(this.bus.getSubscriber<AdcEvents>().on('ambient_wind_velocity').atFrequency(1), null);
 
-  public readonly groundSpeed = ConsumerSubject.create(this.bus.getSubscriber<GNSSEvents>().on('ground_speed'), null);
+  public readonly groundSpeed = ConsumerSubject.create(this.bus.getSubscriber<GNSSEvents>().on('ground_speed').atFrequency(3), null);
 
-  public readonly bearing = ConsumerSubject.create(this.bus.getSubscriber<LNavDataEvents>().on(`lnavdata_waypoint_bearing_mag_${this.lnavIndex}`), null);
+  public readonly bearing = ConsumerSubject.create(this.bus.getSubscriber<LNavDataEvents>().on(`lnavdata_waypoint_bearing_mag_${this.lnavIndex}`).atFrequency(1), null);
 
-  public readonly anp = ConsumerSubject.create(this.bus.getSubscriber<UnsPositionSystemEvents>().on('uns_anp'), 0);
+  public readonly anp = ConsumerSubject.create(this.bus.getSubscriber<UnsPositionSystemEvents>().on('uns_anp').atFrequency(1), 0);
 
-  public readonly position = ConsumerSubject.create(this.bus.getSubscriber<GNSSEvents>().on('gps-position'), null);
+  public readonly flightArea = ConsumerSubject.create(this.bus.getSubscriber<UnsLNavDataEvents>().on('lnavdata_flight_area').atFrequency(1), UnsFlightAreas.EnRoute);
+
+  public readonly flightAreaText = this.flightArea.map((v) => UnsNavPageStore.FLIGHT_AREA_TEXT_MAP[v]);
+
+  public readonly position = ConsumerSubject.create(this.bus.getSubscriber<GNSSEvents>().on('gps-position').atFrequency(5), null);
 
   public readonly lnavMode = ConsumerSubject.create(this.bus.getSubscriber<UnsLnavSteeringStateEvents>().on('uns_lnav_mode'), null);
 
@@ -570,19 +583,21 @@ export class UnsNavPage extends UnsFmcPage {
     },
   }).bind(MappedSubject.create(this.store.nextApprState, this.store.apprState));
 
-  private readonly XtkField = new DisplayField<number | null>(this, {
+  private readonly XtkField = new DisplayField<readonly [number | null, string]>(this, {
     formatter: {
-      nullValueString: 'XTK [cyan s-text]([cyan d-text]T[white s-text])[cyan d-text] R-.--[white s-text]',
-
       /** @inheritDoc */
-      format(xtk): string {
+      format([xtk, cdiScale]): string {
+        if (xtk === null) {
+          return `XTK [cyan s-text]([cyan d-text]${cdiScale}[white s-text])[cyan d-text] R-.--[white s-text]`;
+        }
+
         const xtkLetter = xtk >= 0 ? 'R' : 'L';
         const xtkString = UnsNavPage.XTK_FORMATTER(xtk);
 
-        return `XTK [cyan s-text]([cyan d-text]T[white s-text])[cyan d-text] ${xtkLetter}${xtkString}[white s-text]`;
+        return `XTK [cyan s-text]([cyan d-text]${cdiScale}[white s-text])[cyan d-text] ${xtkLetter}${xtkString}[white s-text]`;
       },
     },
-  }).bind(this.store.xtk);
+  }).bind(MappedSubject.create(this.store.xtk, this.store.flightAreaText));
 
   private readonly WindField = new DisplayField<readonly [number | null, number | null]>(this, {
     formatter: {

@@ -1,10 +1,12 @@
 export * from './PersistentSettings';
 
 export * from './AuralAlertSettings';
+export * from './BaroTransitionAlertUserSettings';
 export * from './DisplayPanesAliasedUserSettingManager';
 export * from './DisplayPanesUserSettings';
 export * from './EspUserSettings';
 export * from './FmsSpeedUserSettings';
+export * from './G3000ChartsUserSettings';
 export * from './G3000ComRadioUserSettings';
 export * from './MapAliasedUserSettingManager';
 export * from './MapSettingSyncUserSettings';

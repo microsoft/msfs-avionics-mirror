@@ -1,0 +1,42 @@
+.airport-charts-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3x-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.gdu-460-display .airport-charts-tab {
+  padding: 2px;
+  font-size: 18px;
+
+  --airport-charts-tab-chart-select-button-height: 70px;
+  --airport-charts-tab-chart-select-button-value-padding: 0px 4px;
+  --ui-list-select-button-label-height: 0px;
+  --ui-list-select-button-dropdown-width: 45px;
+}
+
+.airport-charts-tab-chart-select-button {
+  height: var(--airport-charts-tab-chart-select-button-height);
+}
+
+.airport-charts-tab-chart-select-button .touch-button-value-value {
+  padding: var(--airport-charts-tab-chart-select-button-value-padding);
+}
+
+.gdu-460-display .airport-charts-tab-select-dialog {
+  --ui-list-dialog-padding: 3px;
+  --ui-list-dialog-font-size: 18px;
+
+  --airport-charts-tab-select-dialog-button-label-padding: 0px 4px;
+}
+
+.airport-charts-tab-select-dialog .touch-button-label {
+  padding: var(--airport-charts-tab-select-dialog-button-label-padding);
+  white-space: normal;
+}

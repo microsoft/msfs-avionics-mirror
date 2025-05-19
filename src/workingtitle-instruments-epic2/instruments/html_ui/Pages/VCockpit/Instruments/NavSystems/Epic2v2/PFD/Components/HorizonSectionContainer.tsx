@@ -19,6 +19,7 @@ import { BaroSelection } from './BaroSelection/BaroSelection';
 import { ApproachStatus } from './Fma/ApproachStatus';
 import { Fma } from './Fma/Fma';
 import { SteepApproachStatus } from './Fma/SteepApproachStatus';
+import { GpwsGroundProxAlert, GpwsPullUpAlert } from './GpwsAlerts';
 import { ArtificialHorizonOptions } from './Horizon/ArtificialHorizon';
 import { AircraftSymbolOptions, HorizonDisplay, HorizonPitchLadderOptions, TcasRaPitchCueLayerOptions } from './Horizon/HorizonDisplay';
 import { HorizonLineOptions } from './Horizon/HorizonLine';
@@ -411,6 +412,8 @@ export class HorizonSectionContainer extends DisplayComponent<HorizonSectionCont
       <BearingPointerSourcesDisplay navigationSourceDataProvider={this.props.navigationSourceDataProvider} />
       <PfdControllerState bus={this.props.bus} />
       <PfdAlerts bus={this.props.bus} />
+      <GpwsGroundProxAlert bus={this.props.bus} />
+      <GpwsPullUpAlert bus={this.props.bus} />
     </>;
   }
 }

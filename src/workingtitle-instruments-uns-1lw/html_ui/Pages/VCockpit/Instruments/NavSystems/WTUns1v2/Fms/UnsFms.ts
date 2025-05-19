@@ -1,22 +1,20 @@
 import {
-  ActiveLegType, AdcEvents, AdditionalApproachType, AirportFacility, AirwayData, AltitudeRestrictionType,
-  ApproachProcedure, ApproachUtils, BitFlags, ConsumerSubject, ConsumerValue, EventBus, ExtendedApproachType, Facility,
-  FacilityFrequency, FacilityLoader, FacilityRepository, FacilityType, FacilityUtils, FixTypeFlags, FlightPathUtils,
-  FlightPlan, FlightPlanCalculatedEvent, FlightPlanIndicationEvent, FlightPlanLeg, FlightPlanLegIndexes,
-  FlightPlanModBatchEvent, FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment,
-  FlightPlanSegmentType, FlightPlanUtils, GeoPoint, GeoPointInterface, GeoPointSubject, GNSSEvents, ICAO, IcaoType,
-  IcaoValue, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, LNavControlEvents,
-  LNavEvents, LNavUtils, MagVar, NavEvents, NavMath, NavSourceId, NavSourceType, NearestContext, OneWayRunway,
-  PerformancePlanRepository, RnavTypeFlags, RunwayUtils, SmoothingPathCalculator, SpeedRestrictionType, SpeedUnit,
-  SubEvent, Subject, UnitType, UserFacility, VerticalData, VerticalFlightPhase, VerticalFlightPlan, VisualFacility,
-  VNavUtils, VorFacility, VorType, Wait,
+  ActiveLegType, AdcEvents, AdditionalApproachType, AirportFacility, AirwayData, AltitudeRestrictionType, ApproachProcedure, ApproachUtils, BitFlags,
+  ConsumerSubject, ConsumerValue, EventBus, ExtendedApproachType, Facility, FacilityFrequency, FacilityLoader, FacilityRepository, FacilityType, FacilityUtils,
+  FixTypeFlags, FlightPathUtils, FlightPlan, FlightPlanCalculatedEvent, FlightPlanIndicationEvent, FlightPlanLeg, FlightPlanLegIndexes, FlightPlanModBatchEvent,
+  FlightPlanner, FlightPlannerEvents, FlightPlanOriginDestEvent, FlightPlanSegment, FlightPlanSegmentType, FlightPlanUtils, GeoPoint, GeoPointInterface,
+  GeoPointSubject, GNSSEvents, ICAO, IcaoType, IcaoValue, IntersectionFacility, LegDefinition, LegDefinitionFlags, LegTurnDirection, LegType, LNavControlEvents,
+  LNavEvents, LNavUtils, MagVar, NavEvents, NavMath, NavSourceId, NavSourceType, NearestContext, OneWayRunway, PerformancePlanRepository, RnavTypeFlags,
+  RunwayUtils, SmoothingPathCalculator, SpeedRestrictionType, SpeedUnit, SubEvent, Subject, UnitType, UserFacility, VerticalData, VerticalFlightPhase,
+  VerticalFlightPlan, VisualFacility, VNavUtils, VorFacility, VorType, Wait
 } from '@microsoft/msfs-sdk';
 
 import { UnsFmsConfigInterface } from '../Config/FmsConfigBuilder';
 import { MessageService } from './Message/MessageService';
-import { CDIScaleLabel, UnsLNavDataEvents } from './Navigation/UnsLNavDataEvents';
+import { UnsLNavDataEvents } from './Navigation/UnsLNavDataEvents';
 import { UnsNearestContext } from './Navigation/UnsNearestContext';
 import { getUnsPerformancePlanDefinition, UnsPerformancePlan } from './Performance/UnsPerformancePlan';
+import { UnsFlightAreas } from './UnsFlightAreas';
 import { UnsFlightPlanPredictor } from './UnsFlightPlanPredictor';
 import { UnsFmsEvents } from './UnsFmsEvents';
 import {
@@ -27,7 +25,7 @@ import { UnsFmsUtils } from './UnsFmsUtils';
 
 /** A UNS-1 FMS. */
 export class UnsFms {
-  public static version = 'WT2.0.7';
+  public static version = 'WT2.0.11';
 
   /** Set to true by FMC pages when the plan on this FMS instance is in modification and awaiting a cancel or exec. */
   public readonly planInMod = Subject.create<boolean>(false);
@@ -96,7 +94,7 @@ export class UnsFms {
 
   private readonly lnavLegDistanceRemaining: ConsumerValue<number>;
 
-  private readonly cdiScaleLabel: ConsumerSubject<CDIScaleLabel>;
+  private readonly flightArea: ConsumerSubject<UnsFlightAreas>;
 
   private readonly performancePlanRepository: PerformancePlanRepository<UnsPerformancePlan, 'wt.uns.perf'>;
 
@@ -136,8 +134,8 @@ export class UnsFms {
 
     this.lnavLegDistanceRemaining = ConsumerValue.create(this.bus.getSubscriber<LNavEvents>().on('lnav_leg_distance_remaining'), 0);
 
-    this.cdiScaleLabel = ConsumerSubject.create(sub.on('lnavdata_cdi_scale_label'), 4);
-    this.cdiScaleLabel.sub(this.onCdiScaleChange, true);
+    this.flightArea = ConsumerSubject.create(sub.on('lnavdata_flight_area'), 4);
+    this.flightArea.sub(this.onFlightAreaChange, true);
 
     sub.on('gps-position').atFrequency(1).handle(pos => {
       this.pposSub.set(pos.lat, pos.long);
@@ -172,8 +170,8 @@ export class UnsFms {
     sub.on('epic2_fms_approach_details_set').handle(this.onApproachDetailsSet);
   }
 
-  private onCdiScaleChange = (cdiScale: CDIScaleLabel): void => {
-    const canApproachActivate = this.canApproachActivate(cdiScale);
+  private onFlightAreaChange = (flightArea: UnsFlightAreas): void => {
+    const canApproachActivate = this.canApproachActivate(flightArea);
     if (canApproachActivate !== this.approachDetails.approachIsActive) {
       this.setApproachDetails(undefined, undefined, undefined, canApproachActivate);
     }
@@ -4112,58 +4110,58 @@ export class UnsFms {
       && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
   }
 
-    /**
-     * Checks whether of two consecutive flight plan legs, the second is an IF leg and is a duplicate of the first. The
-     * IF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
-     * @param leg1 The first leg.
-     * @param leg2 The second leg.
-     * @returns whether the second leg is an duplicate IF leg of the first.
-     */
-    private isDuplicateIFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
-      if (leg2.type !== LegType.IF) {
-        return false;
-      }
-      return UnsFms.isDuplicateXFLeg(leg1, leg2);
+  /**
+   * Checks whether of two consecutive flight plan legs, the second is an IF leg and is a duplicate of the first. The
+   * IF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+   * @param leg1 The first leg.
+   * @param leg2 The second leg.
+   * @returns whether the second leg is an duplicate IF leg of the first.
+   */
+  private isDuplicateIFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+    if (leg2.type !== LegType.IF) {
+      return false;
+    }
+    return UnsFms.isDuplicateXFLeg(leg1, leg2);
+  }
+
+  /**
+   * Checks whether of two consecutive flight plan legs, the second is an XF leg and is a duplicate of the first. The
+   * XF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
+   * @param leg1 The first leg.
+   * @param leg2 The second leg.
+   * @returns whether the second leg is an duplicate XF leg of the first.
+   */
+  private static isDuplicateXFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
+    if (!UnsFms.isXFLeg(leg1) || !UnsFms.isXFLeg(leg2)) {
+      return false;
     }
 
-    /**
-     * Checks whether of two consecutive flight plan legs, the second is an XF leg and is a duplicate of the first. The
-     * XF leg is considered a duplicate if and only if its fix is the same as the fix at which the first leg terminates.
-     * @param leg1 The first leg.
-     * @param leg2 The second leg.
-     * @returns whether the second leg is an duplicate XF leg of the first.
-     */
-    private static isDuplicateXFLeg(leg1: FlightPlanLeg, leg2: FlightPlanLeg): boolean {
-      if (!UnsFms.isXFLeg(leg1) || !UnsFms.isXFLeg(leg2)) {
-        return false;
-      }
+    return leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
+      && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
+      && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
+  }
 
-      return leg1.fixIcaoStruct.region === leg2.fixIcaoStruct.region
-        && leg1.fixIcaoStruct.ident === leg2.fixIcaoStruct.ident
-        && leg1.fixIcaoStruct.type === leg2.fixIcaoStruct.type;
+  /**
+   * Merges two duplicate legs such that the new merged leg contains the fix type and altitude data from the source leg
+   * and all other data is derived from the target leg.
+   * @param target The target leg.
+   * @param source The source leg.
+   * @param fallbackToTarget If true, and the source leg does not define constraints, the target leg constraints can be retained.
+   * @returns the merged leg.
+   */
+  private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg, fallbackToTarget = false): FlightPlanLeg {
+    const merged = FlightPlan.createLeg(target);
+    merged.fixTypeFlags |= source.fixTypeFlags;
+    if (source.altDesc !== AltitudeRestrictionType.Unused || !fallbackToTarget) {
+      merged.altDesc = source.altDesc;
+      merged.altitude1 = source.altitude1;
+      merged.altitude2 = source.altitude2;
     }
-
-    /**
-     * Merges two duplicate legs such that the new merged leg contains the fix type and altitude data from the source leg
-     * and all other data is derived from the target leg.
-     * @param target The target leg.
-     * @param source The source leg.
-     * @param fallbackToTarget If true, and the source leg does not define constraints, the target leg constraints can be retained.
-     * @returns the merged leg.
-     */
-    private mergeDuplicateLegData(target: FlightPlanLeg, source: FlightPlanLeg, fallbackToTarget = false): FlightPlanLeg {
-      const merged = FlightPlan.createLeg(target);
-      merged.fixTypeFlags |= source.fixTypeFlags;
-      if (source.altDesc !== AltitudeRestrictionType.Unused || !fallbackToTarget) {
-        merged.altDesc = source.altDesc;
-        merged.altitude1 = source.altitude1;
-        merged.altitude2 = source.altitude2;
-      }
-      if (source.speedRestriction > 0 || !fallbackToTarget) {
-        merged.speedRestriction = source.speedRestriction;
-      }
-      return merged;
+    if (source.speedRestriction > 0 || !fallbackToTarget) {
+      merged.speedRestriction = source.speedRestriction;
     }
+    return merged;
+  }
 
   /**
    * Deletes one of two consecutive duplicate legs. If one leg is in a procedure and the other is not, the leg that is
@@ -4366,11 +4364,11 @@ export class UnsFms {
 
   /**
    * Checks if an RNAV approach can be activated in the AP.
-   * @param cdiScaling The current CDI Scaling Label
+   * @param flightArea The current flight area
    * @returns Whether approach can activate.
    */
-  private canApproachActivate(cdiScaling = this.cdiScaleLabel.get()): boolean {
-    const apprModeAvailable = cdiScaling === CDIScaleLabel.Terminal || cdiScaling === CDIScaleLabel.TerminalArrival || cdiScaling === CDIScaleLabel.Approach;
+  private canApproachActivate(flightArea = this.flightArea.get()): boolean {
+    const apprModeAvailable = flightArea === UnsFlightAreas.Arrival || flightArea === UnsFlightAreas.Approach || flightArea === UnsFlightAreas.MissedApproach;
     return this.approachDetails.approachLoaded && apprModeAvailable;
   }
 

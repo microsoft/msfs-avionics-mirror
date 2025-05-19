@@ -50,10 +50,22 @@ export enum UnitsWeightSettingMode {
  */
 export enum UnitsFuelSettingMode {
   Gallons = 'gallons',
+  GallonsJetA = 'gallonsJetA',
+  Gallons100LL = 'gallons100LL',
+  GallonsAutogas = 'gallonsAutogas',
+  GallonsSim = 'gallonsSim',
   ImpGal = 'imp gals',
-  Kilograms = 'kilograms',
+  ImpGalJetA = 'impGalJetA',
+  ImpGal100LL = 'impGal100LL',
+  ImpGalAutogas = 'impGalAutogas',
+  ImpGalSim = 'impGalSim',
   Liters = 'liters',
-  Pounds = 'pounds'
+  LitersJetA = 'litersJetA',
+  Liters100LL = 'liters100LL',
+  LitersAutogas = 'litersAutogas',
+  LitersSim = 'litersSim',
+  Kilograms = 'kilograms',
+  Pounds = 'pounds',
 }
 
 /**
@@ -125,6 +137,31 @@ export interface UnitsUserSettingManager<T extends UnitsUserSettingTypes & UserS
 }
 
 /**
+ * Configuration options for {@link DefaultUnitsUserSettingManager}.
+ */
+export type DefaultUnitsUserSettingManagerOptions = {
+  /**
+   * The units to use for the `UnitsFuelSettingMode.LitersSim`, `UnitsFuelSettingMode.GallonsSim`, and
+   * `UnitsFuelSettingMode.ImpGalSim` fuel modes. If not defined, then the manager will default to the same units used
+   * for the `UnitsFuelSettingMode.Liters`, `UnitsFuelSettingMode.Gallons`, and `UnitsFuelSettingMode.ImpGal` fuel
+   * modes.
+   */
+  simFuelUnits?: {
+    /**
+     * The fuel weight units to use for the `UnitsFuelSettingMode.LitersSim`, `UnitsFuelSettingMode.GallonsSim`, and
+     * `UnitsFuelSettingMode.ImpGalSim` fuel modes.
+     */
+    fuel: [liter: Unit<UnitFamily.Weight>, gallon: Unit<UnitFamily.Weight>, imperialGallon: Unit<UnitFamily.Weight>];
+
+    /**
+     * The fuel flow units to use for the `UnitsFuelSettingMode.LitersSim`, `UnitsFuelSettingMode.GallonsSim`, and
+     * `UnitsFuelSettingMode.ImpGalSim` fuel modes.
+     */
+    fuelFlow: [liter: Unit<UnitFamily.WeightFlux>, gallon: Unit<UnitFamily.WeightFlux>, imperialGallon: Unit<UnitFamily.WeightFlux>];
+  }
+};
+
+/**
  * A default implementation of {@link UnitsUserSettingManager} which sources setting values from another setting
  * manager.
  */
@@ -168,19 +205,29 @@ export class DefaultUnitsUserSettingManager<T extends UnitsUserSettingTypes & Us
   /** @inheritDoc */
   public readonly weightUnits = this._weightUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
-  private readonly _fuelUnits = Subject.create(UnitType.GALLON_FUEL);
+  private readonly _fuelUnits = Subject.create<Unit<UnitFamily.Weight>>(UnitType.GALLON_FUEL);
   /** @inheritDoc */
   public readonly fuelUnits = this._fuelUnits as Subscribable<Unit<UnitFamily.Weight>>;
 
-  private readonly _fuelFlowUnits = Subject.create(UnitType.GPH_FUEL);
+  private readonly _fuelFlowUnits = Subject.create<Unit<UnitFamily.WeightFlux>>(UnitType.GPH_FUEL);
   /** @inheritDoc */
   public readonly fuelFlowUnits = this._fuelFlowUnits as Subscribable<Unit<UnitFamily.WeightFlux>>;
+
+  private readonly simFuelUnits: [liter: Unit<UnitFamily.Weight>, gallon: Unit<UnitFamily.Weight>, imperialGallon: Unit<UnitFamily.Weight>];
+  private readonly simFuelFlowUnits: [liter: Unit<UnitFamily.WeightFlux>, gallon: Unit<UnitFamily.WeightFlux>, imperialGallon: Unit<UnitFamily.WeightFlux>];
 
   /**
    * Creates a new instance of DefaultUnitsUserSettingManager.
    * @param sourceSettingManager The manager from which to source setting values.
+   * @param options Options with which to configure the manager.
    */
-  public constructor(private readonly sourceSettingManager: UserSettingManager<T>) {
+  public constructor(
+    private readonly sourceSettingManager: UserSettingManager<T>,
+    options?: Readonly<DefaultUnitsUserSettingManagerOptions>
+  ) {
+    this.simFuelUnits = options?.simFuelUnits?.fuel ?? [UnitType.LITER_FUEL, UnitType.GALLON_FUEL, UnitType.IMP_GALLON_FUEL];
+    this.simFuelFlowUnits = options?.simFuelUnits?.fuelFlow ?? [UnitType.LPH_FUEL, UnitType.GPH_FUEL, UnitType.IGPH_FUEL];
+
     sourceSettingManager.getSetting('unitsNavAngle').pipe(this._navAngleUnits, value => {
       return value === UnitsNavAngleSettingMode.True ? DefaultUnitsUserSettingManager.TRUE_BEARING : DefaultUnitsUserSettingManager.MAGNETIC_BEARING;
     });
@@ -236,13 +283,61 @@ export class DefaultUnitsUserSettingManager<T extends UnitsUserSettingTypes & Us
 
     sourceSettingManager.getSetting('unitsFuel').sub(value => {
       switch (value) {
+        case UnitsFuelSettingMode.Liters:
+          this._fuelUnits.set(UnitType.LITER_FUEL);
+          this._fuelFlowUnits.set(UnitType.LPH_FUEL);
+          break;
         case UnitsFuelSettingMode.ImpGal:
           this._fuelUnits.set(UnitType.IMP_GALLON_FUEL);
           this._fuelFlowUnits.set(UnitType.IGPH_FUEL);
           break;
-        case UnitsFuelSettingMode.Liters:
-          this._fuelUnits.set(UnitType.LITER_FUEL);
-          this._fuelFlowUnits.set(UnitType.LPH_FUEL);
+        case UnitsFuelSettingMode.LitersJetA:
+          this._fuelUnits.set(UnitType.LITER_JET_A_FUEL);
+          this._fuelFlowUnits.set(UnitType.LPH_JET_A_FUEL);
+          break;
+        case UnitsFuelSettingMode.GallonsJetA:
+          this._fuelUnits.set(UnitType.GALLON_JET_A_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_JET_A_FUEL);
+          break;
+        case UnitsFuelSettingMode.ImpGalJetA:
+          this._fuelUnits.set(UnitType.IMP_GALLON_JET_A_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_JET_A_FUEL);
+          break;
+        case UnitsFuelSettingMode.Liters100LL:
+          this._fuelUnits.set(UnitType.LITER_100LL_FUEL);
+          this._fuelFlowUnits.set(UnitType.LPH_100LL_FUEL);
+          break;
+        case UnitsFuelSettingMode.Gallons100LL:
+          this._fuelUnits.set(UnitType.GALLON_100LL_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_100LL_FUEL);
+          break;
+        case UnitsFuelSettingMode.ImpGal100LL:
+          this._fuelUnits.set(UnitType.IMP_GALLON_100LL_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_100LL_FUEL);
+          break;
+        case UnitsFuelSettingMode.LitersAutogas:
+          this._fuelUnits.set(UnitType.LITER_AUTOGAS_FUEL);
+          this._fuelFlowUnits.set(UnitType.LPH_AUTOGAS_FUEL);
+          break;
+        case UnitsFuelSettingMode.GallonsAutogas:
+          this._fuelUnits.set(UnitType.GALLON_AUTOGAS_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_AUTOGAS_FUEL);
+          break;
+        case UnitsFuelSettingMode.ImpGalAutogas:
+          this._fuelUnits.set(UnitType.IMP_GALLON_AUTOGAS_FUEL);
+          this._fuelFlowUnits.set(UnitType.IGPH_AUTOGAS_FUEL);
+          break;
+        case UnitsFuelSettingMode.LitersSim:
+          this._fuelUnits.set(this.simFuelUnits[0]);
+          this._fuelFlowUnits.set(this.simFuelFlowUnits[0]);
+          break;
+        case UnitsFuelSettingMode.GallonsSim:
+          this._fuelUnits.set(this.simFuelUnits[1]);
+          this._fuelFlowUnits.set(this.simFuelFlowUnits[1]);
+          break;
+        case UnitsFuelSettingMode.ImpGalSim:
+          this._fuelUnits.set(this.simFuelUnits[2]);
+          this._fuelFlowUnits.set(this.simFuelFlowUnits[2]);
           break;
         case UnitsFuelSettingMode.Kilograms:
           this._fuelUnits.set(UnitType.KILOGRAM);

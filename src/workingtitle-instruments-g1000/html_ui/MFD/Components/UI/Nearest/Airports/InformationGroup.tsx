@@ -50,11 +50,7 @@ export class NearestAirportInformationGroup extends G1000UiControl<NearestAirpor
 
       this.name.set(Utils.Translate(facility.name));
       this.location.set(this.getLocation(facility));
-
-      const averageElevation = facility.runways.length === 0
-        ? NaN
-        : facility.runways.reduce((prev, cur) => prev + cur.elevation, 0) / facility.runways.length;
-      this.elevation.set(averageElevation);
+      this.elevation.set(facility.altitude);
     } else {
       this.content.instance.classList.add('hidden-element');
 

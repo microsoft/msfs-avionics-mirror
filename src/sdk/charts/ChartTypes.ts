@@ -109,6 +109,12 @@ export interface ChartMetadata<T extends string = string> {
 
   /** The identifiers of the runways associated with this chart */
   readonly runways: RunwayIdentifier[];
+
+  /** The date from which this chart is valid, as a Javascript timestamp, or `null` if the date is not available. */
+  readonly validFrom: number | null;
+
+  /** The date to which this chart is valid, as a Javascript timestamp, or `null` if the date is not available. */
+  readonly validUntil: number | null;
 }
 
 /** A list of chart pages for a chart */
@@ -121,10 +127,10 @@ export interface ChartPages {
  * A page of a chart
  */
 export interface ChartPage {
-  /** The width, in pixels, of the page */
+  /** The width, in arbitrary units, of the page. */
   readonly width: number;
 
-  /** The height, in pixels, of the page */
+  /** The height, in arbitrary units, of the page. */
   readonly height: number;
 
   /** Whether the chart page is georeferenced */
@@ -182,13 +188,13 @@ export interface ChartLambertConformalConicProjection {
   /** The type from the simulator */
   __Type: 'JS_ChartGeoReferenceLambertConformalConicProjection';
 
-  /** The first standard parallel */
+  /** The first standard parallel, in degrees. */
   standardParallel1: number;
 
-  /** The second standard parallel */
+  /** The second standard parallel, in degrees. */
   standardParallel2: number;
 
-  /** The central meridian */
+  /** The central meridian, in degrees. */
   centralMeridian: number;
 }
 
@@ -209,13 +215,22 @@ export type ChartArea = GeoReferencedChartArea | NonGeoReferencedChartArea;
  * A rectangle on a chart
  */
 export interface ChartRectangle {
-  /** The upper left corner of this rectangle */
+  /**
+   * The upper left corner of this rectangle, in arbitrary units for image coordinates or degrees for
+   * latitude/longitude coordinates.
+   */
   readonly upperLeft: [xOrLon: number, yOrLat: number];
 
-  /** The upper left corner of this rectangle */
+  /**
+   * The upper left corner of this rectangle, in arbitrary units for image coordinates or degrees for
+   * latitude/longitude coordinates.
+   */
   readonly lowerRight: [xOrLon: number, yOrLat: number];
 
-  /** The orientation of this rectangle */
+  /**
+   * The angle, in degrees, by which this rectangle's internal coordinate system is rotated relative to the containing
+   * chart. Positive values indicate counterclockwise rotation.
+   */
   readonly orientation: number;
 }
 

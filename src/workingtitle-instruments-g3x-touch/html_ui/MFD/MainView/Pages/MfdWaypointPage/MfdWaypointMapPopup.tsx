@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, DebounceTimer, FSComponent, FacilityWaypoint, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subject,
-  UserSettingManager, VNode, Vec2Math, Vec2Subject
+  CompiledMapSystem, DebounceTimer, FSComponent, FacilityLoader, FacilityWaypoint, MapIndexedRangeModule,
+  MapSystemBuilder, ReadonlyFloat64Array, Subject, UserSettingManager, VNode, Vec2Math, Vec2Subject
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -29,6 +29,9 @@ import './MfdWaypointMapPopup.css';
  * Component props for {@link MfdWaypointMapPopup}.
  */
 export interface MfdWaypointMapPopupProps extends UiViewProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
 
@@ -57,6 +60,8 @@ export class MfdWaypointMapPopup extends AbstractUiView<MfdWaypointMapPopupProps
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XWaypointMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: `g3x-${this.props.uiService.instrumentIndex}-map-1`,
 

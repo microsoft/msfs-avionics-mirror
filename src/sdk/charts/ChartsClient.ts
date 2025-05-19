@@ -1,8 +1,11 @@
-import { ChartView } from './ChartView';
-import { ChartIndex, ChartPages } from './ChartTypes';
-import { Subject, SubscribableMapFunctions } from '../sub';
 import { IcaoValue } from '../navigation/Icao';
+import { Subject } from '../sub/Subject';
+import { SubscribableMapFunctions } from '../sub/SubscribableMapFunctions';
+import { AtomicSequenceUtils } from '../utils/atomic/AtomicSequence';
+import { DebounceTimer } from '../utils/time/DebounceTimer';
 import { Wait } from '../utils/time/Wait';
+import { ChartIndex, ChartPages } from './ChartTypes';
+import { ChartView } from './ChartView';
 
 /**
  * Utilities for interacting with charts
@@ -12,20 +15,37 @@ export class ChartsClient {
 
   private static ready = Subject.create(false);
 
-  private static indexRequestMap = new Map<number, (data: ChartIndex<string>) => void>();
+  private static readonly indexRequestMap = new Map<
+    number,
+    {
+      /** A function to call to resolve the request. */
+      resolve: (data: ChartIndex<string>) => void;
 
-  private static pagesRequestMap = new Map<number, (data: ChartPages) => void>();
+      /** A function to call to reject the request. */
+      reject: (reason?: any) => void;
 
-  private static nextRequestID = 0;
+      /** A timer that executes an action when the request times out. */
+      timeout: DebounceTimer;
+    }
+  >();
+
+  private static readonly pagesRequestMap = new Map<
+    number,
+    {
+      /** A function to call to resolve the request. */
+      resolve: (data: ChartPages) => void;
+
+      /** A function to call to reject the request. */
+      reject: (reason?: any) => void;
+    }
+
+  >();
 
   /**
-   * Gets an index of charts for a given airport and provider
-   *
-   * T = String type representing possible chart types
-   * U = Number type representing possible chart types
-   * @param airportIcao the FSID (ICAO) of the airport for which to obtain a chart index
-   * @param provider the provider for which to query charts. Built-in provider IDs are available on {@link BuiltInChartProvider}
-   * @returns a chart index
+   * Gets an index of charts for an airport from a chart provider.
+   * @param airportIcao The ICAO of the airport for which to obtain a chart index.
+   * @param provider The provider from which to retrieve the chart index.
+   * @returns A Promise which is fulfilled with the requested chart index when it has been retrieved.
    */
   public static async getIndexForAirport<T extends string>(
     airportIcao: IcaoValue,
@@ -33,35 +53,59 @@ export class ChartsClient {
   ): Promise<ChartIndex<T>> {
     await ChartsClient.ensureViewListenerReady();
 
-    return new Promise<ChartIndex<T>>((resolve) => {
-      const requestID = ++ChartsClient.nextRequestID;
+    const requestId = (await AtomicSequenceUtils.getInstance()).getNext();
 
-      const timeoutIndex = setTimeout(() => {
-        ChartsClient.indexRequestMap.delete(requestID);
+    const existing = ChartsClient.indexRequestMap.get(requestId);
+    if (existing) {
+      existing.timeout.clear();
+      existing.reject(`ChartsClient.getIndexForAirport(): request with ID ${requestId} was overridden before it was resolved`);
+    }
+
+    return new Promise<ChartIndex<T>>((resolve, reject) => {
+      const timeout = new DebounceTimer();
+      timeout.schedule(() => {
+        ChartsClient.indexRequestMap.delete(requestId);
         resolve({ airportIcao, charts: [] });
-      }, 5_000);
+      }, 5000);
 
-      ChartsClient.indexRequestMap.set(requestID, (data: ChartIndex<string>) => {
-        clearTimeout(timeoutIndex);
-        (resolve as (data: ChartIndex<string>) => void)(data);
-      });
+      ChartsClient.indexRequestMap.set(
+        requestId,
+        {
+          resolve: resolve as (data: ChartIndex<string>) => void,
+          reject,
+          timeout,
+        }
+      );
 
-      ChartsClient.listener?.call('GET_CHARTS_INDEX', ChartsClient.nextRequestID, airportIcao, provider);
+      ChartsClient.listener!.call('GET_CHARTS_INDEX', requestId, airportIcao, provider);
     });
   }
 
   /**
-   * Gets the pages for a chart given its GUID
-   * @param chartGuid the GUID of the chart for which to obtain pages
-   * @returns the pages for a chart
+   * Gets chart page information for a chart with a given GUID.
+   * @param chartGuid The GUID of the chart for which to obtain page information.
+   * @returns A Promise which is fulfilled with the requested chart page information when it has been retrieved.
    */
   public static async getChartPages(chartGuid: string): Promise<ChartPages> {
     await ChartsClient.ensureViewListenerReady();
 
-    return new Promise<ChartPages>((resolve) => {
-      ChartsClient.pagesRequestMap.set(++ChartsClient.nextRequestID, resolve);
+    const requestId = (await AtomicSequenceUtils.getInstance()).getNext();
 
-      ChartsClient.listener?.call('GET_CHART_PAGES', ChartsClient.nextRequestID, chartGuid);
+    const existing = ChartsClient.pagesRequestMap.get(requestId);
+    if (existing) {
+      existing.reject(`ChartsClient.getChartPages(): request with ID ${requestId} was overridden before it was resolved`);
+    }
+
+    return new Promise<ChartPages>((resolve, reject) => {
+      ChartsClient.pagesRequestMap.set(
+        requestId,
+        {
+          resolve,
+          reject,
+        }
+      );
+
+      ChartsClient.listener!.call('GET_CHART_PAGES', requestId, chartGuid);
     });
   }
 
@@ -73,7 +117,7 @@ export class ChartsClient {
   public static async initializeChartView(view: ChartView): Promise<void> {
     await ChartsClient.ensureViewListenerReady();
 
-    view.init(ChartsClient.listener!);
+    await view.init(ChartsClient.listener!);
   }
 
   /**
@@ -110,9 +154,8 @@ export class ChartsClient {
 
     if (request) {
       ChartsClient.indexRequestMap.delete(requestID);
-      request(index);
-    } else {
-      console.error(`[Charts](onChartIndexReceived) Unknown request: ${requestID}`);
+      request.timeout.clear();
+      request.resolve(index);
     }
   }
 
@@ -126,9 +169,7 @@ export class ChartsClient {
 
     if (request) {
       ChartsClient.pagesRequestMap.delete(requestID);
-      request(pages);
-    } else {
-      console.error(`[Charts](onChartPagesReceived) Unknown request: ${requestID}`);
+      request.resolve(pages);
     }
   }
 }

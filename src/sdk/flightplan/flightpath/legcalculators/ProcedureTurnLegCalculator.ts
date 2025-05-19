@@ -4,9 +4,10 @@ import { MagVar } from '../../../geo/MagVar';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility, FlightPlanLeg, LegType } from '../../../navigation/Facilities';
+import { FlightPlanLeg, LegType } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -29,7 +30,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
    * Creates a new instance of ProcedureTurnLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, true);
   }
 
@@ -39,7 +40,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    leg.calculated!.courseMagVar = this.getMagVarFromIcao(leg.leg.originIcao) ?? 0;
+    leg.calculated!.courseMagVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct) ?? 0;
   }
 
   /** @inheritDoc */
@@ -53,7 +54,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
 
     if (!originPos) {
       vectors.length = 0;
@@ -119,7 +120,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
             vectors, vectorIndex,
             state.currentPosition, startPath,
             originPos, outboundPath,
-            state.desiredHoldTurnRadius.asUnit(UnitType.METER),
+            state.getDesiredTurnRadius(calculateIndex),
             undefined,
             flags, true
           );
@@ -141,7 +142,7 @@ export class ProcedureTurnLegCalculator extends AbstractFlightPathLegCalculator 
       originPos, outboundPath,
       inboundPathEndpoint, inboundPath,
       turnInitialCourse,
-      state.desiredCourseReversalTurnRadius.asUnit(UnitType.METER), desiredTurnDirection,
+      state.getDesiredCourseReversalTurnRadius(calculateIndex), desiredTurnDirection,
       outboundCourse, inboundCourse
     );
 

@@ -5,10 +5,10 @@
 /// <reference types="@microsoft/msfs-types/js/common" />
 
 import {
-  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock, ElectricalPublisher, EventBus, FacilityLoader,
-  FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FsInstrument, GNSSPublisher,
-  HEventPublisher, InstrumentBackplane, MinimumsSimVarPublisher, NavComSimVarPublisher, TrafficInstrument, VNavSimVarPublisher, Wait,
-  XPDRSimVarPublisher
+  AdcPublisher, AhrsPublisher, AutopilotInstrument, BaseInstrumentPublisher, BasicAvionicsSystem, Clock,
+  DefaultFlightPathAnticipatedDataCalculator, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode,
+  FlightPathCalculator, FlightPlanner, FsInstrument, GNSSPublisher, HEventPublisher, InstrumentBackplane, MinimumsSimVarPublisher, NavComSimVarPublisher, TrafficInstrument,
+  VNavSimVarPublisher, Wait, XPDRSimVarPublisher
 } from '@microsoft/msfs-sdk';
 
 import { AvionicsConfig } from './Config/AvionicsConfig';
@@ -37,7 +37,9 @@ export abstract class WT21DisplayUnitFsInstrument implements FsInstrument {
   protected readonly backplane = new InstrumentBackplane();
 
   protected readonly facRepo = FacilityRepository.getRepository(this.bus);
-  protected readonly facLoader = new FacilityLoader(this.facRepo);
+  protected readonly facLoader = new FacilityLoader(this.facRepo, undefined, {
+    sharedFacilityCacheId: 'wt21',
+  });
   protected readonly calculator = new FlightPathCalculator(this.facLoader, {
     defaultClimbRate: 2000,
     defaultSpeed: 220,
@@ -48,6 +50,10 @@ export abstract class WT21DisplayUnitFsInstrument implements FsInstrument {
     maxBankAngle: 25,
     airplaneSpeedMode: FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind,
     airplaneWindMode: FlightPathAirplaneWindMode.Automatic,
+    anticipatedDataCalculator: new DefaultFlightPathAnticipatedDataCalculator(this.bus,
+      {
+        descentSpeedProfileKtsBelow10k: 220, descentSpeedProfileKtsAbove10k: 260, typicalVRef: 130
+      })
   }, this.bus);
 
   protected readonly planner = FlightPlanner.getPlanner(this.bus, this.calculator, WT21FmsUtils.buildWT21LegName);
@@ -134,7 +140,7 @@ export abstract class WT21DisplayUnitFsInstrument implements FsInstrument {
   /**
    * Initialises the instrument
    */
-  protected doInit(): void {
+  protected async doInit(): Promise<void> {
     this.backplane.init();
   }
 

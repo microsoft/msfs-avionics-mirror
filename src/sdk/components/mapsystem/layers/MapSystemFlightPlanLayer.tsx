@@ -26,7 +26,10 @@ export interface MapSystemFlightPlanLayerModules {
 /** Props on the MapSystemFlightPlanLayer component. */
 export interface MapSystemFlightPlanLayerProps extends MapLayerProps<MapSystemFlightPlanLayerModules> {
   /** An instance of the event bus. */
-  bus: EventBus
+  bus: EventBus;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The waypoint renderer to use with this instance. */
   waypointRenderer: MapSystemWaypointsRenderer;
@@ -67,7 +70,7 @@ export class MapSystemFlightPlanLayer extends MapLayer<MapSystemFlightPlanLayerP
   protected waypointsUpdating = false;
   protected waypointId = 0;
 
-  protected readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
+  protected readonly facLoader = this.props.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   protected readonly facWaypointCache = DefaultFacilityWaypointCache.getCache(this.props.bus);
 
   protected readonly clipBounds = VecNSubject.create(new Float64Array(4));

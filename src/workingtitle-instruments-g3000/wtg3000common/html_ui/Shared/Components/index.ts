@@ -1,5 +1,6 @@
 export * from './Bing';
 export * from './CAS';
+export * from './ChartsPane';
 export * from './ChecklistPane';
 export * from './Common';
 export * from './Constraints';

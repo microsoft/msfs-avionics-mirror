@@ -1,3 +1,5 @@
+import { IcaoValue } from '@microsoft/msfs-sdk';
+
 import { FmsFplUserDataTypeMap, GarminVfrApproachProcedure } from '@microsoft/msfs-garminsdk';
 
 /**
@@ -12,7 +14,13 @@ export enum G3XFmsFplUserDataKey {
  * Data describing a VFR approach procedure that is loaded into a G3X Touch internal flight plan.
  */
 export type G3XFmsFplLoadedApproachData = {
-  /** The ICAO of the loaded approach airport. */
+  /** The ICAO value of the loaded approach airport. */
+  airportIcaoStruct: IcaoValue;
+
+  /**
+   * The ICAO string (V1) of the loaded approach airport.
+   * @deprecated Please use `airportIcaoStruct` instead.
+   */
   airportIcao: string;
 
   /** The index of the published approach on which the loaded VFR approach is based. */

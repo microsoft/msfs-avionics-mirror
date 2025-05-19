@@ -3,9 +3,9 @@ import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { CircleInterceptLegCalculator, CircleInterceptLegPathToInterceptInfo } from './CircleInterceptLegCalculator';
 
@@ -20,7 +20,7 @@ export class DmeInterceptLegCalculator extends CircleInterceptLegCalculator {
    * @param facilityCache This calculator's cache of facilities.
    * @param isHeadingLeg Whether the calculator calculates flight plan legs flown with constant heading.
    */
-  public constructor(facilityCache: Map<string, Facility>, isHeadingLeg: boolean) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache, isHeadingLeg: boolean) {
     super(facilityCache, isHeadingLeg);
   }
 
@@ -33,7 +33,7 @@ export class DmeInterceptLegCalculator extends CircleInterceptLegCalculator {
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
 
     if (magVar === undefined) {
       let position: LatLonInterface | undefined;
@@ -60,7 +60,7 @@ export class DmeInterceptLegCalculator extends CircleInterceptLegCalculator {
     out: CircleInterceptLegPathToInterceptInfo
   ): CircleInterceptLegPathToInterceptInfo | undefined {
     const leg = legs[calculateIndex];
-    const dmeCenter = this.getPositionFromIcao(leg.leg.originIcao, this.geoPointCache[0]);
+    const dmeCenter = this.getPositionFromIcao(leg.leg.originIcaoStruct, this.geoPointCache[0]);
     if (dmeCenter) {
       out.circle.set(dmeCenter, UnitType.METER.convertTo(leg.leg.distance, UnitType.GA_RADIAN));
       Vec3Math.set(NaN, NaN, NaN, out.start);

@@ -1,4 +1,5 @@
 export * from './AltimeterUserSettings';
+export * from './BaroTransitionAlertUserSettings';
 export * from './ComRadioUserSettings';
 export * from './DateTimeUserSettings';
 export * from './DmeUserSettings';

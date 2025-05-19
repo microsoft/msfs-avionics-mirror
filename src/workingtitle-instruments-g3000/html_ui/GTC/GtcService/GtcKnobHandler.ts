@@ -1,7 +1,7 @@
 import { CdiEvents, ConsumerValue, MappedValue, NavSourceId, NavSourceType, Vec2Math } from '@microsoft/msfs-sdk';
 
 import {
-  ChecklistPaneViewEventTypes, DisplayPaneControlEvents, DisplayPaneIndex, G3000RadioUtils,
+  ChartsPaneViewEventTypes, ChecklistPaneViewEventTypes, DisplayPaneControlEvents, DisplayPaneIndex, G3000RadioUtils,
   MapPointerJoystickDirection, MapPointerJoystickHandler, PfdMapLayoutSettingMode, PfdUserSettings
 } from '@microsoft/msfs-wtg3000-common';
 
@@ -20,6 +20,7 @@ export class GtcKnobHandler {
   private readonly bus = this.gtcService.bus;
 
   private readonly publisher = this.bus.getPublisher<DisplayPaneControlEvents>();
+  private readonly chartsPublisher = this.bus.getPublisher<DisplayPaneControlEvents<ChartsPaneViewEventTypes>>();
   private readonly checklistPublisher = this.bus.getPublisher<DisplayPaneControlEvents<ChecklistPaneViewEventTypes>>();
 
   private readonly cdiSource = ConsumerValue.create<NavSourceId | undefined>(null, undefined);
@@ -160,6 +161,9 @@ export class GtcKnobHandler {
       case GtcDualKnobState.MapPointerControl:
         this.sendMapPointerMoveEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Up : MapPointerJoystickDirection.Down);
         return;
+      case GtcDualKnobState.ChartsPanZoomControl:
+        this.sendChartsPanEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Up : MapPointerJoystickDirection.Down);
+        return;
       case GtcDualKnobState.NAVCOM1:
       case GtcDualKnobState.NAVCOM2:
         this.gtcService.navComEventHandler.get()?.onGtcInteractionEvent(event);
@@ -210,6 +214,9 @@ export class GtcKnobHandler {
         return;
       case GtcDualKnobState.MapPointerControl:
         this.sendMapPointerMoveEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Right : MapPointerJoystickDirection.Left);
+        return;
+      case GtcDualKnobState.ChartsPanZoomControl:
+        this.sendChartsPanEvent(incOrDec === 'inc' ? MapPointerJoystickDirection.Up : MapPointerJoystickDirection.Down);
         return;
       case GtcDualKnobState.NAVCOM1:
       case GtcDualKnobState.NAVCOM2:
@@ -277,7 +284,9 @@ export class GtcKnobHandler {
       case GtcMapKnobState.MapNoPointer:
       case GtcMapKnobState.MapWithPointer:
       case GtcMapKnobState.WeatherRadar:
+      case GtcMapKnobState.Charts:
       case GtcMapKnobState.MapPointerControl:
+      case GtcMapKnobState.ChartsPanZoomControl:
         this.sendMapRangeEvent(incOrDec);
         return;
       // TODO Navcom stuff
@@ -310,6 +319,11 @@ export class GtcKnobHandler {
             break;
         }
         return;
+      case GtcMapKnobState.Charts:
+        if (this.gtcService.activeControlMode.get() === 'MFD') {
+          this.openChartsPanZoomControlPopup();
+        }
+        return;
       case GtcMapKnobState.MapPointerControl: {
         this.sendMapPointerActiveSetEvent(false);
         return;
@@ -321,6 +335,42 @@ export class GtcKnobHandler {
       case GtcMapKnobState.Checklist:
         this.sendChecklistPushEvent();
         return;
+    }
+  }
+
+  /**
+   * Opens the Charts Pan/Zoom Control popup.
+   */
+  private openChartsPanZoomControlPopup(): void {
+    // Attempt to return to the most recent history state in which the Charts Pan/Zoom Control popup is the active view
+    // or is not open *and* the Charts Options popup is not open.
+    this.gtcService.goBackToItem((steps, stackPeeker) => {
+      let depth = 0;
+      let item = stackPeeker(depth);
+
+      let success = true;
+
+      while (item) {
+        if (item.viewEntry.key === GtcViewKeys.ChartsOptions) {
+          success = false;
+        } else if (item.viewEntry.key === GtcViewKeys.ChartsPanZoomControl) {
+          success = depth === 0;
+        }
+
+        if (!success) {
+          break;
+        }
+
+        item = stackPeeker(++depth);
+      }
+
+      return success;
+    });
+
+    // At this point, the Charts Pan/Zoom Control popup is either the active view or is not open at all. If it is not
+    // the active view, then open it.
+    if (this.gtcService.activeView.get().key !== GtcViewKeys.ChartsPanZoomControl) {
+      this.gtcService.openPopup(GtcViewKeys.ChartsPanZoomControl, 'slideout-bottom', 'none');
     }
   }
 
@@ -414,6 +464,26 @@ export class GtcKnobHandler {
       this.publisher.pub('display_pane_view_event', {
         displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
         eventType: 'display_pane_map_pointer_move',
+        eventData: [delta[0], delta[1]]
+      }, true);
+      return;
+    }
+  }
+
+  /**
+   * Sends a map pointer move event to the currently controlled display pane.
+   * @param direction The direction in which to move the pointer.
+   */
+  private sendChartsPanEvent(direction: MapPointerJoystickDirection): void {
+    const displayPaneIndex = this.controlledMapDisplayPaneIndex.get();
+
+    if (displayPaneIndex < 0) {
+      return;
+    } else {
+      const delta = this.mapPointerJoystickHandler.onInput(direction, GtcKnobHandler.vec2Cache[0]);
+      this.chartsPublisher.pub('display_pane_view_event', {
+        displayPaneIndex: displayPaneIndex as DisplayPaneIndex,
+        eventType: 'display_pane_charts_change_pan',
         eventData: [delta[0], delta[1]]
       }, true);
       return;

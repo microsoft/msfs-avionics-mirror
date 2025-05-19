@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, FSComponent, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subject,
-  Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject
+  CompiledMapSystem, FSComponent, FacilityLoader, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array,
+  Subject, Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -34,6 +34,9 @@ import './PfdMapView.css';
  * Component props for PfdMapView.
  */
 export interface PfdMapViewProps extends UiViewProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the view's map to display traffic, or `null` if there is no traffic system. */
   trafficSystem: TrafficSystem | null;
 
@@ -67,6 +70,8 @@ export class PfdMapView extends AbstractUiView<PfdMapViewProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNavMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: `g3x-${this.props.uiService.gduIndex}-map-2`,
 

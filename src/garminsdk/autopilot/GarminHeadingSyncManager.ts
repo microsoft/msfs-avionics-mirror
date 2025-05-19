@@ -171,6 +171,7 @@ export class GarminHeadingSyncManager {
     keyEventManager.interceptKey('HEADING_BUG_DEC', true);
     keyEventManager.interceptKey('HEADING_BUG_SET', true);
     keyEventManager.interceptKey('AP_HEADING_BUG_SET_EX1', true);
+    keyEventManager.interceptKey('AP_HDG_CURRENT_HDG_SET', true);
 
     const sub = this.bus.getSubscriber<KeyEvents & HEvent & AhrsSystemEvents & ClockEvents>();
 
@@ -195,7 +196,10 @@ export class GarminHeadingSyncManager {
     }, true);
 
     this.keyEventSub = sub.on('key_intercept').handle(this.onKeyIntercepted.bind(this), this.isPaused);
-    this.hEventSub = sub.on('hEvent').handle(this.onHEvent.bind(this), this.isPaused);
+
+    if (this.headingSyncHEvent !== '') {
+      this.hEventSub = sub.on('hEvent').handle(this.onHEvent.bind(this), this.isPaused);
+    }
 
     this.updateSub = sub.on('realTime').handle(this.update.bind(this), this.isPaused);
   }
@@ -274,6 +278,9 @@ export class GarminHeadingSyncManager {
         this.setHeadingSyncModeActive(false);
         this.publisher.pub('hdg_sync_manual_select', undefined, true, false);
         break;
+      case 'AP_HDG_CURRENT_HDG_SET':
+        this.onHeadingSyncInput();
+        break;
     }
   }
 
@@ -283,20 +290,27 @@ export class GarminHeadingSyncManager {
    */
   private onHEvent(hEvent: string): void {
     if (hEvent === this.headingSyncHEvent) {
-      if (this.isHeadingSyncModeActive) {
-        this.setHeadingSyncModeActive(false);
-      } else {
-        if (this.ahrsIndex.get() > 0 && this.isHeadingDataValid.get()) {
-          this.setSelectedHeading(Math.round(this.heading.get()));
-        }
+      this.onHeadingSyncInput();
+    }
+  }
 
-        this.publisher.pub('hdg_sync_manual_select', undefined, true, false);
+  /**
+   * Responds to when a heading sync input is received.
+   */
+  private onHeadingSyncInput(): void {
+    if (this.isHeadingSyncModeActive) {
+      this.setHeadingSyncModeActive(false);
+    } else {
+      if (this.ahrsIndex.get() > 0 && this.isHeadingDataValid.get()) {
+        this.setSelectedHeading(Math.round(this.heading.get()));
+      }
 
-        if (this.supportHeadingSyncMode && this.isApNavModeActive.get()) {
-          this.setHeadingSyncModeActive(true);
-        } else if (this.supportTurnHeadingAdjust && this.isApHdgModeActive.get()) {
-          this.setTurnHeadingAdjustActive(true);
-        }
+      this.publisher.pub('hdg_sync_manual_select', undefined, true, false);
+
+      if (this.supportHeadingSyncMode && this.isApNavModeActive.get()) {
+        this.setHeadingSyncModeActive(true);
+      } else if (this.supportTurnHeadingAdjust && this.isApHdgModeActive.get()) {
+        this.setTurnHeadingAdjustActive(true);
       }
     }
   }

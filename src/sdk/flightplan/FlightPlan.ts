@@ -1491,18 +1491,21 @@ export class FlightPlan {
   }
 
   /**
-   * Sets the vertical data for this plan leg.
-   * @param segmentIndex The segment index of the leg in the plan to add vertical data to.
-   * @param segmentLegIndex The segment leg index of the leg in the plan to add vertical data to.
-   * cleared.
-   * @param verticalData The Vertical Data for this leg.
+   * Sets the vertical data for a flight plan leg.
+   * @param segmentIndex The segment index of the leg for which to set vertical data.
+   * @param segmentLegIndex The segment leg index of the leg for which to set vertical data.
+   * @param verticalData The vertical data to set. The values of the enumerable properties of this object will be
+   * copied to the flight plan leg. Any vertical data property that is not enumerated in this object will be left as-is
+   * in the flight plan leg.
    * @param notify Whether to send an event for this change. Defaults to true.
    */
   public setLegVerticalData(segmentIndex: number, segmentLegIndex: number, verticalData: Partial<VerticalData>, notify?: boolean): void;
   /**
-   * Sets the vertical data for this plan leg.
-   * @param globalLegIndex The global leg index in the plan for the leg to add vertical data to.
-   * @param verticalData The Vertical Data for this leg.
+   * Sets the vertical data for a flight plan leg.
+   * @param globalLegIndex The global leg index in the plan for the leg for which to set vertical data.
+   * @param verticalData The vertical data to set. The values of the enumerable properties of this object will be
+   * copied to the flight plan leg. Any vertical data property that is not enumerated in this object will be left as-is
+   * in the flight plan leg.
    * @param notify Whether to send an event for this change. Defaults to true.
    */
   public setLegVerticalData(globalLegIndex: number, verticalData: Partial<VerticalData>, notify?: boolean): void;

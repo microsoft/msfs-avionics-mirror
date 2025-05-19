@@ -39,6 +39,8 @@ export class HdgTrkUpModeMapLayer extends MapLayer<HdgTrkUpModeMapLayerProps> {
   private readonly compassRotatingSvgRef = FSComponent.createRef<SVGElement>();
   private readonly hdgBugRef = FSComponent.createRef<HeadingBug>();
 
+  private readonly targetProjectedOffsetY = this.props.settings.getSetting('vsdEnabled').map((v) => v ? 104 : MapSystemCommon.hdgTrkUpOffsetY);
+
   /** @inheritdoc */
   public onVisibilityChanged(isVisible: boolean): void {
     this.isHidden.set(!isVisible);
@@ -56,7 +58,7 @@ export class HdgTrkUpModeMapLayer extends MapLayer<HdgTrkUpModeMapLayerProps> {
           'hidden': this.isHidden,
         }}
       >
-        <MapCompassOffset compassSvgSize={this.compassSvgSize} targetProjectedOffsetY={MapSystemCommon.hdgTrkUpOffsetY}>
+        <MapCompassOffset compassSvgSize={this.compassSvgSize} targetProjectedOffsetY={this.targetProjectedOffsetY}>
           <HeadingFailureFlag headingDataProvider={this.props.headingDataProvider} isMfd={true} />
           <AltitudeArc
             bus={this.props.bus}

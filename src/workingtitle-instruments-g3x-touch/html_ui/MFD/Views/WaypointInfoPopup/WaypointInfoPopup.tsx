@@ -1,14 +1,19 @@
 import {
-  Facility, FacilityType, FacilityWaypoint, FSComponent, ICAO, ReadonlyFloat64Array, Subject, Subscription, UserSettingManager, Vec2Math, VNode
+  Facility, FacilityType, FacilityWaypoint, FSComponent, ICAO, ReadonlyFloat64Array, Subject, Subscription,
+  UserSettingManager, Vec2Math, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import { RadiosConfig } from '../../../Shared/AvionicsConfig/RadiosConfig';
+import { G3XChartsConfig } from '../../../Shared/Charts/G3XChartsConfig';
+import { G3XChartsSource } from '../../../Shared/Charts/G3XChartsSource';
 import { MapConfig } from '../../../Shared/Components/Map/MapConfig';
 import { G3XFms } from '../../../Shared/FlightPlan/G3XFms';
 import { G3XFplSourceDataProvider } from '../../../Shared/FlightPlan/G3XFplSourceDataProvider';
 import { PositionHeadingDataProvider } from '../../../Shared/Navigation/PositionHeadingDataProvider';
 import { ComRadioSpacingDataProvider } from '../../../Shared/Radio/ComRadioSpacingDataProvider';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { DisplayUserSettingTypes } from '../../../Shared/Settings/DisplayUserSettings';
+import { G3XChartsUserSettingTypes } from '../../../Shared/Settings/G3XChartsUserSettings';
 import { G3XDateTimeUserSettings } from '../../../Shared/Settings/G3XDateTimeUserSettings';
 import { G3XUnitsUserSettings } from '../../../Shared/Settings/G3XUnitsUserSettings';
 import { GduUserSettingTypes } from '../../../Shared/Settings/GduUserSettings';
@@ -34,6 +39,9 @@ export interface WaypointInfoPopupProps extends UiViewProps {
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
 
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
+
   /** A provider of COM radio spacing mode data. */
   comRadioSpacingDataProvider: ComRadioSpacingDataProvider;
 
@@ -43,11 +51,20 @@ export interface WaypointInfoPopupProps extends UiViewProps {
   /** A manager for display user settings. */
   displaySettingManager: UserSettingManager<DisplayUserSettingTypes>;
 
+  /** A manager for electronic charts user settings. */
+  chartsSettingManager: UserSettingManager<G3XChartsUserSettingTypes>;
+
   /** A configuration object defining options for the map. */
   mapConfig: MapConfig;
 
+  /** A configuration object defining options for electronic charts. */
+  chartsConfig: G3XChartsConfig;
+
   /** A configuration object defining options for radios. */
   radiosConfig: RadiosConfig;
+
+  /** All available electronic charts sources. */
+  chartsSources: Iterable<G3XChartsSource>;
 }
 
 /**
@@ -80,12 +97,17 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
   private readonly waypointInfoRef = FSComponent.createRef<WaypointInfo>();
 
   private readonly waypointInfoSize = Vec2Math.create();
+  private readonly waypointInfoExpandMargins = VecNMath.create(4);
 
   private readonly selectedWaypoint = Subject.create<FacilityWaypoint | null>(null);
 
   private readonly selectedFacility = Subject.create<Facility | null>(null);
 
+  private viewSizeMode = UiViewSizeMode.Hidden;
+  private readonly viewDimensions = Vec2Math.create();
+
   private selectedFacilityPipe?: Subscription;
+  private pfdPaneSideSub?: Subscription;
 
   /** @inheritDoc */
   public onAfterRender(): void {
@@ -100,6 +122,11 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
         this.selectedFacilityPipe = undefined;
       }
     }, true);
+
+    if (this.props.uiService.gduFormat === '460') {
+      this.pfdPaneSideSub = this.props.uiService.gdu460PfdPaneSide
+        .sub(this.onPfdPaneSideChanged.bind(this), false, true);
+    }
   }
 
   /**
@@ -112,45 +139,82 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
 
   /** @inheritDoc */
   public onOpen(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
-    this.updateWaypointInfoSize(sizeMode, dimensions);
-    this.waypointInfoRef.instance.onOpen(sizeMode, this.waypointInfoSize);
+    this.viewSizeMode = sizeMode;
+    Vec2Math.copy(dimensions, this.viewDimensions);
+    this.updateWaypointInfoSize();
+    this.waypointInfoRef.instance.onOpen(this.viewSizeMode, this.waypointInfoSize, this.waypointInfoExpandMargins);
+
+    this.pfdPaneSideSub?.resume();
   }
 
   /** @inheritDoc */
   public onClose(): void {
     this.waypointInfoRef.instance.onClose();
+
+    this.pfdPaneSideSub?.pause();
   }
 
   /** @inheritDoc */
   public onResize(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
-    this.updateWaypointInfoSize(sizeMode, dimensions);
-    this.waypointInfoRef.instance.onResize(sizeMode, this.waypointInfoSize);
+    this.viewSizeMode = sizeMode;
+    Vec2Math.copy(dimensions, this.viewDimensions);
+    this.updateWaypointInfoSize();
+    this.waypointInfoRef.instance.onResize(this.viewSizeMode, this.waypointInfoSize, this.waypointInfoExpandMargins);
   }
 
   /**
    * Updates this popup's waypoint information display size.
-   * @param sizeMode The size mode of this view's container.
-   * @param dimensions This popup's dimensions, as `[width, height]` in pixels.
    */
-  private updateWaypointInfoSize(sizeMode: UiViewSizeMode, dimensions: ReadonlyFloat64Array): void {
+  private updateWaypointInfoSize(): void {
     // TODO: support GDU470 (portrait)
 
-    let width: number;
-    if (sizeMode === UiViewSizeMode.Half) {
+    let marginLeft: number;
+    let marginRight: number;
+
+    if (this.viewSizeMode === UiViewSizeMode.Half) {
       // The popup takes up the entire width of the pane minus 6px margin on one side, up to a maximum width of
       // 600px. The popup also has 3px border and 7px padding on each side.
-      width = Math.min(600, dimensions[0] - 6) - 6 - 14;
+
+      const popupWidth = Math.min(600, this.viewDimensions[0] - 6);
+      const popupHalfWidthExcess = (this.viewDimensions[0] - popupWidth) * 0.5;
+      let popupMarginLeft = Math.floor(popupHalfWidthExcess);
+      let popupMarginRight = Math.ceil(popupHalfWidthExcess);
+
+      if (this.props.uiService.gdu460PfdPaneSide.get() === 'right') {
+        popupMarginLeft -= 3;
+        popupMarginRight += 3;
+      } else {
+        popupMarginLeft += 3;
+        popupMarginRight -= 3;
+      }
+
+      marginLeft = popupMarginLeft + 3 + 7;
+      marginRight = popupMarginRight + 3 + 7;
     } else {
       // The popup takes up the entire width of the pane minus 6px margin on each side, up to a maximum width of
       // 1210px. The popup also has 3px border and 7px padding on each side.
-      width = Math.min(1210, dimensions[0] - 12) - 6 - 14;
+
+      const popupWidth = Math.min(1210, this.viewDimensions[0] - 12);
+      const popupHalfWidthExcess = (this.viewDimensions[0] - popupWidth) * 0.5;
+      const popupMarginLeft = Math.floor(popupHalfWidthExcess);
+      const popupMarginRight = Math.ceil(popupHalfWidthExcess);
+
+      marginLeft = popupMarginLeft + 3 + 7;
+      marginRight = popupMarginRight + 3 + 7;
     }
+    const width = this.viewDimensions[0] - (marginLeft + marginRight);
 
     // The popup is 668px in height with 3px border on each side. On the top side, there is a 31px tall title, and
     // on the bottom there is a 7px padding.
-    const height = 668 - 6 - 31 - 7;
+    const popupHalfHeightExcess = (this.viewDimensions[1] - 668) * 0.5;
+    const popupMarginTop = Math.floor(popupHalfHeightExcess);
+    const popupMarginBottom = Math.ceil(popupHalfHeightExcess);
+    const marginTop = popupMarginTop + 3 + 31;
+    const marginBottom = popupMarginBottom + 3 + 7;
+    const height = this.viewDimensions[1] - (marginTop + marginBottom);
 
     Vec2Math.set(width, height, this.waypointInfoSize);
+    VecNMath.set(this.waypointInfoExpandMargins, marginLeft, marginTop, marginRight, marginBottom);
   }
 
   /** @inheritDoc */
@@ -178,6 +242,14 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
     return this.waypointInfoRef.instance.onUiInteractionEvent(event);
   }
 
+  /**
+   * Responds to when 
+   */
+  private onPfdPaneSideChanged(): void {
+    this.updateWaypointInfoSize();
+    this.waypointInfoRef.instance.onResize(this.viewSizeMode, this.waypointInfoSize, this.waypointInfoExpandMargins);
+  }
+
   /** @inheritDoc */
   public render(): VNode {
     return (
@@ -192,6 +264,7 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
             facLoader={this.props.fms.facLoader}
             posHeadingDataProvider={this.props.posHeadingDataProvider}
             fplSourceDataProvider={this.props.fplSourceDataProvider}
+            radiosDataProvider={this.props.radiosDataProvider}
             comRadioSpacingDataProvider={this.props.comRadioSpacingDataProvider}
             mapBingId={`g3x-${this.props.uiService.gduIndex}-map-1`}
             runwayTabMapBingId={`g3x-${this.props.uiService.gduIndex}-map-3`}
@@ -199,9 +272,12 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
             displaySettingManager={this.props.displaySettingManager}
             dateTimeSettingManager={G3XDateTimeUserSettings.getManager(this.props.uiService.bus)}
             mapSettingManager={MapUserSettings.getStandardManager(this.props.uiService.bus)}
+            chartsSettingManager={this.props.chartsSettingManager}
             unitsSettingManager={G3XUnitsUserSettings.getManager(this.props.uiService.bus)}
             mapConfig={this.props.mapConfig}
+            chartsConfig={this.props.chartsConfig}
             radiosConfig={this.props.radiosConfig}
+            chartsSources={this.props.chartsSources}
             selectedWaypoint={this.selectedWaypoint}
             allowSelection={false}
           />
@@ -215,6 +291,7 @@ export class WaypointInfoPopup extends AbstractUiView<WaypointInfoPopupProps> {
     this.waypointInfoRef.getOrDefault()?.destroy();
 
     this.selectedFacilityPipe?.destroy();
+    this.pfdPaneSideSub?.destroy();
 
     super.destroy();
   }

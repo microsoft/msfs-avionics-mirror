@@ -87,7 +87,6 @@ export class WT21Fms {
   public readonly ppos = new GeoPoint(0, 0);
 
   private readonly facRepo = FacilityRepository.getRepository(this.bus);
-  public readonly facLoader = new FacilityLoader(this.facRepo);
 
   /** Information on our origin, arrival and destination facilities to save lookups.
    * When in MOD, this will reflect the current origin and destination in the MOD plan. */
@@ -211,6 +210,7 @@ export class WT21Fms {
   /**
    * Initialize an instance of the FMS for the WT21.
    * @param bus is the event bus
+   * @param facLoader The facility loader.
    * @param flightPlanner is the flight planner
    * @param fmsPos is the FMS position system
    * @param verticalPathCalculator is the VNAV Path Calculator.
@@ -219,6 +219,7 @@ export class WT21Fms {
    */
   constructor(
     public readonly bus: EventBus,
+    public readonly facLoader: FacilityLoader,
     public readonly flightPlanner: FlightPlanner,
     public readonly fmsPos: FmsPos,
     public readonly verticalPathCalculator: SmoothingPathCalculator,

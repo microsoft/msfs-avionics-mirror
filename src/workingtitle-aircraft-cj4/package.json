@@ -16,12 +16,12 @@
   "devDependencies": {
     "@rollup/plugin-image": "^3.0.2",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@microsoft/msfs-sdk": "2.0.7",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-wt21-shared": "3.0.6",
-    "@microsoft/msfs-wt21-fmc": "3.0.6",
-    "@microsoft/msfs-wt21-mfd": "3.0.6",
-    "@microsoft/msfs-wt21-pfd": "3.0.6",
+    "@microsoft/msfs-sdk": "2.1.1",
+    "@microsoft/msfs-wt21-shared": "3.1.2",
+    "@microsoft/msfs-wt21-fmc": "3.1.2",
+    "@microsoft/msfs-wt21-mfd": "3.1.2",
+    "@microsoft/msfs-wt21-pfd": "3.1.2",
     "rollup": "^4.27.3",
     "rollup-plugin-import-css": "^3.1.0",
     "typescript": "5.3.3"

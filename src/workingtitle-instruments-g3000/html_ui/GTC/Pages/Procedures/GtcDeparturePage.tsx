@@ -1,11 +1,13 @@
 
 import {
-  AirportFacility, ArraySubject, DepartureProcedure, EnrouteTransition, FSComponent, FacilityType, FlightPlan,
-  FlightPlanLeg, FlightPlanSegmentType, LegDefinition, MappedSubject, OneWayRunway, Procedure, RunwayUtils,
+  AirportFacility, ArraySubject, ChartIndex, DepartureProcedure, EnrouteTransition, FSComponent, FacilityType, FlightPlan,
+  FlightPlanLeg, FlightPlanSegmentType, ICAO, LegDefinition, MappedSubject, OneWayRunway, Procedure, RunwayUtils,
   StringUtils, Subject, VNode,
 } from '@microsoft/msfs-sdk';
 
 import { FmsUtils, ProcedureType, TouchButton } from '@microsoft/msfs-garminsdk';
+
+import { G3000ChartsAirportSelectionData, G3000ChartsSource, G3000ChartsUtils } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcList } from '../../Components/List/GtcList';
 import { GtcListSelectTouchButton } from '../../Components/TouchButton/GtcListSelectTouchButton';
@@ -286,6 +288,30 @@ export class GtcDeparturePage extends GtcProcedureSelectionPage {
     return undefined;
   }
 
+  /** @inheritDoc */
+  protected async createAirportChartData(
+    selectedAirport: AirportFacility,
+    chartsSource: G3000ChartsSource,
+    chartIndex: ChartIndex<string>
+  ): Promise<G3000ChartsAirportSelectionData> {
+    const departurePages = await G3000ChartsUtils.getPageDataFromMetadata(chartsSource.getDepartureCharts(chartIndex))
+      .catch(() => []);
+
+    return {
+      icao: selectedAirport.icaoStruct,
+      source: chartsSource.uid,
+      departurePages,
+      infoPages: [],
+      arrivalPages: [],
+      approachPages: [],
+    };
+  }
+
+  /** @inheritDoc */
+  protected onAirportChartDataRefreshed(): void {
+    this.updateChartPreviewData();
+  }
+
   /**
    * Creates a procedure preview plan with the current selections.
    */
@@ -482,6 +508,53 @@ export class GtcDeparturePage extends GtcProcedureSelectionPage {
         runwayTransitionIndex: this.selectedRunwayTransitionIndex.get(),
         runwayDesignation: this.selectedRunway.get()?.designation ?? ''
       });
+    }
+
+    this.updateChartPreviewData();
+  }
+
+  /**
+   * Updates this page's chart preview data from the currently selected procedure.
+   */
+  private updateChartPreviewData(): void {
+    const airport = this.selectedAirport.get();
+    const procedureIndex = this.selectedDepartureIndex.get();
+
+    const departure = airport?.departures[procedureIndex];
+
+    if (
+      !departure
+      || !this.airportChartData
+      || this.airportChartData.source === null
+      || !ICAO.valueEquals(airport.icaoStruct, this.airportChartData.icao)
+    ) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const source = this.chartsSources.get(this.airportChartData.source);
+
+    if (!source) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const runway = this.selectedRunway.get();
+
+    const page = source.getDeparturePage(
+      this.airportChartData.departurePages,
+      departure.name,
+      departure.enRouteTransitions[this.selectedTransitionIndex.get()]?.name ?? '',
+      runway ? RunwayUtils.getIdentifierFromOneWayRunway(runway) : RunwayUtils.emptyIdentifier()
+    );
+
+    if (page) {
+      this.chartPreviewData.set({
+        source: source.uid,
+        pageData: page,
+      });
+    } else {
+      this.chartPreviewData.set(null);
     }
   }
 

@@ -65,6 +65,8 @@ export class WaypointInfoPaneView extends DisplayPaneView<WaypointInfoPaneViewPr
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.waypointMap, {
+      facilityLoader: this.props.facLoader,
+
       bingId: `pane_map_${this.props.index}`,
       bingDelay: BingUtils.getBindDelayForPane(this.props.index),
 

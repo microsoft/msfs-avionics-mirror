@@ -41,6 +41,9 @@ export interface AirportRunwayTabProps extends TabbedContentProps {
   /** A reference to the root element of the container of the tab's parent UI view. */
   containerRef: NodeReference<HTMLElement>;
 
+  /** Whether the tab is allowed to handle bezel rotary knob push interactions. */
+  allowKnobPush: Subscribable<boolean>;
+
   /** The facility loader. */
   facLoader: FacilityLoader;
 
@@ -113,6 +116,8 @@ export class AirportRunwayTab extends AbstractTabbedContent<AirportRunwayTabProp
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XWaypointMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: this.props.mapBingId,
 
@@ -244,14 +249,23 @@ export class AirportRunwayTab extends AbstractTabbedContent<AirportRunwayTabProp
 
     const updateMetarSub = this.props.waypointInfo.facility.sub(this.updateMetar.bind(this), false, true);
 
+    const selectRunwayButtonFocusState = MappedSubject.create(
+      this.props.allowKnobPush,
+      this.facilityRunways
+    );
+
+    const updateSelectRunwayButtonFocusSub = selectRunwayButtonFocusState.sub(this.updateSelectRunwayButtonFocus.bind(this), false, true);
+
     this.subscriptions.push(
       updateMetarSub,
-      windTextState
+      windTextState,
+      selectRunwayButtonFocusState
     );
 
     this.pauseable.push(
       updateMetarSub,
-      windTextState.sub(this.onRunwayWindDataChanged.bind(this), false, true)
+      windTextState.sub(this.onRunwayWindDataChanged.bind(this), false, true),
+      updateSelectRunwayButtonFocusSub
     );
 
     MappedSubject.create(
@@ -294,8 +308,6 @@ export class AirportRunwayTab extends AbstractTabbedContent<AirportRunwayTabProp
     for (const sub of this.pauseable) {
       sub.resume(true);
     }
-
-    this.focusController.setFocusIndex(0);
   }
 
   /** @inheritDoc */
@@ -359,8 +371,13 @@ export class AirportRunwayTab extends AbstractTabbedContent<AirportRunwayTabProp
     } else {
       this.selectedRunway.set(runways[0]);
     }
+  }
 
-    if (runways.length > 1) {
+  /**
+   * Updates the UI focus and visibility state of this tab's select runway button.
+   */
+  private updateSelectRunwayButtonFocus(): void {
+    if (this.props.allowKnobPush.get() && this.facilityRunways.get().length > 1) {
       this._knobLabelState.setValue(UiKnobId.SingleInnerPush, 'Runway');
       this._knobLabelState.setValue(UiKnobId.LeftInnerPush, 'Runway');
       this._knobLabelState.setValue(UiKnobId.RightInnerPush, 'Runway');
@@ -372,7 +389,8 @@ export class AirportRunwayTab extends AbstractTabbedContent<AirportRunwayTabProp
       this._knobLabelState.delete(UiKnobId.LeftInnerPush);
       this._knobLabelState.delete(UiKnobId.RightInnerPush);
 
-      this.isRunwayButtonVisible.set(false);
+      this.focusController.removeFocus();
+      this.isRunwayButtonVisible.set(this.facilityRunways.get().length > 1);
     }
   }
 

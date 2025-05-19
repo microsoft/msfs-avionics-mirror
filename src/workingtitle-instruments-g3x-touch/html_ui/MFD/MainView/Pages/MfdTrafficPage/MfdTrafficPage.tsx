@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, FSComponent, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subscription, UserSettingManager,
-  VNode, Vec2Math, Vec2Subject, VecNMath, VecNSubject
+  CompiledMapSystem, FSComponent, FacilityLoader, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array,
+  Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath, VecNSubject
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys, TrafficMapRangeController, TrafficSystem } from '@microsoft/msfs-garminsdk';
@@ -30,6 +30,9 @@ import './MfdTrafficPage.css';
  * Component props for MfdTrafficPage.
  */
 export interface MfdTrafficPageProps extends MfdPageProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the map. */
   trafficSystem: TrafficSystem;
 
@@ -71,6 +74,8 @@ export class MfdTrafficPage extends AbstractMfdPage<MfdTrafficPageProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XTrafficMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       trafficSystem: this.props.trafficSystem,
       trafficSource: this.props.trafficSource,

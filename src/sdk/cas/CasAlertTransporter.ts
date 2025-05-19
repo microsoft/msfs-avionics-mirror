@@ -7,6 +7,23 @@ import { Subscription } from '../sub/Subscription';
 import { CasEvents } from './CasSystem';
 
 /**
+ * Configuration options for {@link CasAlertTransporter}.
+ */
+export type CasAlertTransporterOptions = {
+  /** The ID of the alert to control. */
+  uuid: string;
+
+  /** The priority level of the alert to control. */
+  priority: AnnunciationType;
+
+  /** The suffix of the alert to control. */
+  suffix?: string;
+
+  /** Whether the alert to control should be initially acknowledged when activated. Defaults to `false`. */
+  initialAcknowledge?: boolean;
+};
+
+/**
  * An entry describing an update function without associated state used to bind the state of an alert.
  */
 type AlertTransporterNoStateUpdateEntry = {
@@ -49,6 +66,11 @@ export class CasAlertTransporter {
   private static updateEntries?: AlertTransporterUpdateEntry[];
   private static previousTimestamp = -1;
 
+  private readonly uuid: string;
+  private readonly priority: AnnunciationType;
+  private readonly suffix?: string;
+  private readonly initialAcknowledge: boolean;
+
   private currentValue = false;
 
   private readonly subs: Subscription[] = [];
@@ -60,11 +82,42 @@ export class CasAlertTransporter {
   /**
    * Creates an instance of a CasAlertTransporter.
    * @param bus The event bus to use with this instance.
+   * @param options Configuration options for the transporter.
+   */
+  private constructor(private readonly bus: EventBus, options: Readonly<CasAlertTransporterOptions>) {
+    ({
+      uuid: this.uuid,
+      priority: this.priority,
+      suffix: this.suffix,
+    } = options);
+    this.initialAcknowledge = options.initialAcknowledge ?? false;
+  }
+
+  /**
+   * Creates an instance of CasAlertTransporter.
+   * @param bus The event bus to use with this instance.
+   * @param options Configuration options for the transporter.
+   * @returns A new CasAlertTransporter.
+   */
+  public static create(bus: EventBus, options: Readonly<CasAlertTransporterOptions>): CasAlertTransporter;
+  /**
+   * Creates an instance of CasAlertTransporter.
+   * @param bus The event bus to use with this instance.
    * @param uuid The alert UUID.
    * @param priority The alert priority.
    * @param suffix The alert suffix.
+   * @returns A new CasAlertTransporter.
+   * @deprecated Please use the overload that takes an options object instead.
    */
-  private constructor(private readonly bus: EventBus, private readonly uuid: string, private readonly priority: AnnunciationType, private readonly suffix?: string) { }
+  public static create(bus: EventBus, uuid: string, priority: AnnunciationType, suffix?: string): CasAlertTransporter;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public static create(bus: EventBus, arg2?: Readonly<CasAlertTransporterOptions> | string, arg3?: AnnunciationType, arg4?: string): CasAlertTransporter {
+    if (typeof arg2 === 'object') {
+      return new CasAlertTransporter(bus, arg2);
+    } else {
+      return new CasAlertTransporter(bus, { uuid: arg2!, priority: arg3!, suffix: arg4 });
+    }
+  }
 
   /**
    * Sets whether or not the alert is active.
@@ -78,9 +131,19 @@ export class CasAlertTransporter {
 
     if (this.currentValue !== active) {
       if (active) {
-        this.bus.getPublisher<CasEvents>().pub('cas_activate_alert', { key: { uuid: this.uuid, suffix: this.suffix }, priority: this.priority }, true, false);
+        this.bus.getPublisher<CasEvents>().pub(
+          'cas_activate_alert',
+          { key: { uuid: this.uuid, suffix: this.suffix }, priority: this.priority, initialAcknowledge: this.initialAcknowledge },
+          true,
+          false
+        );
       } else {
-        this.bus.getPublisher<CasEvents>().pub('cas_deactivate_alert', { key: { uuid: this.uuid, suffix: this.suffix }, priority: this.priority }, true, false);
+        this.bus.getPublisher<CasEvents>().pub(
+          'cas_deactivate_alert',
+          { key: { uuid: this.uuid, suffix: this.suffix }, priority: this.priority },
+          true,
+          false
+        );
       }
 
       this.currentValue = active;
@@ -221,18 +284,6 @@ export class CasAlertTransporter {
 
     this.subs.forEach(sub => { sub.destroy(); });
     this.updateEntries.forEach(entry => { entry.isPaused = true; });
-  }
-
-  /**
-   * Creates an instance of an AlertTransporter.
-   * @param bus The event bus to use with this instance.
-   * @param uuid The alert UUID.
-   * @param priority The alert priority.
-   * @param suffix The alert suffix.
-   * @returns The created AlertTransporter.
-   */
-  public static create(bus: EventBus, uuid: string, priority: AnnunciationType, suffix?: string): CasAlertTransporter {
-    return new CasAlertTransporter(bus, uuid, priority, suffix);
   }
 
   /**

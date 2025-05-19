@@ -16,6 +16,8 @@ import { WT21MapKeys } from './WT21MapKeys';
 export interface MapTodLayerProps extends MapLayerProps<any> {
   /** The event bus. */
   bus: EventBus;
+  /** A facility loader. If not defined, then a default instance will be created. */
+  facLoader?: FacilityLoader;
   /** The flight planner. */
   planner: FlightPlanner;
   /** The waypoint renderer to use. */
@@ -39,7 +41,7 @@ interface FixInfoWaypointEntry {
 }
 
 /** The map layer for displaying the Tod. */
-export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
+export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps> {
   private static readonly TOD_DISTANCE_THRESHOLD = UnitType.METER.createNumber(100); // minimum distance from TOD for which to display TOD waypoint
 
   protected todWaypoint: VNavWaypoint | undefined;
@@ -62,7 +64,7 @@ export class MapTodLayer extends MapSyncedCanvasLayer<MapTodLayerProps>{
 
   protected readonly mapStyles = this.props.model.getModule(WT21MapKeys.MapStyles).styles;
 
-  protected readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
+  protected readonly facLoader = this.props.facLoader ?? new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   protected readonly boundsSub = VecNSubject.create(new Float64Array(4));
   protected readonly clipPathStream = new ClippedPathStream(NullPathStream.INSTANCE, this.boundsSub);
   protected readonly fixInfoWpEntries = new Map<WT21FixInfoWaypoint, FixInfoWaypointEntry>();

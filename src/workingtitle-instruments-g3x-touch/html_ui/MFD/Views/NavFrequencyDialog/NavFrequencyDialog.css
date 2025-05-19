@@ -26,6 +26,9 @@
   --nav-freq-dialog-middle-row-bottom-margin: 18px;
 
   --nav-freq-dialog-volume-label-font-size: 18px;
+
+  --nav-freq-dialog-volume-failure-box-width: 72px;
+  --nav-freq-dialog-volume-failure-box-height: 30px;
 }
 
 .nav-freq-dialog-title {
@@ -92,6 +95,18 @@
 
 .nav-freq-dialog-volume .touch-button-label {
   font-size: var(--nav-freq-dialog-volume-label-font-size);
+}
+
+.nav-freq-dialog-volume .touch-button-value-value {
+  left: 50%;
+  width: unset;
+  white-space: pre;
+  transform: translate(-50%, -50%);
+}
+
+.nav-freq-dialog-volume-failure-box {
+  width: var(--nav-freq-dialog-volume-failure-box-width);
+  height: var(--nav-freq-dialog-volume-failure-box-height);
 }
 
 .nav-freq-dialog-bottom-row {

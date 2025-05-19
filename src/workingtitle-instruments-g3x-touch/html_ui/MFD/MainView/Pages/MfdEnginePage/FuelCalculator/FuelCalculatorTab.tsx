@@ -5,6 +5,7 @@ import {
 
 import { AdcSystemEvents, FmsPositionMode, FmsPositionSystemEvents } from '@microsoft/msfs-garminsdk';
 
+import { G3XUnitsFuelType, UnitsConfig } from '../../../../../Shared/AvionicsConfig/UnitsConfig';
 import { G3XNumberUnitDisplay } from '../../../../../Shared/Components/Common/G3XNumberUnitDisplay';
 import { AbstractTabbedContent } from '../../../../../Shared/Components/TabbedContainer/AbstractTabbedContent';
 import { TabbedContentProps } from '../../../../../Shared/Components/TabbedContainer/TabbedContent';
@@ -31,6 +32,9 @@ export interface FuelCalculatorTabProps extends TabbedContentProps {
 
   /** A manager for GDU user settings. */
   gduSettingManager: UserSettingManager<GduUserSettingTypes>;
+
+  /** A configuration object defining options for measurement units. */
+  unitsConfig: UnitsConfig;
 
   /**
    * The first preset fuel amount, in gallons. If not defined, then the button for setting the fuel remaining to the
@@ -74,20 +78,24 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
   // nautical miles per gallon
   private readonly economy = Value.create(NaN);
 
-  private readonly economyWeightPerDistanceUnit = NumberUnitSubject.create(G3XUnitType.LITER_PER_100KM.createNumber(0));
-  private readonly economyDistancePerWeightUnit = NumberUnitSubject.create(UnitType.NMILE_PER_GALLON_FUEL.createNumber(0));
+  private readonly gallonFuelWeightUnit = FuelCalculatorTab.getGallonFuelWeightUnit(this.props.unitsConfig.fuelType);
+  private readonly defaultDistancePerWeightUnit = FuelCalculatorTab.getDefaultDistancePerWeightEconomyUnit(this.props.unitsConfig.fuelType);
+  private readonly defaultWeightPerDistanceUnit = FuelCalculatorTab.getDefaultWeightPerDistanceEconomyUnit(this.props.unitsConfig.fuelType);
 
-  private readonly noWindRangeUnit = NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN));
-  private readonly fuelRemainingUnit = NumberUnitSubject.create(UnitType.GALLON_FUEL.createNumber(NaN));
-  private readonly fuelUsedUnit = NumberUnitSubject.create(UnitType.GALLON_FUEL.createNumber(NaN));
+  private readonly economyWeightPerDistanceValue = NumberUnitSubject.create(this.defaultWeightPerDistanceUnit.createNumber(0));
+  private readonly economyDistancePerWeightValue = NumberUnitSubject.create(this.defaultDistancePerWeightUnit.createNumber(0));
+
+  private readonly noWindRangeValue = NumberUnitSubject.create(UnitType.NMILE.createNumber(NaN));
+  private readonly fuelRemainingValue = NumberUnitSubject.create(this.gallonFuelWeightUnit.createNumber(NaN));
+  private readonly fuelUsedValue = NumberUnitSubject.create(this.gallonFuelWeightUnit.createNumber(NaN));
   private readonly decreaseButtonEnabled = this.fuelRemaining.map(fuelRemaining => fuelRemaining > 0);
 
   private readonly unitsSettingManager = G3XUnitsUserSettings.getManager(this.props.uiService.bus);
   private readonly fuelEconomyUnitsDistancePerWeight = this.unitsSettingManager.fuelEconomyUnits.map(unit => {
-    return unit.family === UnitFamily.DistancePerWeight ? unit : UnitType.NMILE_PER_GALLON_FUEL;
+    return unit.family === UnitFamily.DistancePerWeight ? unit : this.defaultDistancePerWeightUnit;
   });
   private readonly fuelEconomyUnitsWeightPerDistance = this.unitsSettingManager.fuelEconomyUnits.map(unit => {
-    return unit.family === UnitFamily.WeightPerDistance ? unit : G3XUnitType.LITER_PER_100KM;
+    return unit.family === UnitFamily.WeightPerDistance ? unit : this.defaultWeightPerDistanceUnit;
   });
 
   private lastValueUpdateTime: number | undefined = undefined;
@@ -126,8 +134,8 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
     this.fmsPosMode.setConsumer(sub.on(`fms_pos_mode_${this.props.uiService.gduIndex}`));
     this.groundSpeed.setConsumer(sub.on(`fms_pos_ground_speed_${this.props.uiService.gduIndex}`));
 
-    this.fuelRemaining.pipe(this.fuelRemainingUnit);
-    this.fuelBurned.pipe(this.fuelUsedUnit);
+    this.fuelRemaining.pipe(this.fuelRemainingValue);
+    this.fuelBurned.pipe(this.fuelUsedValue);
 
     this.subscriptions.push(
       this.props.gduSettingManager.getSetting('gduAdcIndex').sub(index => {
@@ -184,7 +192,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
     const economy = isNaN(gs) || gs < 20 || fuelFlow <= 0 ? NaN : gs / fuelFlow;
 
     this.endurance.set(endurance);
-    this.noWindRangeUnit.set(noWindRange);
+    this.noWindRangeValue.set(noWindRange);
     this.economy.set(economy);
 
     this.updateEconomyDisplay(this.unitsSettingManager.fuelEconomyUnits.get());
@@ -198,11 +206,11 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
     const economy = this.economy.get();
 
     if (economyUnit.family === UnitFamily.DistancePerWeight) {
-      this.economyDistancePerWeightUnit.set(economy);
+      this.economyDistancePerWeightValue.set(economy);
       this.economyWeightPerDistanceVisible.set(false);
       this.economyDistancePerWeightVisible.set(true);
     } else {
-      this.economyWeightPerDistanceUnit.set(235.2145 / economy);
+      this.economyWeightPerDistanceValue.set(235.2145 / economy);
       this.economyDistancePerWeightVisible.set(false);
       this.economyWeightPerDistanceVisible.set(true);
     }
@@ -233,7 +241,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       .ref.request({
         unitType: this.unitsSettingManager.fuelUnits.get(),
         initialValue: this.fuelRemaining.get(),
-        initialUnit: UnitType.GALLON_FUEL,
+        initialUnit: this.gallonFuelWeightUnit,
         minimumValue: 0,
         maximumValue: 999,
         //I have no reference to original title, so I'm just guessing here
@@ -243,7 +251,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       });
 
     if (!result.wasCancelled) {
-      const newValue = result.payload.unit.convertTo(result.payload.value, UnitType.GALLON_FUEL);
+      const newValue = result.payload.unit.convertTo(result.payload.value, this.gallonFuelWeightUnit);
       this.publishSetFuelRemaining(newValue);
     }
   }
@@ -264,7 +272,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       });
 
     if (!result.wasCancelled) {
-      const newValue = this.fuelRemaining.get() + result.payload.unit.convertTo(result.payload.value, UnitType.GALLON_FUEL);
+      const newValue = this.fuelRemaining.get() + result.payload.unit.convertTo(result.payload.value, this.gallonFuelWeightUnit);
       this.publishSetFuelRemaining(newValue);
     }
   }
@@ -285,7 +293,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       });
 
     if (!result.wasCancelled) {
-      const newValue = this.fuelRemaining.get() - result.payload.unit.convertTo(result.payload.value, UnitType.GALLON_FUEL);
+      const newValue = this.fuelRemaining.get() - result.payload.unit.convertTo(result.payload.value, this.gallonFuelWeightUnit);
       this.publishSetFuelRemaining(newValue);
     }
   }
@@ -298,7 +306,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       .ref.request({
         unitType: this.unitsSettingManager.fuelUnits.get(),
         initialValue: this.fuelBurned.get(),
-        initialUnit: UnitType.GALLON_FUEL,
+        initialUnit: this.gallonFuelWeightUnit,
         minimumValue: 0,
         maximumValue: 999,
         //I have no reference to original title, so I'm just guessing here
@@ -308,7 +316,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
       });
 
     if (!result.wasCancelled) {
-      const newValue = result.payload.unit.convertTo(result.payload.value, UnitType.GALLON_FUEL);
+      const newValue = result.payload.unit.convertTo(result.payload.value, this.gallonFuelWeightUnit);
       this.publishSetFuelBurned(newValue);
     }
   }
@@ -332,7 +340,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
             <div class='fuel-calculator-tab-value-box fuel-calculator-tab-value-box-range'>
               <div class='fuel-calculator-tab-value-box-title'>No-Wind Range</div>
               <G3XNumberUnitDisplay
-                value={this.noWindRangeUnit}
+                value={this.noWindRangeValue}
                 formatter={NumberFormatter.create({ precision: 0.1, nanString: '_____' })}
                 displayUnit={this.unitsSettingManager.distanceUnitsLarge}
                 class='fuel-calculator-tab-value-box-value'
@@ -342,13 +350,13 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
             <div class='fuel-calculator-tab-value-box'>
               <div class='fuel-calculator-tab-value-box-title'>Economy</div>
               <G3XNumberUnitDisplay
-                value={this.economyDistancePerWeightUnit}
+                value={this.economyDistancePerWeightValue}
                 formatter={NumberFormatter.create({ precision: 0.1, nanString: '__._' })}
                 displayUnit={this.fuelEconomyUnitsDistancePerWeight}
                 class={{ 'fuel-calculator-tab-value-box-value': true, hidden: this.economyWeightPerDistanceVisible }}
               />
               <G3XNumberUnitDisplay
-                value={this.economyWeightPerDistanceUnit}
+                value={this.economyWeightPerDistanceValue}
                 formatter={NumberFormatter.create({ precision: 0.1, nanString: '__._' })}
                 displayUnit={this.fuelEconomyUnitsWeightPerDistance}
                 class={{ 'fuel-calculator-tab-value-box-value': true, hidden: this.economyDistancePerWeightVisible }}
@@ -370,11 +378,11 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
                   class='fuel-calculator-tab-fuel-remaining-incdec'
                 />
                 <UiValueTouchButton
-                  state={this.fuelRemainingUnit}
+                  state={this.fuelRemainingValue}
                   label='Fuel Remaining'
                   renderValue={
                     <G3XNumberUnitDisplay
-                      value={this.fuelRemainingUnit}
+                      value={this.fuelRemainingValue}
                       formatter={NumberFormatter.create({ precision: 0.1, nanString: '_._' })}
                       displayUnit={this.unitsSettingManager.fuelUnits}
                     />
@@ -400,7 +408,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
                         <UiTouchButton
                           label={
                             <G3XNumberUnitDisplay
-                              value={UnitType.GALLON.createNumber(this.props.presetFuel1)}
+                              value={this.gallonFuelWeightUnit.createNumber(this.props.presetFuel1)}
                               formatter={NumberFormatter.create({ precision: 0, nanString: '__' })}
                               displayUnit={this.unitsSettingManager.fuelUnits}
                             />
@@ -413,7 +421,7 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
                         <UiTouchButton
                           label={
                             <G3XNumberUnitDisplay
-                              value={UnitType.GALLON_FUEL.createNumber(this.props.presetFuel2)}
+                              value={this.gallonFuelWeightUnit.createNumber(this.props.presetFuel2)}
                               formatter={NumberFormatter.create({ precision: 0, nanString: '__' })}
                               displayUnit={this.unitsSettingManager.fuelUnits}
                             />
@@ -434,11 +442,11 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
                 class='fuel-calculator-tab-fuel-used'
               >
                 <UiValueTouchButton
-                  state={this.fuelUsedUnit}
+                  state={this.fuelUsedValue}
                   label='Fuel Used'
                   renderValue={
                     <G3XNumberUnitDisplay
-                      value={this.fuelUsedUnit}
+                      value={this.fuelUsedValue}
                       formatter={NumberFormatter.create({ precision: 0.1, nanString: '_._' })}
                       displayUnit={this.unitsSettingManager.fuelUnits}
                     />
@@ -468,5 +476,62 @@ export class FuelCalculatorTab extends AbstractTabbedContent<FuelCalculatorTabPr
     }
 
     super.destroy();
+  }
+
+  /**
+   * Gets the weight unit equivalent to one gallon of fuel for a given fuel type.
+   * @param type The fuel type for which to get the fuel weight unit.
+   * @returns The weight unit equivalent to one gallon of fuel for the specified fuel type.
+   */
+  private static getGallonFuelWeightUnit(type: G3XUnitsFuelType): Unit<UnitFamily.Weight> {
+    switch (type) {
+      case G3XUnitsFuelType.JetA:
+        return UnitType.GALLON_JET_A_FUEL;
+      case G3XUnitsFuelType.OneHundredLL:
+        return UnitType.GALLON_100LL_FUEL;
+      case G3XUnitsFuelType.Autogas:
+        return UnitType.GALLON_AUTOGAS_FUEL;
+      case G3XUnitsFuelType.Sim:
+      default:
+        return G3XUnitType.GALLON_SIM_FUEL;
+    }
+  }
+
+  /**
+   * Gets the default distance per fuel weight unit for a given fuel type.
+   * @param type The fuel type for which to get the distance per fuel weight unit.
+   * @returns The default distance per fuel weight unit for the specified fuel type.
+   */
+  private static getDefaultDistancePerWeightEconomyUnit(type: G3XUnitsFuelType): Unit<UnitFamily.DistancePerWeight> {
+    switch (type) {
+      case G3XUnitsFuelType.JetA:
+        return UnitType.NMILE_PER_GALLON_JET_A_FUEL;
+      case G3XUnitsFuelType.OneHundredLL:
+        return UnitType.NMILE_PER_GALLON_100LL_FUEL;
+      case G3XUnitsFuelType.Autogas:
+        return UnitType.NMILE_PER_GALLON_AUTOGAS_FUEL;
+      case G3XUnitsFuelType.Sim:
+      default:
+        return G3XUnitType.NMILE_PER_GALLON_SIM_FUEL;
+    }
+  }
+
+  /**
+   * Gets the default fuel weight per distance unit for a given fuel type.
+   * @param type The fuel type for which to get the fuel weight per distance unit.
+   * @returns The default fuel weight per distance unit for the specified fuel type.
+   */
+  private static getDefaultWeightPerDistanceEconomyUnit(type: G3XUnitsFuelType): Unit<UnitFamily.WeightPerDistance> {
+    switch (type) {
+      case G3XUnitsFuelType.JetA:
+        return G3XUnitType.LITER_JET_A_FUEL_PER_100KM;
+      case G3XUnitsFuelType.OneHundredLL:
+        return G3XUnitType.LITER_100LL_FUEL_PER_100KM;
+      case G3XUnitsFuelType.Autogas:
+        return G3XUnitType.LITER_AUTOGAS_FUEL_PER_100KM;
+      case G3XUnitsFuelType.Sim:
+      default:
+        return G3XUnitType.LITER_SIM_FUEL_PER_100KM;
+    }
   }
 }

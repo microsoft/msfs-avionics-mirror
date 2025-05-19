@@ -5,6 +5,7 @@ import { UiList } from '../../../Shared/Components/List/UiList';
 import { UiListFocusable } from '../../../Shared/Components/List/UiListFocusable';
 import { UiImgTouchButton } from '../../../Shared/Components/TouchButton/UiImgTouchButton';
 import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
+import { G3XComRadioDataProvider, G3XNavRadioDataProvider, G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
 import { UiFocusDirection } from '../../../Shared/UiSystem/UiFocusTypes';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
@@ -13,7 +14,6 @@ import { UiViewKeys } from '../../../Shared/UiSystem/UiViewKeys';
 import { UiViewStackLayer } from '../../../Shared/UiSystem/UiViewTypes';
 import { ComFrequencyDialog } from '../ComFrequencyDialog/ComFrequencyDialog';
 import { NavFrequencyDialog } from '../NavFrequencyDialog/NavFrequencyDialog';
-import { ComRadioDefinition, NavRadioDefinition } from '../../../Shared/AvionicsConfig/RadiosConfig';
 
 import './MainMenuView.css';
 
@@ -23,6 +23,9 @@ import './MainMenuView.css';
 export interface MainMenuViewProps extends UiViewProps {
   /** The global avionics configuration object. */
   config: AvionicsConfig;
+
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 }
 
 /**
@@ -95,47 +98,44 @@ export class MainMenuView extends AbstractUiView<MainMenuViewProps> {
   }
 
   /**
-   * This will open the right com dialog when pressing the Com Radio buttons in the Main Menu
-   * This will also handle grabing the right indexs so the new frequency can be set.
-   * @param comDefinitions The come definition to then get the proper sim index
+   * Opens the COM radio frequency dialog and changes the standby and/or active frequency of a COM radio based on the
+   * dialog result.
+   * @param dataProvider A provider of data for the radio for which to open the dialog.
    */
-  private async openComRadioDialogsInMainMenu(comDefinitions: ComRadioDefinition): Promise<void> {
-    const spacingMode = SimVar.GetSimVarValue(`COM SPACING MODE:${comDefinitions.simIndex}`, SimVarValueType.Enum);
-    const initValue = SimVar.GetSimVarValue(`COM STANDBY FREQUENCY:${comDefinitions.simIndex}`, SimVarValueType.Hertz);
+  private async openComFrequencyDialog(dataProvider: G3XComRadioDataProvider): Promise<void> {
     const result = await this.props.uiService
       .openMfdPopup<ComFrequencyDialog>(UiViewStackLayer.Overlay, UiViewKeys.ComFrequencyDialog, true, { popupType: 'slideout-top-full' })
       .ref.request({
-        spacing: spacingMode,
-        radioIndex: comDefinitions.index,
-        initialValue: initValue
+        radioIndex: dataProvider.index,
+        spacing: dataProvider.frequencySpacing.get(),
+        initialValue: dataProvider.standbyFrequency.get() * 1e6
       });
 
     if (!result.wasCancelled) {
-      SimVar.SetSimVarValue(`K:COM${comDefinitions.simIndex === 1 ? '' : comDefinitions.simIndex}_STBY_RADIO_SET_HZ`, SimVarValueType.Number, result.payload.frequency);
+      SimVar.SetSimVarValue(`K:COM${dataProvider.simIndex === 1 ? '' : dataProvider.simIndex}_STBY_RADIO_SET_HZ`, SimVarValueType.Number, result.payload.frequency);
       if (result.payload.transfer) {
-        SimVar.SetSimVarValue(`K:COM${comDefinitions.simIndex}_RADIO_SWAP`, SimVarValueType.Number, 0);
+        SimVar.SetSimVarValue(`K:COM${dataProvider.simIndex}_RADIO_SWAP`, SimVarValueType.Number, 0);
       }
     }
   }
 
   /**
-   * This will open the right nav dialog when pressing the nav Radio buttons in the Main Menu
-   * This will also handle grabing the right indexs so the new frequency can be set.
-   * @param navDefinitions The nav definition to then get the proper sim index
+   * Opens the NAV radio frequency dialog and changes the standby and/or active frequency of a NAV radio based on the
+   * dialog result.
+   * @param dataProvider A provider of data for the radio for which to open the dialog.
    */
-  private async openNavRadioDialogsInMainMenu(navDefinitions: NavRadioDefinition): Promise<void> {
+  private async openNavFrequencyDialog(dataProvider: G3XNavRadioDataProvider): Promise<void> {
     const result = await this.props.uiService
       .openMfdPopup<NavFrequencyDialog>(UiViewStackLayer.Overlay, UiViewKeys.NavFrequencyDialog, true, { popupType: 'slideout-top-full' })
       .ref.request({
-        radioIndex: navDefinitions.index,
-        initialValue: SimVar.GetSimVarValue(`NAV STANDBY FREQUENCY:${navDefinitions.simIndex}`, SimVarValueType.Hertz)
+        radioIndex: dataProvider.index,
+        initialValue: dataProvider.standbyFrequency.get() * 1e6
       });
 
     if (!result.wasCancelled) {
-      SimVar.SetSimVarValue(`K:NAV${navDefinitions.simIndex}_STBY_SET_HZ`, SimVarValueType.Number, result.payload.frequency);
-
+      SimVar.SetSimVarValue(`K:NAV${dataProvider.simIndex}_STBY_SET_HZ`, SimVarValueType.Number, result.payload.frequency);
       if (result.payload.transfer) {
-        SimVar.SetSimVarValue(`K:NAV${navDefinitions.simIndex}_RADIO_SWAP`, SimVarValueType.Number, 0);
+        SimVar.SetSimVarValue(`K:NAV${dataProvider.simIndex}_RADIO_SWAP`, SimVarValueType.Number, 0);
       }
     }
   }
@@ -169,49 +169,53 @@ export class MainMenuView extends AbstractUiView<MainMenuViewProps> {
           : null
       ),
       (
-        this.props.config.radios.comCount >= 1
+        this.props.radiosDataProvider.comRadioDataProviders[1] !== undefined
           ? (
             <UiImgTouchButton
               label={'COM 1\nRadio'}
-              class='ui-directory-button'
               imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_com_radio_1.png`}
-              onPressed={() => this.openComRadioDialogsInMainMenu(this.props.config.radios.comDefinitions[1])}
+              isEnabled={this.props.radiosDataProvider.comRadioDataProviders[1].isPowered}
+              onPressed={this.openComFrequencyDialog.bind(this, this.props.radiosDataProvider.comRadioDataProviders[1])}
+              class='ui-directory-button'
             />
           )
           : null
       ),
       (
-        this.props.config.radios.comCount >= 2
+        this.props.radiosDataProvider.comRadioDataProviders[2] !== undefined
           ? (
             <UiImgTouchButton
               label={'COM 2\nRadio'}
-              class='ui-directory-button'
               imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_com_radio_2.png`}
-              onPressed={() => this.openComRadioDialogsInMainMenu(this.props.config.radios.comDefinitions[2])}
+              isEnabled={this.props.radiosDataProvider.comRadioDataProviders[2].isPowered}
+              onPressed={this.openComFrequencyDialog.bind(this, this.props.radiosDataProvider.comRadioDataProviders[2])}
+              class='ui-directory-button'
             />
           )
           : null
       ),
       (
-        this.props.config.radios.navDefinitions[1] !== undefined
+        this.props.radiosDataProvider.navRadioDataProviders[1] !== undefined
           ? (
             <UiImgTouchButton
               label={'NAV 1\nRadio'}
-              class='ui-directory-button'
               imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_nav_radio_1.png`}
-              onPressed={() => this.openNavRadioDialogsInMainMenu(this.props.config.radios.navDefinitions[1]!)}
+              isEnabled={this.props.radiosDataProvider.navRadioDataProviders[1].isPowered}
+              onPressed={this.openNavFrequencyDialog.bind(this, this.props.radiosDataProvider.navRadioDataProviders[1])}
+              class='ui-directory-button'
             />
           )
           : null
       ),
       (
-        this.props.config.radios.navDefinitions[2] !== undefined
+        this.props.radiosDataProvider.navRadioDataProviders[2] !== undefined
           ? (
             <UiImgTouchButton
               label={'NAV 2\nRadio'}
-              class='ui-directory-button'
               imgSrc={`${G3XTouchFilePaths.ASSETS_PATH}/Images/icon_nav_radio_2.png`}
-              onPressed={() => this.openNavRadioDialogsInMainMenu(this.props.config.radios.navDefinitions[2]!)}
+              isEnabled={this.props.radiosDataProvider.navRadioDataProviders[2].isPowered}
+              onPressed={this.openNavFrequencyDialog.bind(this, this.props.radiosDataProvider.navRadioDataProviders[2])}
+              class='ui-directory-button'
             />
           )
           : null

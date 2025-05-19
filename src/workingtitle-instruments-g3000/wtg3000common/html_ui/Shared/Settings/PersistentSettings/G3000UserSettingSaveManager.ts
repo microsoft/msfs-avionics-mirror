@@ -7,6 +7,7 @@ import {
 import { AvionicsConfig } from '../../AvionicsConfig/AvionicsConfig';
 import { DisplayPaneIndex } from '../../Components/DisplayPanes/DisplayPaneTypes';
 import { AuralAlertUserSettings } from '../AuralAlertSettings';
+import { BaroTransitionAlertUserSettings, G3000BaroTransitionAlertUserSettingTypes } from '../BaroTransitionAlertUserSettings';
 import { DisplayPanesUserSettings } from '../DisplayPanesUserSettings';
 import { FmsSpeedUserSettingManager, FmsSpeedUserSettingTypes } from '../FmsSpeedUserSettings';
 import { MapSettingSyncUserSettings } from '../MapSettingSyncUserSettings';
@@ -18,6 +19,7 @@ import { TouchdownCalloutUserSettings } from '../TouchdownCalloutSettings';
 import { ConnextMapUserSettings, WeatherMapUserSettings } from '../WeatherMapUserSettings';
 import { WeightBalanceUserSettingManager } from '../WeightBalanceUserSettings';
 import { WeightFuelUserSettings, WeightFuelUserSettingTypes } from '../WeightFuelUserSettings';
+import { G3000ChartsUserSettings } from '../G3000ChartsUserSettings';
 
 /**
  * A manager for G3000 user settings that are saved and persistent across flight sessions.
@@ -64,6 +66,13 @@ export class G3000UserSettingSaveManager extends UserSettingSaveManager {
     'fmsSpeedUserTargetIas',
     'fmsSpeedUserTargetMach',
     'fmsSpeedUserTargetIsMach'
+  ];
+
+  private static readonly BARO_TRANSITION_ALERT_SETTINGS: (keyof G3000BaroTransitionAlertUserSettingTypes)[] = [
+    'baroTransitionAlertAltitudeEnabled',
+    'baroTransitionAlertAltitudeManualThreshold',
+    'baroTransitionAlertLevelEnabled',
+    'baroTransitionAlertLevelManualThreshold'
   ];
 
   private static readonly WEIGHT_BALANCE_SETTINGS = [
@@ -135,6 +144,9 @@ export class G3000UserSettingSaveManager extends UserSettingSaveManager {
         ...(fmsSpeedSettingManager?.getAllSettings().filter(setting => {
           return !ArrayUtils.includes(G3000UserSettingSaveManager.FMS_SPEED_EXCLUDE_SETTINGS, setting.definition.name);
         }) ?? []),
+        ...BaroTransitionAlertUserSettings.getManager(bus).getAllSettings().filter(setting => {
+          return ArrayUtils.includes(G3000UserSettingSaveManager.BARO_TRANSITION_ALERT_SETTINGS, setting.definition.name);
+        }),
         ...(weightBalanceSettingManager?.getAllSettings().filter(setting => {
           for (const settingToSaveName of G3000UserSettingSaveManager.WEIGHT_BALANCE_SETTINGS) {
             if (setting.definition.name.startsWith(settingToSaveName)) {
@@ -165,6 +177,7 @@ export class G3000UserSettingSaveManager extends UserSettingSaveManager {
             ]
             : []
         ),
+        ...G3000ChartsUserSettings.getMasterManager(bus).getAllSettings(),
         ...pluginSettings
       ],
       bus

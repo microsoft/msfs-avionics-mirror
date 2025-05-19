@@ -1,3 +1,4 @@
+import { ChecklistConfig } from './ChecklistConfig';
 import { SensorsConfig } from './SensorsConfig';
 
 /**
@@ -6,9 +7,12 @@ import { SensorsConfig } from './SensorsConfig';
 export class AvionicsConfig {
   public readonly sensors: SensorsConfig;
 
+  public readonly checklist: ChecklistConfig;
+
   /** @inheritdoc */
   constructor(baseInstrument: BaseInstrument, xmlConfig: Document) {
     this.sensors = this.parseSensorsConfig(baseInstrument, xmlConfig.querySelector(':scope>Sensors'));
+    this.checklist = this.parseChecklistConfig(xmlConfig.querySelector(':scope>Checklist'));
   }
 
   /**
@@ -27,5 +31,22 @@ export class AvionicsConfig {
     }
 
     return new SensorsConfig(baseInstrument, undefined);
+  }
+
+  /**
+   * Parses a checklist configuration object from a configuration document element.
+   * @param element A configuration document element.
+   * @returns The checklist configuration defined by the configuration document element.
+   */
+  private parseChecklistConfig(element: Element | null): ChecklistConfig {
+    if (element !== null) {
+      try {
+        return new ChecklistConfig(element);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new ChecklistConfig(undefined);
   }
 }

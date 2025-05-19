@@ -1,6 +1,6 @@
 {
   "name": "@microsoft/msfs-sdk",
-  "version": "2.0.7",
+  "version": "2.1.1",
   "description": "HTML and Typescript SDK for MSFS Coherent based instruments and aircraft development.",
   "main": "msfssdk.js",
   "typings": "msfssdk.d.ts",

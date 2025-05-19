@@ -7,11 +7,13 @@ import { PfdInsetRegistrar } from '../GduDisplay/Gdu460/PfdInstruments/Inset/Pfd
 import { MfdMainPageRegistrar } from '../MFD/MainView/MfdMainPageRegistrar';
 import { PfdPageRegistrar } from '../PFD/PfdPage/PfdPageRegistrar';
 import { AvionicsConfig } from './AvionicsConfig/AvionicsConfig';
+import { G3XChartsSourceFactory } from './Charts/G3XChartsSource';
 import { G3XFms } from './FlightPlan/G3XFms';
 import { G3XFplSourceDataProvider } from './FlightPlan/G3XFplSourceDataProvider';
 import { G3XTouchUiComponentContext } from './G3XTouchUiComponentContext';
 import { InstrumentConfig } from './InstrumentConfig/InstrumentConfig';
 import { G3XTouchNavIndicators } from './NavReference/G3XTouchNavReference';
+import { G3XRadiosDataProvider } from './Radio/G3XRadiosDataProvider';
 import { DisplayUserSettingManager } from './Settings/DisplayUserSettings';
 import { GduUserSettingManager } from './Settings/GduUserSettings';
 import { PfdUserSettingManager } from './Settings/PfdUserSettings';
@@ -50,6 +52,9 @@ export interface G3XTouchPluginBinder {
 
   /** The CAS system. */
   casSystem: CasSystem;
+
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
@@ -129,6 +134,12 @@ export interface G3XTouchPlugin extends AvionicsPlugin<G3XTouchPluginBinder> {
    * @returns An iterable of instrument-local user settings whose values should be saved across flight sessions.
    */
   getPersistentLocalSettings?(): Iterable<UserSetting<any>>;
+
+  /**
+   * Gets factories for additional electronic charts sources.
+   * @returns Factories for additional electronic charts sources, or `undefined` if there are no additional sources.
+   */
+  getChartsSources?(): Iterable<G3XChartsSourceFactory> | undefined;
 }
 
 /**

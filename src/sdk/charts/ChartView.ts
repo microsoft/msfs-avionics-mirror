@@ -1,4 +1,19 @@
-import { Subject, Subscribable } from '../sub';
+import { Subject } from '../sub/Subject';
+import { Subscribable } from '../sub/Subscribable';
+
+/**
+ * A description of a LiveView used by {@link ChartView} to display a chart image.
+ */
+export type ChartViewLiveView = {
+  /**
+   * The name of the LiveView. The name can be used wherever an image URL is accepted (e.g. as the `src` attribute for
+   * an image element or as the argument for the CSS `url()` function).
+   */
+  readonly name: string;
+
+  /** The URL of the chart page displayed by the LiveView. */
+  readonly chartUrl: string;
+};
 
 /**
  * A chart view.
@@ -10,23 +25,28 @@ import { Subject, Subscribable } from '../sub';
  * give you access to that image. See documentation of that field for more information.
  */
 export class ChartView {
-  isAlive = true;
+  private _isAlive = true;
+  // eslint-disable-next-line jsdoc/require-returns
+  /** Whether this view is alive. */
+  public get isAlive(): boolean {
+    return this._isAlive;
+  }
 
-  public id: string | null = null;
+  public _id: string | null = null;
+  // eslint-disable-next-line jsdoc/require-returns
+  /** This view's GUID, or `null` if it has not been initialized yet. */
+  public get id(): string | null {
+    return this._id;
+  }
 
   private listener: ViewListener.ViewListener | null = null;
 
-  private readonly _liveViewName = Subject.create<string>('');
+  private readonly _liveView = Subject.create<ChartViewLiveView>({ name: '', chartUrl: '' });
+  /** A description of the LiveView currently backing this chart view. */
+  public readonly liveView = this._liveView as Subscribable<ChartViewLiveView>;
 
-  /**
-   * The name of the LiveView currently backing thiDs chart view.
-   *
-   * Setting the `src` attribute of an `img` tag to this string will render the last chart selected via `showChartPageUrl` as
-   * the image bitmap.
-   *
-   * You can also use that string as a `background-image` url in CSS.
-   */
-  public readonly liveViewName: Subscribable<string> = this._liveViewName;
+  /** The name of the LiveView currently backing this chart view. */
+  public readonly liveViewName: Subscribable<string> = this._liveView.map(view => view.name);
 
   /**
    * Initializes this chart view with a listener. This must be a JS_LISTENER_CHARTS ViewListener.
@@ -38,57 +58,64 @@ export class ChartView {
       throw new Error('[ChartView](init) Cannot call init if the view is already initialized');
     }
 
-    if (!this.isAlive) {
+    if (!this._isAlive) {
       throw new Error('[ChartView](init) Cannot call init on a destroyed chart view');
     }
 
-    this.listener = listener;
+    this._id = await listener.call('CREATE_CHART_VIEW');
 
-    this.id = await this.listener?.call('CREATE_CHART_VIEW');
-    this.listener.on('SendLiveViewName', this.onSendLiveViewName);
+    if (!this._isAlive) {
+      listener.call('DESTROY_CHART_VIEW', this._id);
+      return;
+    }
+
+    listener.on('SendLiveViewName', this.onSendLiveViewName);
+
+    this.listener = listener;
   }
 
   /**
-   * Updates this chart view to show a new chart image.
+   * Updates this chart view to show a new chart image. Once the image has been retrieved, this view's backing LiveView
+   * will be updated to display the new image.
    *
-   * The URLs passed to this method must come from the {@link ChartPage.url} property, and point to a file in PNG format.
-   * Any URL that does not meet this criteria will be ignored.
-   *
-   * **Note:** you must subscribe to {@link liveViewName} in order to get the new image source. The previous image source is destroyed
-   * when a new chart image is shown.
-   *
+   * **Note:** When changing the chart image, this view's backing LiveView will change. In order to ensure you have the
+   * most up-to-date LiveView information with which to display the chart image, subscribe to {@link liveView} or
+   * {@link liveViewName}.
+   * @param pageUrl The URL of the image to show. The URL should be sourced from a valid `ChartPage` record and point
+   * to a file in PNG format.
    * @throws if the view is not initialized or has been destroyed
-   *
-   * @param pageUrl the URL of the image to show.
    */
   public showChartImage(pageUrl: string): void {
     if (!this.listener) {
       throw new Error('[ChartView](showChartImage) Cannot call showChartImage before the view is initialized. Did you call init()?');
     }
 
-    if (!this.isAlive) {
+    if (!this._isAlive) {
       throw new Error('[ChartView](showChartImage) Cannot call showChartImage on a destroyed chart view');
     }
 
-    this.listener.call('SET_CHART_VIEW_URL', this.id, pageUrl);
+    this.listener.call('SET_CHART_VIEW_URL', this._id, pageUrl);
   }
-  
-  /** @inheritdoc */
+
+  /**
+   * Destroys this chart view. This will release resources associated with this view. Once the view is destroyed, it
+   * can no longer be used to display chart images.
+   */
   public destroy(): void {
-    if (!this.isAlive) {
-      throw new Error('[ChartView](destroy) View is already destroyed');
+    if (!this._isAlive) {
+      return;
     }
 
     this.listener?.off('SendLiveViewName', this.onSendLiveViewName);
-    this.listener?.call('DESTROY_CHART_VIEW', this.id);
+    this.listener?.call('DESTROY_CHART_VIEW', this._id);
     this.listener = null;
 
-    this.isAlive = false;
+    this._isAlive = false;
   }
 
-  private readonly onSendLiveViewName = (guid: string, liveViewName: string): void => {
-    if (this.id === guid) {
-      this._liveViewName.set(liveViewName);
+  private readonly onSendLiveViewName = (guid: string, liveViewName: string, chartUrl: string): void => {
+    if (this._id === guid) {
+      this._liveView.set({ name: liveViewName, chartUrl });
     }
   };
 }

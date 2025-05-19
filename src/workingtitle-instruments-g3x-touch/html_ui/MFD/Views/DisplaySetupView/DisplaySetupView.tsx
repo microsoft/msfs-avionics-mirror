@@ -1,6 +1,6 @@
 import {
   ArraySubject, ArrayUtils, ConsumerSubject, FSComponent, MutableSubscribable, MutableSubscribableInputType, Subject,
-  SubscribableType, UserSettingManager, VNode
+  SubscribableType, Subscription, UserSettingManager, VNode
 } from '@microsoft/msfs-sdk';
 
 import { DynamicListData } from '@microsoft/msfs-garminsdk';
@@ -8,6 +8,7 @@ import { DynamicListData } from '@microsoft/msfs-garminsdk';
 import { PfdPageDefinition } from '../../../PFD/PfdPage/PfdPageDefinition';
 import { AvionicsConfig } from '../../../Shared/AvionicsConfig/AvionicsConfig';
 import { G3XBacklightEvents } from '../../../Shared/Backlight/G3XBacklightEvents';
+import { G3XChartsSource } from '../../../Shared/Charts/G3XChartsSource';
 import { UiList } from '../../../Shared/Components/List/UiList';
 import { UiListFocusable } from '../../../Shared/Components/List/UiListFocusable';
 import { UiListItem } from '../../../Shared/Components/List/UiListItem';
@@ -19,6 +20,7 @@ import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
 import { InstrumentConfig } from '../../../Shared/InstrumentConfig/InstrumentConfig';
 import { BacklightControlSettingMode, BacklightUserSettings } from '../../../Shared/Settings/BacklightUserSettings';
 import { DisplayLocationSettingMode, DisplayScreenSideSettingMode, DisplayUserSettingTypes } from '../../../Shared/Settings/DisplayUserSettings';
+import { G3XChartsColorModeSettingMode, G3XChartsUserSettingTypes } from '../../../Shared/Settings/G3XChartsUserSettings';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
 import { UiViewProps } from '../../../Shared/UiSystem/UiView';
@@ -36,6 +38,9 @@ export interface DisplaySetupViewProps extends UiViewProps {
   /** A manager for display user settings. */
   displaySettingManager: UserSettingManager<DisplayUserSettingTypes>;
 
+  /** A manager for electronic charts user settings. */
+  chartsSettingManager: UserSettingManager<G3XChartsUserSettingTypes>;
+
   /** The general avionics configuration object. */
   config: AvionicsConfig;
 
@@ -47,6 +52,9 @@ export interface DisplaySetupViewProps extends UiViewProps {
    * Screen Page selection list.
    */
   pfdPageDefs: Iterable<Readonly<PfdPageDefinition>>;
+
+  /** All available electronic charts sources. */
+  chartsSources: Iterable<G3XChartsSource>;
 }
 
 /**
@@ -74,11 +82,22 @@ export class DisplaySetupView extends AbstractUiView<DisplaySetupViewProps> {
 
   private readonly pfdPageDefs = Array.from(this.props.pfdPageDefs);
 
+  private readonly chartsSources = new Map(Array.from(this.props.chartsSources).map(source => [source.uid, source]));
+  private readonly isChartColorModeVisible = this.props.chartsSettingManager.getSetting('chartsPreferredSource').map(source => {
+    return this.chartsSources.get(source)?.supportsNightMode === true;
+  }).pause();
+
   private readonly listRef = FSComponent.createRef<UiList<any>>();
   private readonly listData = ArraySubject.create<DisplaySetupViewItem>(this.createListData());
 
   private readonly listItemLengthPx = this.props.uiService.gduFormat === '460' ? 96 : 50;
   private readonly listItemSpacingPx = this.props.uiService.gduFormat === '460' ? 8 : 4;
+
+  private readonly subscriptions: Subscription[] = [
+    this.backlightLevel,
+    this.isBacklightIntensityVisible,
+    this.isChartColorModeVisible,
+  ];
 
   /** @inheritDoc */
   public onAfterRender(): void {
@@ -103,16 +122,18 @@ export class DisplaySetupView extends AbstractUiView<DisplaySetupViewProps> {
 
   /** @inheritDoc */
   public onOpen(): void {
-    this.backlightLevel.resume();
-    this.isBacklightIntensityVisible.resume();
+    for (const sub of this.subscriptions) {
+      sub.resume();
+    }
 
     this.listRef.instance.scrollToIndex(0, 0, true, false);
   }
 
   /** @inheritDoc */
   public onClose(): void {
-    this.backlightLevel.pause();
-    this.isBacklightIntensityVisible.pause();
+    for (const sub of this.subscriptions) {
+      sub.pause();
+    }
 
     this.listRef.instance.clearRecentFocus();
   }
@@ -435,10 +456,90 @@ export class DisplaySetupView extends AbstractUiView<DisplaySetupViewProps> {
             </UiListFocusable>
           </UiListItem>
         )
-      }
+      },
+      ...this.createChartsListData(),
     ];
 
     return data.filter((item): item is DisplaySetupViewItem => !!item);
+  }
+
+  /**
+   * Creates this view's electronic charts-related list data.
+   * @returns This view's electronic charts-related list data.
+   */
+  private createChartsListData(): DisplaySetupViewItem[] {
+    if (this.chartsSources.size === 0) {
+      return [];
+    }
+
+    return [
+      {
+        renderItem: () => (
+          <UiListItem>
+            <div class='display-setup-view-row-left'>Preferred Chart Source</div>
+            <UiListFocusable>
+              {this.renderListSelectButton(
+                this.props.chartsSettingManager.getSetting('chartsPreferredSource'),
+                source => this.chartsSources.get(source)?.name ?? '',
+                {
+                  selectedValue: this.props.chartsSettingManager.getSetting('chartsPreferredSource'),
+                  inputData: Array.from(this.chartsSources.values()).map(source => {
+                    return {
+                      value: source.uid,
+                      labelRenderer: () => source.name,
+                    };
+                  })
+                },
+                'display-setup-view-row-right'
+              )}
+            </UiListFocusable>
+          </UiListItem>
+        )
+      },
+      {
+        isVisible: this.isChartColorModeVisible,
+        renderItem: () => (
+          <UiListItem>
+            <div class='display-setup-view-row-left'>Chart Color Mode</div>
+            <UiListFocusable>
+              {this.renderListSelectButton(
+                this.props.chartsSettingManager.getSetting('chartsColorMode'),
+                mode => {
+                  switch (mode) {
+                    case G3XChartsColorModeSettingMode.Day:
+                      return 'Day';
+                    case G3XChartsColorModeSettingMode.Night:
+                      return 'Night';
+                    case G3XChartsColorModeSettingMode.Auto:
+                      return 'Auto';
+                    default:
+                      return '';
+                  }
+                },
+                {
+                  selectedValue: this.props.chartsSettingManager.getSetting('chartsColorMode'),
+                  inputData: [
+                    {
+                      value: G3XChartsColorModeSettingMode.Day,
+                      labelRenderer: () => 'Day',
+                    },
+                    {
+                      value: G3XChartsColorModeSettingMode.Night,
+                      labelRenderer: () => 'Night',
+                    },
+                    {
+                      value: G3XChartsColorModeSettingMode.Auto,
+                      labelRenderer: () => 'Auto',
+                    },
+                  ],
+                },
+                'display-setup-view-row-right'
+              )}
+            </UiListFocusable>
+          </UiListItem>
+        )
+      },
+    ];
   }
 
   /**
@@ -614,8 +715,9 @@ export class DisplaySetupView extends AbstractUiView<DisplaySetupViewProps> {
   public destroy(): void {
     this.listRef.getOrDefault()?.destroy();
 
-    this.backlightLevel.destroy();
-    this.isBacklightIntensityVisible.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
     super.destroy();
   }

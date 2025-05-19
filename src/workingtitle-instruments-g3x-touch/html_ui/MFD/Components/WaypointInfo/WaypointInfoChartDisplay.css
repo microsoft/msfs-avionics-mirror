@@ -1,0 +1,160 @@
+.waypoint-info-chart {
+  position: relative;
+  /*
+   * Force a compositing layer on the root element of the chart display to ensure that the img element that displays
+   * the chart never gets automatically promoted to a compositing layer. This is done to avoid a Coherent issue where
+   * the img element is rendered incorrectly (with very low resolution).
+   */
+  transform: rotateX(0deg);
+  color: var(--g3x-color-white);
+  overflow: hidden;
+}
+
+.gdu-460-display .waypoint-info-chart {
+  --waypoint-info-chart-airplane-icon-size: 50px;
+
+  --waypoint-info-chart-no-airplane-icon-size: 24px;
+  --waypoint-info-chart-no-airplane-icon-img-size: 22px;
+
+  --waypoint-info-chart-range-control-outline-width: 4px;
+
+  --waypoint-info-chart-expand-control-button-size: 78px;
+  --waypoint-info-chart-expand-control-button-img-size: 40px;
+
+  --waypoint-info-chart-banner-border-radius: 5px;
+
+  --waypoint-info-chart-source-banner-padding: 0 2px;
+  --waypoint-info-chart-source-banner-font-size: 12px;
+
+  --waypoint-info-chart-loading-icon-size: 65px;
+
+  --waypoint-info-chart-failure-banner-padding: 20px 20px;
+  --waypoint-info-chart-failure-banner-font-size: 20px;
+}
+
+.waypoint-info-chart .waypoint-info-chart-touch-pad {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+.waypoint-info-chart .terminal-chart-display-airplane-icon {
+  width: var(--waypoint-info-chart-airplane-icon-size);
+  height: var(--waypoint-info-chart-airplane-icon-size);
+}
+
+.waypoint-info-chart .map-range-target-control {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+}
+
+.waypoint-info-chart-expanded .map-range-target-control::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: solid var(--waypoint-info-chart-range-control-outline-width) var(--g3x-color-focus-blue);
+  box-shadow: inset 0 0 1px 1px var(--g3x-color-focus-blue);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.waypoint-info-chart-expand-control {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+}
+
+.waypoint-info-chart-expand-control-button {
+  width: var(--waypoint-info-chart-expand-control-button-size);
+  height: var(--waypoint-info-chart-expand-control-button-size);
+
+  --touch-button-background: rgba(23, 23, 23, 0.5);
+  --touch-button-border-color: rgba(80, 85, 99, 0.9);
+  --touch-button-box-shadow: 0px 0px 4px 0 rgba(0, 0, 0, 0.7) inset;
+}
+
+.waypoint-info-chart-expand-control-button-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--waypoint-info-chart-expand-control-button-img-size);
+  height: var(--waypoint-info-chart-expand-control-button-img-size);
+  transform: translate(-50%, -50%);
+}
+
+.waypoint-info-chart-bottom-right {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.waypoint-info-chart-no-airplane-icon {
+  position: relative;
+  width: var(--waypoint-info-chart-no-airplane-icon-size);
+  height: var(--waypoint-info-chart-no-airplane-icon-size);
+  background-color: rgba(23, 23, 23, 0.5);
+  border: 1px solid rgba(80, 85, 99, 0.9);
+}
+
+.waypoint-info-chart-no-airplane-icon-img {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: var(--waypoint-info-chart-no-airplane-icon-img-size);
+  height: var(--waypoint-info-chart-no-airplane-icon-img-size);
+}
+
+.waypoint-info-chart-no-airplane-icon-cross {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: var(--waypoint-info-chart-no-airplane-icon-img-size);
+  height: var(--waypoint-info-chart-no-airplane-icon-img-size);
+  fill: none;
+  stroke: var(--g3x-color-white);
+  stroke-width: 2;
+}
+
+.waypoint-info-chart-banner {
+  background-color: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--g3x-color-white);
+  border-radius: var(--waypoint-info-chart-banner-border-radius);
+}
+
+.waypoint-info-chart-source-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  padding: var(--waypoint-info-chart-source-banner-padding);
+  white-space: nowrap;
+  font-size: var(--waypoint-info-chart-source-banner-font-size);
+  pointer-events: none;
+}
+
+.waypoint-info-chart-loading-icon {
+  position: absolute;
+  left: calc(50% - var(--waypoint-info-chart-loading-icon-size) / 2);
+  top: calc(50% - var(--waypoint-info-chart-loading-icon-size) / 2);
+  width: var(--waypoint-info-chart-loading-icon-size);
+  height: var(--waypoint-info-chart-loading-icon-size);
+}
+
+.waypoint-info-chart-failure-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: var(--waypoint-info-chart-failure-banner-padding);
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-size: var(--waypoint-info-chart-failure-banner-font-size);
+}

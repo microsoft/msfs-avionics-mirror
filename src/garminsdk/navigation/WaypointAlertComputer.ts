@@ -1,5 +1,5 @@
 import {
-  BitFlags, ClockEvents, ConsumerSubject, EventBus, EventSubscriber, FlightPathUtils, FlightPathVector,
+  BitFlags, ClockEvents, ConsumerSubject, ConsumerValue, EventBus, EventSubscriber, FlightPathUtils, FlightPathVector,
   FlightPathVectorFlags, FlightPlanner, GeoCircle, GeoPoint, GNSSEvents, LegCalculations, LegDefinition, LegType,
   LNavEvents, LNavTrackingState, LNavTransitionMode, LNavUtils, MagVar, NavMath, NumberUnitSubject, SubEvent, Subject,
   Subscribable, SubscribableUtils, UnitType, VectorTurnDirection
@@ -87,16 +87,17 @@ export class WaypointAlertComputer {
   private readonly alertLookaheadTime: number;
   private readonly nowAlertTime: number;
 
-  private readonly simTime = ConsumerSubject.create(null, 0);
-  private readonly groundSpeed = ConsumerSubject.create(null, 0);
+  private readonly activeSimDuration = ConsumerValue.create(null, 0);
+  private readonly groundSpeed = ConsumerValue.create(null, 0);
   private readonly ppos = new GeoPoint(NaN, NaN);
 
-  private readonly alongTrackSpeed = ConsumerSubject.create(null, 0);
-  private readonly distanceRemaining = ConsumerSubject.create(null, 0);
-  private readonly currentDtk = ConsumerSubject.create(null, 0);
-  private readonly nextDtk = ConsumerSubject.create(null, 0);
-  private readonly nextDtkMag = ConsumerSubject.create(null, 0);
-  private readonly nextDtkVector = ConsumerSubject.create(null, { globalLegIndex: -1, vectorIndex: -1 });
+  private readonly alongTrackSpeed = ConsumerValue.create(null, 0);
+  private readonly distanceRemaining = ConsumerValue.create(null, 0);
+  private readonly currentDtk = ConsumerValue.create(null, 0);
+  private readonly nextDtk = ConsumerValue.create(null, 0);
+  private readonly nextDtkMag = ConsumerValue.create(null, 0);
+  private readonly nextDtkVector = ConsumerValue.create(null, { globalLegIndex: -1, vectorIndex: -1 });
+  private readonly nextIsSteerHeading = ConsumerValue.create(null, false);
 
   private readonly lnavTrackingState = ConsumerSubject.create(null, {
     isTracking: false,
@@ -192,7 +193,7 @@ export class WaypointAlertComputer {
 
     const sub = this.bus.getSubscriber<GNSSEvents & LNavDataEvents & LNavEvents & ClockEvents>();
 
-    this.simTime.setConsumer(sub.on('simTime'));
+    this.activeSimDuration.setConsumer(sub.on('activeSimDuration'));
     this.groundSpeed.setConsumer(sub.on('ground_speed'));
     sub.on('gps-position').handle(pos => this.ppos.set(pos.lat, pos.long));
 
@@ -220,6 +221,7 @@ export class WaypointAlertComputer {
       this.nextDtk.setConsumer(lnavEvents.on(`lnavdata_next_dtk_true${lnavTopicSuffix}`));
       this.nextDtkMag.setConsumer(lnavEvents.on(`lnavdata_next_dtk_mag${lnavTopicSuffix}`));
       this.nextDtkVector.setConsumer(lnavEvents.on(`lnavdata_next_dtk_vector${lnavTopicSuffix}`));
+      this.nextIsSteerHeading.setConsumer(lnavEvents.on(`lnavdata_next_is_steer_heading${lnavTopicSuffix}`));
       this.lnavTrackingState.setConsumer(lnavEvents.on(`lnav_tracking_state${lnavTopicSuffix}`));
 
       this.canUpdate = true;
@@ -230,6 +232,7 @@ export class WaypointAlertComputer {
       this.nextDtk.setConsumer(null);
       this.nextDtkMag.setConsumer(null);
       this.nextDtkVector.setConsumer(null);
+      this.nextIsSteerHeading.setConsumer(null);
       this.lnavTrackingState.setConsumer(null);
 
       this.canUpdate = false;
@@ -279,7 +282,7 @@ export class WaypointAlertComputer {
       this.currentCourseType = this.armedNowCourseType;
 
       this.stateSubject.set(this.armedNowState);
-      this.nowStateTimeStamp = this.simTime.get();
+      this.nowStateTimeStamp = this.activeSimDuration.get();
       this.armedNowState = WaypointAlertingState.None;
       this.armedNowCourse = NaN;
       this.armedNowCourseType = WaypointAlertCourseType.DesiredTrack;
@@ -333,7 +336,7 @@ export class WaypointAlertComputer {
 
       if (currentLegDef) {
         if (this.isInNowState()) {
-          const secondsRemaining = ((this.nowStateTimeStamp + (this.nowAlertTime * 1000)) - this.simTime.get()) / 1000;
+          const secondsRemaining = ((this.nowStateTimeStamp + (this.nowAlertTime * 1000)) - this.activeSimDuration.get()) / 1000;
           if (secondsRemaining <= 0 || secondsRemaining > this.nowAlertTime) {
             this.stateSubject.set(WaypointAlertingState.None);
             this.timeRemaining.set(NaN);
@@ -386,18 +389,22 @@ export class WaypointAlertComputer {
 
         let nextDtk = this.nextDtk.get();
         let nextDtkMag = this.nextDtkMag.get();
+        let nextIsHeading = this.nextIsSteerHeading.get();
+
         if (nextLegDef.calculated !== undefined && this.legIsHold(nextLegDef)) {
           nextDtk = this.getInitialHoldDtk(nextLegDef.calculated);
           // use magvar at the hold fix (which is always located at the end of the hold leg)
           nextDtkMag = nextLegDef.calculated.endLat !== undefined && nextLegDef.calculated.endLon !== undefined
             ? MagVar.trueToMagnetic(nextDtk, nextLegDef.calculated.endLat, nextLegDef.calculated.endLon)
             : nextDtk;
+          nextIsHeading = false;
         } else if (nextLegDef.calculated !== undefined && nextLegDef.leg.type === LegType.PI) {
           nextDtk = this.getInitialPIDtk(nextLegDef.calculated);
           // use magvar at the leg origin
           nextDtkMag = nextLegDef.calculated.startLat !== undefined && nextLegDef.calculated.startLon !== undefined
             ? MagVar.trueToMagnetic(nextDtk, nextLegDef.calculated.startLat, nextLegDef.calculated.startLon)
             : nextDtk;
+          nextIsHeading = false;
         }
 
         const egressVector = currentLegDef.calculated.egress[0];
@@ -406,12 +413,9 @@ export class WaypointAlertComputer {
           turnDirection = FlightPathUtils.getTurnDirectionFromCircle(FlightPathUtils.setGeoCircleFromVector(currentLegDef.calculated.egress[0], this.geoCircleCache[0]));
         }
 
-        const isNextLegHeading = nextLegDef.leg.type === LegType.VA || nextLegDef.leg.type === LegType.VD
-          || nextLegDef.leg.type === LegType.VI || nextLegDef.leg.type === LegType.VR;
-
         this.currentCourse = nextDtk;
         this.currentCourseMag = nextDtkMag;
-        this.currentCourseType = isNextLegHeading ? WaypointAlertCourseType.Heading : WaypointAlertCourseType.DesiredTrack;
+        this.currentCourseType = nextIsHeading ? WaypointAlertCourseType.Heading : WaypointAlertCourseType.DesiredTrack;
 
         if (withinAlertDistance) {
           const currentLegSupportsTurn = this.doesLegTypeSupportTurn(currentLegDef.leg.type, false);

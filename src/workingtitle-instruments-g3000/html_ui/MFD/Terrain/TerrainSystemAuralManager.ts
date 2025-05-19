@@ -181,6 +181,66 @@ export class TerrainSystemAuralManager {
         timeout: 3000
       }],
 
+      [GarminTawsAlert.FitTerrainCaution, {
+        uuid: G3000AuralAlertIds.TawsFitTerrainCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitTerrainCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_terrain_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_terrain_m'
+        },
+        timeout: 3000
+      }],
+
+      [GarminTawsAlert.FitTerrainGearCaution, {
+        uuid: G3000AuralAlertIds.TawsFitTerrainGearCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitTerrainGearCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_terrain_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_terrain_m'
+        },
+        timeout: 3000
+      }],
+
+      [GarminTawsAlert.FitTerrainFlapsCaution, {
+        uuid: G3000AuralAlertIds.TawsFitTerrainFlapsCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitTerrainFlapsCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_terrain_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_terrain_m'
+        },
+        timeout: 3000
+      }],
+
+      [GarminTawsAlert.FitGearCaution, {
+        uuid: G3000AuralAlertIds.TawsFitGearCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitGearCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_gear_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_gear_m'
+        },
+        timeout: 3000
+      }],
+
+      [GarminTawsAlert.FitFlapsCaution, {
+        uuid: G3000AuralAlertIds.TawsFitFlapsCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitFlapsCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_flaps_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_flaps_m'
+        },
+        timeout: 3000
+      }],
+
+      [GarminTawsAlert.FitTakeoffCaution, {
+        uuid: G3000AuralAlertIds.TawsFitTakeoffCaution,
+        priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsFitTakeoffCaution],
+        sequence: {
+          [AuralAlertVoiceSetting.Female]: 'aural_too_low_terrain_f',
+          [AuralAlertVoiceSetting.Male]: 'aural_too_low_terrain_m'
+        },
+        timeout: 3000
+      }],
+
       [GarminTawsAlert.NcrCaution, {
         uuid: G3000AuralAlertIds.TawsNcrCaution,
         priority: G3000AuralAlertUtils.PRIORITIES[G3000AuralAlertIds.TawsNcrCaution],

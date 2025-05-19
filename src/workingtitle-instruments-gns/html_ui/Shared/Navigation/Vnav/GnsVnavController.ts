@@ -1,6 +1,6 @@
 import {
-  AirportUtils, EventBus, FacilityType, FlightPlan, FlightPlanPredictorUtils, ICAO, MappedSubject,
-  UnitType, VNavDataEvents, VNavEvents, VNavUtils,
+  EventBus, FacilityType, FlightPlan, FlightPlanPredictorUtils, ICAO, MappedSubject, UnitType, VNavDataEvents,
+  VNavEvents, VNavUtils,
 } from '@microsoft/msfs-sdk';
 
 import { Fms, ObsSuspModes } from '@microsoft/msfs-garminsdk';
@@ -558,10 +558,7 @@ export class GnsVnavController {
 
     const airportFacility = await this.fms.facLoader.getFacility(legFixFacilityType, legFixIcao);
 
-    const elevationMeters = AirportUtils.getElevation(airportFacility);
-    const elevationFeet = elevationMeters !== undefined
-      ? UnitType.FOOT.convertFrom(elevationMeters, UnitType.METER)
-      : 0;
+    const elevationFeet = UnitType.FOOT.convertFrom(airportFacility.altitude, UnitType.METER);
 
     this.cachedIcaoElevations.set(legFixIcao, elevationFeet);
 

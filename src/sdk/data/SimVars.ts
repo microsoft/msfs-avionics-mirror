@@ -23,10 +23,13 @@ export enum SimVarValueType {
   Inches = 'inches',
   InHG = 'inches of mercury',
   KHz = 'KHz',
+  Kilograms = 'kilograms',
   Knots = 'knots',
+  KgPerCubicMeter = 'kilogram per cubic meter',
   LBS = 'pounds',
   Liters = 'liters',
   LLA = 'latlonalt',
+  LLA_PBH = 'latlonaltpbh',
   Mach = 'mach',
   MB = 'Millibars',
   Meters = 'meters',
@@ -36,9 +39,11 @@ export enum SimVarValueType {
   MHz = 'MHz',
   NM = 'nautical mile',
   Number = 'number',
+  PBH = 'pbh',
   Percent = 'percent',
   PercentOver100 = 'percent over 100',
   PerSecond = 'per second',
+  PIDStruct = 'pid_struct',
   Position = 'position',
   Position16k = 'position 16k',
   Position32k = 'position 32k',
@@ -53,6 +58,7 @@ export enum SimVarValueType {
   SlugsPerCubicFoot = 'slug per cubic foot',
   String = 'string',
   Volts = 'Volts',
+  XYZ = 'xyz',
 }
 
 /**
@@ -260,6 +266,295 @@ SimVar.SetSimVarValue = (name: string, unit: string, value: any, dataSource = de
 
   return Promise.resolve();
 };
+
+/**
+ * A mapping from non-numeric SimVar unit types to Typescript types.
+ * 
+ * Note that this mapping is not complete (all SimVarUnit types are supposed to be case-insensitive). Only the most
+ * common capitalization schemes are included.
+ */
+type SimVarUnitTypeMap = {
+  /** LatLongAlt. */
+  ['latlongalt']: LatLongAlt;
+  /** LatLongAlt. */
+  ['Latlongalt']: LatLongAlt;
+  /** LatLongAlt. */
+  ['LatLongAlt']: LatLongAlt;
+
+  /** LatLongAltPBH. */
+  ['latlongaltpbh']: LatLongAltPBH;
+  /** LatLongAltPBH. */
+  ['Latlongaltpbh']: LatLongAltPBH;
+  /** LatLongAltPBH. */
+  ['LatlongaltPbh']: LatLongAltPBH;
+  /** LatLongAltPBH. */
+  ['LatlongaltPBH']: LatLongAltPBH;
+  /** LatLongAltPBH. */
+  ['LatLongAltPbh']: LatLongAltPBH;
+  /** LatLongAltPBH. */
+  ['LatLongAltPBH']: LatLongAltPBH;
+
+  /** PBH. */
+  ['pbh']: PitchBankHeading;
+  /** PBH. */
+  ['Pbh']: PitchBankHeading;
+  /** PBH. */
+  ['PBH']: PitchBankHeading;
+
+  /** PID_STRUCT. */
+  ['pid_struct']: PID_STRUCT;
+  /** PID_STRUCT. */
+  ['Pid_Struct']: PID_STRUCT;
+  /** PID_STRUCT. */
+  ['PID_Struct']: PID_STRUCT;
+
+  /** string. */
+  ['string']: string;
+  /** string. */
+  ['String']: string;
+
+  /** XYZ. */
+  ['xyz']: XYZ;
+  /** XYZ. */
+  ['Xyz']: XYZ;
+  /** XYZ. */
+  ['XYZ']: XYZ;
+};
+
+/**
+ * Maps a SimVar unit type to its corresponding Typescript type.
+ */
+export type SimVarUnitToType<Unit extends string> = Unit extends keyof SimVarUnitTypeMap ? SimVarUnitTypeMap[Unit] : number;
+
+/**
+ * A registered SimVar.
+ */
+export interface RegisteredSimVar<T> {
+  /** The name of this SimVar. */
+  readonly name: string;
+
+  /** The unit type of this SimVar. */
+  readonly unit: string
+
+  /** The data source linked to this SimVar. */
+  readonly dataSource: string;
+
+  /**
+   * Gets the value of this SimVar.
+   * @returns The value of this SimVar.
+   */
+  get(): T;
+
+  /**
+   * Sets the value of this SimVar.
+   * @param value The value to set.
+   * @returns A Promise which is fulfilled when the operation to set the SimVar value has been successfully sent.
+   */
+  set(value: T): Promise<void>;
+}
+
+/**
+ * A registered SimVar.
+ */
+abstract class AbstractRegisteredSimVar<T> implements RegisteredSimVar<T> {
+  protected readonly id: number;
+
+  /**
+   * Creates a new instance of AbstractRegisteredSimVar.
+   * @param name The name of this SimVar.
+   * @param unit The unit type of this SimVar.
+   * @param dataSource The data source linked to this SimVar. Defaults to the empty string.
+   */
+  public constructor(public readonly name: string, public readonly unit: string, public readonly dataSource = '') {
+    this.id = SimVar.GetRegisteredId(name, unit, dataSource);
+
+    if (this.id < 0) {
+      throw new Error(`new AbstractRegisteredSimVar(): could not retrieve a valid registered ID for SimVar "${name}", unit "${unit}", data source "${dataSource}"`);
+    }
+  }
+
+  /** @inheritDoc */
+  public abstract get(): T;
+
+  /** @inheritDoc */
+  public abstract set(value: T): Promise<void>;
+}
+
+/**
+ * A registered SimVar with a numeric value.
+ */
+class RegisteredNumberSimVar extends AbstractRegisteredSimVar<number> {
+  /** @inheritDoc */
+  public get(): number {
+    return simvar.getValueReg(this.id);
+  }
+
+  /** @inheritDoc */
+  public set(value: number): Promise<void> {
+    return Coherent.call('setValueReg_Number', this.id, value);
+  }
+}
+
+/**
+ * A registered SimVar with a boolean value.
+ */
+class RegisteredBooleanSimVar extends AbstractRegisteredSimVar<boolean> {
+  /**
+   * Creates a new instance of RegisteredBooleanSimVar.
+   * @param name The name of this SimVar.
+   * @param dataSource The data source linked to this SimVar. Defaults to the empty string.
+   */
+  public constructor(public readonly name: string, dataSource = '') {
+    super(name, SimVarValueType.Bool, dataSource);
+  }
+
+  /** @inheritDoc */
+  public get(): boolean {
+    return !!simvar.getValueReg(this.id);
+  }
+
+  /** @inheritDoc */
+  public set(value: boolean): Promise<void> {
+    return Coherent.call('setValueReg_Number', this.id, value ? 1 : 0);
+  }
+}
+
+/**
+ * A registered SimVar with a string value.
+ */
+class RegisteredStringSimVar extends AbstractRegisteredSimVar<string> {
+  /** @inheritDoc */
+  public get(): string {
+    return simvar.getValueReg_String(this.id);
+  }
+
+  /** @inheritDoc */
+  public set(value: string): Promise<void> {
+    return Coherent.call('setValueReg_String', this.id, value);
+  }
+}
+
+/**
+ * A registered SimVar with a LatLongAlt value.
+ */
+class RegisteredLlaSimVar extends AbstractRegisteredSimVar<LatLongAlt> {
+  /** @inheritDoc */
+  public get(): LatLongAlt {
+    return new LatLongAlt(simvar.getValue_LatLongAlt(this.name, this.dataSource));
+  }
+
+  /** @inheritDoc */
+  public set(value: LatLongAlt): Promise<void> {
+    return Coherent.call('setValue_LatLongAlt', this.name, value, this.dataSource);
+  }
+}
+
+/**
+ * A registered SimVar with a LatLongAltPBH value.
+ */
+class RegisteredLlaPbhSimVar extends AbstractRegisteredSimVar<LatLongAltPBH> {
+  /** @inheritDoc */
+  public get(): LatLongAltPBH {
+    return new LatLongAltPBH(simvar.getValue_LatLongAltPBH(this.name, this.dataSource));
+  }
+
+  /** @inheritDoc */
+  public set(value: LatLongAltPBH): Promise<void> {
+    return Coherent.call('setValue_LatLongAltPBH', this.name, value, this.dataSource);
+  }
+}
+
+/**
+ * A registered SimVar with a PitchBankHeading value.
+ */
+class RegisteredPbhSimVar extends AbstractRegisteredSimVar<PitchBankHeading> {
+  /** @inheritDoc */
+  public get(): PitchBankHeading {
+    return new PitchBankHeading(simvar.getValue_PBH(this.name, this.dataSource));
+  }
+
+  /** @inheritDoc */
+  public set(value: PitchBankHeading): Promise<void> {
+    return Coherent.call('setValue_PBH', this.name, value, this.dataSource);
+  }
+}
+
+/**
+ * A registered SimVar with a PID_STRUCT value.
+ */
+class RegisteredPidStructSimVar extends AbstractRegisteredSimVar<PID_STRUCT> {
+  /** @inheritDoc */
+  public get(): PID_STRUCT {
+    return new PID_STRUCT(simvar.getValue_PID_STRUCT(this.name, this.dataSource));
+  }
+
+  /** @inheritDoc */
+  public set(value: PID_STRUCT): Promise<void> {
+    return Coherent.call('setValue_PID_STRUCT', this.name, value, this.dataSource);
+  }
+}
+
+/**
+ * A registered SimVar with a XYZ value.
+ */
+class RegisteredXyzSimVar extends AbstractRegisteredSimVar<XYZ> {
+  /** @inheritDoc */
+  public get(): XYZ {
+    return new XYZ(simvar.getValue_XYZ(this.name, this.dataSource));
+  }
+
+  /** @inheritDoc */
+  public set(value: XYZ): Promise<void> {
+    return Coherent.call('setValue_XYZ', this.name, value, this.dataSource);
+  }
+}
+
+/**
+ * A utility class for working with registered SimVars.
+ */
+export class RegisteredSimVarUtils {
+  /**
+   * Creates a new registered SimVar instance.
+   * @param name The name of the SimVar.
+   * @param unit The unit type of the SimVar.
+   * @param dataSource The data source to link to the SimVar instance. Defaults to the empty string.
+   * @returns A new registered SimVar instance.
+   */
+  public static create<T = undefined, U extends string = string>(
+    name: string,
+    unit: U,
+    dataSource = ''
+  ): RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T> {
+    if (stringRegex.test(unit)) {
+      return new RegisteredStringSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else if (latlonaltRegEx.test(unit)) {
+      return new RegisteredLlaSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else if (latlonaltpbhRegex.test(unit)) {
+      return new RegisteredLlaPbhSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else if (pbhRegex.test(unit)) {
+      return new RegisteredPbhSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else if (pid_structRegex.test(unit)) {
+      return new RegisteredPidStructSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else if (xyzRegex.test(unit)) {
+      return new RegisteredXyzSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    } else {
+      return new RegisteredNumberSimVar(name, unit, dataSource) as unknown as RegisteredSimVar<T extends undefined ? SimVarUnitToType<U> : T>;
+    }
+  }
+
+  /**
+   * Creates a new boolean-valued registered SimVar instance. The unit type of the SimVar will be set to
+   * `SimVarValueType.Bool`. When getting the SimVar value, zero will be interpreted as `false`, and any other value
+   * will be interpreted as `true`. When setting the SimVar value, `true` will be converted to `1` and `false` will be
+   * converted to `0`.
+   * @param name The name of the SimVar.
+   * @param dataSource The data source to link to the SimVar instance. Defaults to the empty string.
+   * @returns A new boolean-valued registered SimVar instance.
+   */
+  public static createBoolean(name: string, dataSource = ''): RegisteredSimVar<boolean> {
+    return new RegisteredBooleanSimVar(name, dataSource);
+  }
+}
 
 // @ts-ignore
 const SimOvrd = {

@@ -35,6 +35,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
   private readonly lnavDis = ConsumerSubject.create(null, 0).pause();
   private readonly lnavDtkMag = ConsumerSubject.create(null, 0).pause();
   private readonly lnavXtk = ConsumerSubject.create(null, 0).pause();
+  private readonly lnavIsSteerHeading = ConsumerSubject.create(null, false).pause();
   private readonly lnavToFrom = ConsumerSubject.create(null, VorToFrom.OFF).pause();
   private readonly lnavCdiScaleLabel = ConsumerSubject.create(null, CDIScaleLabel.Enroute);
   private readonly lnavCdiScale = ConsumerSubject.create(null, 0);
@@ -68,9 +69,10 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
     const cdiScalePipe = this.lnavCdiScale.pipe(this.lateralDeviationScale, true);
 
     const lateralDeviation = MappedSubject.create(
-      ([xtk, scale]): number | null => {
-        return scale !== 0 ? -xtk / scale : null;
+      ([isSteerHeading, xtk, scale]): number | null => {
+        return !isSteerHeading && scale !== 0 ? -xtk / scale : null;
       },
+      this.lnavIsSteerHeading,
       this.lnavXtk,
       this.lnavCdiScale
     ).pause();
@@ -79,6 +81,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
     const bearingPipe = this.lnavBrgMag.pipe(this.bearing, true);
     const distancePipe = this.lnavDis.pipe(this.distance, true);
     const dtkPipe = this.lnavDtkMag.pipe(this.course, true);
+    const isSteerHeadingPipe = this.lnavIsSteerHeading.pipe(this.isCourseHeading, true);
     const lateralDeviationPipe = lateralDeviation.pipe(this.lateralDeviation, true);
     const toFromPipe = this.lnavToFrom.pipe(this.toFrom, true);
 
@@ -89,6 +92,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDis.resume();
         this.lnavDtkMag.resume();
         this.lnavXtk.resume();
+        this.lnavIsSteerHeading.resume();
         lateralDeviation.resume();
         this.lnavToFrom.resume();
 
@@ -96,6 +100,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         bearingPipe.resume(true);
         distancePipe.resume(true);
         dtkPipe.resume(true);
+        isSteerHeadingPipe.resume(true);
         lateralDeviationPipe.resume(true);
         toFromPipe.resume(true);
 
@@ -108,6 +113,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDis.pause();
         this.lnavDtkMag.pause();
         this.lnavXtk.pause();
+        this.lnavIsSteerHeading.pause();
         lateralDeviation.pause();
         this.lnavToFrom.pause();
 
@@ -115,6 +121,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         bearingPipe.pause();
         distancePipe.pause();
         dtkPipe.pause();
+        isSteerHeadingPipe.pause();
         lateralDeviationPipe.pause();
         toFromPipe.pause();
 
@@ -122,6 +129,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.bearing.set(null);
         this.distance.set(null);
         this.course.set(null);
+        this.isCourseHeading.set(null);
         this.lateralDeviation.set(null);
         this.toFrom.set(null);
       }
@@ -137,6 +145,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDis.setConsumer(lnav.on(`lnavdata_waypoint_distance${suffix}`));
         this.lnavDtkMag.setConsumer(lnav.on(`lnavdata_dtk_mag${suffix}`));
         this.lnavXtk.setConsumer(lnav.on(`lnavdata_xtk${suffix}`));
+        this.lnavIsSteerHeading.setConsumer(lnav.on(`lnavdata_is_steer_heading${suffix}`));
         this.lnavToFrom.setConsumer(lnav.on(`lnavdata_tofrom${suffix}`));
         this.lnavCdiScaleLabel.setConsumer(lnav.on(`lnavdata_cdi_scale_label${suffix}`));
         this.lnavCdiScale.setConsumer(lnav.on(`lnavdata_cdi_scale${suffix}`));
@@ -155,6 +164,7 @@ export class GpsNavSource<NameType extends string> extends AbstractNavReferenceB
         this.lnavDis.setConsumer(null);
         this.lnavDtkMag.setConsumer(null);
         this.lnavXtk.setConsumer(null);
+        this.lnavIsSteerHeading.setConsumer(null);
         this.lnavToFrom.setConsumer(null);
         this.lnavCdiScaleLabel.setConsumer(null);
         this.lnavCdiScale.setConsumer(null);

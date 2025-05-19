@@ -7,3 +7,4 @@ export * from './FmsConfig';
 export * from './GduDefsConfig';
 export * from './RadiosConfig';
 export * from './SensorsConfig';
+export * from './UnitsConfig';

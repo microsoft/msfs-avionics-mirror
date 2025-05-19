@@ -1,5 +1,5 @@
-import { Facility } from '../../../navigation/Facilities';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { AbstractFlightPathLegCalculator } from './AbstractFlightPathLegCalculator';
 
@@ -11,7 +11,7 @@ export class NoPathLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of NoPathLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 

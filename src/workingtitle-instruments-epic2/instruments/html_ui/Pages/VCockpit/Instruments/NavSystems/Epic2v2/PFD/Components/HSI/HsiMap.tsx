@@ -79,6 +79,10 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
 
     return (
       MapSystemBuilder.create(this.props.bus)
+        .withContext(MapSystemKeys.FacilityLoader, () => {
+          return this.props.facLoader;
+        })
+
         .withBing(
           'map-pfd-bing-id-' + this.props.instrumentIndex,
           { opacity: this.terrWxContrast },

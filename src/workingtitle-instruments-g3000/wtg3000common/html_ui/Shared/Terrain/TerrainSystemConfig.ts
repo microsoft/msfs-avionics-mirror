@@ -13,6 +13,7 @@ import { NegativeClimbRateConfig } from './NegativeClimbRateConfig';
 import { PrematureDescentConfig } from './PrematureDescentConfig';
 import { TerrainSystemModuleConfig, TerrainSystemModuleInhibitFlagDef, TerrainSystemModulePrimaryInhibitFlagDef } from './TerrainSystemModuleConfig';
 import { TouchdownCalloutsConfig } from './TouchdownCalloutsConfig';
+import { FlightIntoTerrainConfig } from './FlightIntoTerrainConfig';
 
 /**
  * A definition for an inhibit toggle in the GTC Terrain Settings page.
@@ -178,7 +179,7 @@ export class TerrainSystemConfig implements ResolvableConfig<
 
     // Parse explicit modules.
     for (const moduleElement of element.querySelectorAll(':scope>Modules>*')) {
-      let ctor: (new (type: G3000TerrainSystemType, el?: Element) => TerrainSystemModuleConfig) | undefined;
+      let ctor: (new (type: G3000TerrainSystemType, el: Element) => TerrainSystemModuleConfig) | undefined;
 
       switch (moduleElement.tagName) {
         case 'Pda':
@@ -189,6 +190,9 @@ export class TerrainSystemConfig implements ResolvableConfig<
           break;
         case 'Ecr':
           ctor = ExcessiveClosureRateConfig;
+          break;
+        case 'Fit':
+          ctor = FlightIntoTerrainConfig;
           break;
         case 'Ncr':
           ctor = NegativeClimbRateConfig;

@@ -1,5 +1,5 @@
 import {
-  AirportUtils, CompiledMapSystem, ComponentProps, DebounceTimer, DisplayComponent, FacilityType, FacilityUtils,
+  CompiledMapSystem, ComponentProps, DebounceTimer, DisplayComponent, FacilityLoader, FacilityType, FacilityUtils,
   FilteredMapSubject, FSComponent, ICAO, MagVar, MapIndexedRangeModule, MappedSubject, MapSystemBuilder, NdbType,
   NumberFormatter, RadioFrequencyFormatter, ReadonlyFloat64Array, Subject, Subscribable, SubscribableMap,
   SubscribableMapFunctions, Subscription, UnitType, UserSettingManager, Vec2Math, Vec2Subject, VNode, VorClass,
@@ -53,6 +53,9 @@ export interface WaypointInfoInfoProps extends ComponentProps {
 
   /** Whether the inner bezel rotary knobs are allowed to control the zoom of the component's map. */
   allowKnobZoom: Subscribable<boolean>;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
@@ -112,6 +115,8 @@ export class WaypointInfoInfo extends DisplayComponent<WaypointInfoInfoProps> im
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XWaypointMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: this.props.mapBingId,
 
@@ -565,13 +570,7 @@ class AirportInfoContent extends DisplayComponent<AirportInfoContentProps> {
       return '––––ft';
     }
 
-    const elevationMetres = AirportUtils.getElevation(facility);
-
-    if (elevationMetres === undefined) {
-      return '––––ft';
-    }
-
-    const elevationFeet = UnitType.FOOT.convertFrom(elevationMetres, UnitType.METER);
+    const elevationFeet = UnitType.FOOT.convertFrom(facility.altitude, UnitType.METER);
 
     return `${elevationFeet.toFixed(0)}ft`;
   });

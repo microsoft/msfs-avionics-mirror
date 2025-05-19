@@ -38,11 +38,7 @@ export class MFDAirportInformationPage extends MFDInformationPage {
       this.runwaysGroup.instance.setDisabled(false);
       this.frequenciesGroup.instance.setDisabled(false);
 
-      const elevation = airport.runways.length === 0
-        ? NaN
-        : airport.runways.reduce((v, c) => v + c.elevation, 0) / airport.runways.length;
-
-      this.elevation.set(elevation);
+      this.elevation.set(airport.altitude);
       this.location.set(airport.lat, airport.lon);
     } else {
       this.runwaysGroup.instance.set(null);

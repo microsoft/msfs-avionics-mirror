@@ -8,7 +8,7 @@ import {
 import { AutopilotDataProvider, Epic2ApVerticalMode } from '../Instruments';
 import { FmsPositionMode, FmsPositionSystemEvents } from '../Systems/FmsPositionSystem';
 import { RASystemEvents } from '../Systems/RASystem';
-import { GpwsEvents } from './GpwsEvents';
+import { GpwsControlEvents, GpwsEvents } from './GpwsEvents';
 import { GpwsData, GpwsModule } from './GpwsModule';
 import { GpwsOperatingMode } from './GpwsTypes';
 
@@ -16,10 +16,10 @@ import { GpwsOperatingMode } from './GpwsTypes';
  * A GPWS system.
  */
 export class Gpws {
-  private static STEEP_APPROACH_CAS_ANNUNCATION: CasAlertDefinition = {
-    uuid: 'taws-steep-appr-active',
-    message: 'STEEP APR Active'
-  };
+  private static readonly STEEP_APPROACH_CAS_ANNUNCIATION: CasAlertDefinition = { uuid: 'taws-steep-appr-active', message: 'STEEP APR Active' };
+  private static readonly TERR_INHIBIT_CAS_ANNUNCATION: CasAlertDefinition = { uuid: 'taws-terr-inhibit-active', message: 'TERR INHIB Active' };
+  private static readonly GS_INHIBIT_CAS_ANNUNCATION: CasAlertDefinition = { uuid: 'taws-gs-inhibit-active', message: 'GS INHIB Active' };
+  private static readonly FLAP_OVERRIDE_CAS_ANNUNCATION: CasAlertDefinition = { uuid: 'taws-flap-override-active', message: 'FLAP OVRD Active' };
 
   private static readonly NEAREST_AIRPORT_UPDATE_INTERVAL = 5000; // milliseconds
   private static readonly NEAREST_AIRPORT_RADIUS_METERS = UnitType.NMILE.convertTo(5, UnitType.METER);
@@ -33,6 +33,10 @@ export class Gpws {
     | 1 << RunwaySurfaceType.WasteWater
     | 1 << RunwaySurfaceType.Water
   );
+
+  private static readonly LOW_GO_AROUND_HEIGHT = 245;
+  private static readonly LOW_GO_AROUND_APPROACH_VS = -400;
+  private static readonly LOW_GO_AROUND_TAKEOFF_VS = 500;
 
   private static readonly NEAREST_RUNWAY_REFRESH_INTERVAL = 5000; // milliseconds
 
@@ -58,8 +62,11 @@ export class Gpws {
   private readonly radarAltitudeSource = ConsumerValue.create(null, 0);
   private readonly radarAltitudeSmoother = new MultiExpSmoother(2000 / Math.LN2, 1000 / Math.LN2, undefined, null, null, null, 10000);
 
+  private readonly verticalSpeedTakeoffSmoother = new MultiExpSmoother(5 / Math.LN2, undefined, undefined, null, null, null, 10000);
+
   private readonly data: GpwsData = {
     isOnGround: false,
+    isTakeoff: false,
     isPosValid: false,
     gpsPos: this.gpsPos.readonly,
     geoAltitude: 0,
@@ -67,7 +74,13 @@ export class Gpws {
     isRadarAltitudeValid: false,
     radarAltitude: 0,
     isGsGpActive: false,
-    nearestRunwayAltitude: null
+    nearestRunwayAltitude: null,
+    isSteepApproachActive: false,
+    inhibits: {
+      flaps: false,
+      glideslope: false,
+      terrain: false,
+    }
   };
 
   private readonly publishedData = ObjectSubject.create({
@@ -130,10 +143,10 @@ export class Gpws {
 
     this.publishedData.sub(this.onPublishedDataChanged.bind(this), true);
 
-    this.casRegistrationManager.register(Gpws.STEEP_APPROACH_CAS_ANNUNCATION);
-    this.steepApproachModeActive.sub((v) => {
-      SimVar.SetSimVarValue('L:WT_Epic2_GPWS_Steep_Approach_Mode', SimVarValueType.Bool, v);
-    });
+    this.casRegistrationManager.register(Gpws.STEEP_APPROACH_CAS_ANNUNCIATION);
+    this.casRegistrationManager.register(Gpws.TERR_INHIBIT_CAS_ANNUNCATION);
+    this.casRegistrationManager.register(Gpws.GS_INHIBIT_CAS_ANNUNCATION);
+    this.casRegistrationManager.register(Gpws.FLAP_OVERRIDE_CAS_ANNUNCATION);
   }
 
   /**
@@ -166,7 +179,7 @@ export class Gpws {
 
     this.isInit = true;
 
-    const sub = this.bus.getSubscriber<ClockEvents & FmsPositionSystemEvents & RASystemEvents & AdcEvents & GNSSEvents & GpwsEvents>();
+    const sub = this.bus.getSubscriber<ClockEvents & FmsPositionSystemEvents & RASystemEvents & AdcEvents & GNSSEvents & GpwsEvents & GpwsControlEvents>();
 
     this.simRate.setConsumer(sub.on('simRate'));
 
@@ -222,11 +235,23 @@ export class Gpws {
       this.data.isGsGpActive = mode === Epic2ApVerticalMode.GlideSlope || mode === Epic2ApVerticalMode.VnavGlidePath;
     }, true);
 
+    this.steepApproachModeActive.sub((v) => {
+      this.data.isSteepApproachActive = v;
+      SimVar.SetSimVarValue('L:WT_Epic2_GPWS_Steep_Approach_Mode', SimVarValueType.Bool, v);
+    }, true);
+
+    CasAlertTransporter.create(this.bus, { uuid: Gpws.STEEP_APPROACH_CAS_ANNUNCIATION.uuid, priority: AnnunciationType.Advisory }).bind(this.steepApproachModeActive, (x) => x);
+    const terrInhibCas = CasAlertTransporter.create(this.bus, { uuid: Gpws.TERR_INHIBIT_CAS_ANNUNCATION.uuid, priority: AnnunciationType.Advisory });
+    const gsInhibCas = CasAlertTransporter.create(this.bus, { uuid: Gpws.GS_INHIBIT_CAS_ANNUNCATION.uuid, priority: AnnunciationType.Advisory });
+    const flapOvrdCas = CasAlertTransporter.create(this.bus, { uuid: Gpws.FLAP_OVERRIDE_CAS_ANNUNCATION.uuid, priority: AnnunciationType.Advisory });
+
+    sub.on('terrain_inhibit_active').handle((v) => { this.data.inhibits.terrain = v; terrInhibCas.set(v); });
+    sub.on('gs_inhibit_active').handle((v) => { this.data.inhibits.glideslope = v; gsInhibCas.set(v); });
+    sub.on('flap_override_active').handle((v) => { this.data.inhibits.flaps = v; flapOvrdCas.set(v); });
+
     for (let i = 0; i < this.modules.length; i++) {
       this.modules[i].onInit();
     }
-
-    CasAlertTransporter.create(this.bus, Gpws.STEEP_APPROACH_CAS_ANNUNCATION.uuid, AnnunciationType.Advisory).bind(this.steepApproachModeActive, (x) => x);
 
     this.updateSub = sub.on('simTime').whenChanged().handle(this.update.bind(this));
   }
@@ -271,6 +296,7 @@ export class Gpws {
 
     const operatingMode = this.operatingMode.get();
 
+    this.updateTakeoffState(dt);
     this.updateNearestAirportSubscription(realTime, this.data.gpsPos);
     this.updateNearestAirport(realTime);
 
@@ -279,6 +305,32 @@ export class Gpws {
     }
 
     this.lastUpdateRealTime = realTime;
+  }
+
+  /**
+   * Updates the GPWS takeoff (or low go-around) state
+   * @param dt The change in time since the last update
+   */
+  private updateTakeoffState(dt: number): void {
+    const smoothedVs = this.verticalSpeedTakeoffSmoother.next(this.data.geoVerticalSpeed, dt / 1000);
+
+    if (this.isOnGround.get() === true) {
+      this.data.isTakeoff = true;
+      return;
+    }
+
+    const radarAlt = this.data.radarAltitude;
+    if (!this.data.isRadarAltitudeValid || radarAlt > 1500) {
+      // If radar altitude is above 1500ft then we assume the aircraft to have left the takeoff region
+      this.data.isTakeoff = false;
+    } else if (
+      this.data.isTakeoff === false && radarAlt < Gpws.LOW_GO_AROUND_HEIGHT &&
+      smoothedVs < Gpws.LOW_GO_AROUND_APPROACH_VS && this.data.geoVerticalSpeed > Gpws.LOW_GO_AROUND_TAKEOFF_VS
+    ) {
+      // We also need to account for low go-arounds, we do this by comparing a smoothed vertical speed (with ~5s of delay)
+      // against the current vertical speed
+      this.data.isTakeoff = true;
+    }
   }
 
   /**

@@ -42,7 +42,7 @@ export class GenericFlcComputer {
   public readonly pitchTarget: Subscribable<number | null> = this._pitchTarget;
 
   protected _lastTime = 0;
-  private readonly pitchController: PidController;
+  protected readonly pitchController: PidController;
   protected filter = new ExpSmoother(2.5);
 
   /**

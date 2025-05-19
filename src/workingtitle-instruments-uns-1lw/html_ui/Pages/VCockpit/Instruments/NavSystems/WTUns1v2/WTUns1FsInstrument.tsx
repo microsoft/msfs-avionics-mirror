@@ -1,11 +1,9 @@
 import {
-  ActiveLegType, AdcPublisher, AhrsPublisher, AirportFacility, APRadioNavInstrument, Autopilot, AutopilotInstrument,
-  ClockPublisher, EISPublisher, EventBus,
-  FacilityLoader, FacilityRepository, FacilityType, FacilityUtils, FlightPathAirplaneSpeedMode,
-  FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner,
-  FlightPlannerEvents, FlightPlanRouteManager, FlightTimerInstrument, FlightTimerPublisher, FSComponent, FsInstrument,
-  GNSSPublisher, GpsSynchronizer, HEventPublisher, ICAO,
-  InstrumentBackplane, NavComSimVarPublisher, SimVarValueType, SmoothingPathCalculator, Subject, VNode
+  ActiveLegType, AdcPublisher, AhrsPublisher, AirportFacility, APRadioNavInstrument, Autopilot, AutopilotInstrument, ClockPublisher,
+  DefaultFlightPathAnticipatedDataCalculator, EISPublisher, EventBus, FacilityLoader, FacilityRepository, FacilityType, FacilityUtils,
+  FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightPlannerEvents, FlightPlanRouteManager,
+  FlightTimerInstrument, FlightTimerPublisher, FSComponent, FsInstrument, GNSSPublisher, GpsSynchronizer, HEventPublisher, ICAO, InstrumentBackplane,
+  NavComSimVarPublisher, SimVarValueType, SmoothingPathCalculator, Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { UnsAPConfig } from './Autopilot/UnsAPConfig';
@@ -18,6 +16,7 @@ import {
 } from './CduDisplay/UnsFmcEvents';
 import { FmsConfigBuilder, UnsFmsConfigInterface } from './Config/FmsConfigBuilder';
 import { UnsApproachStateController } from './Fms/Navigation/UnsApproachStateController';
+import { UnsFlightAreaComputer } from './Fms/Navigation/UnsFlightAreaComputer';
 import { UnsLNavComputer } from './Fms/Navigation/UnsLNavComputer';
 import { UnsLnavSteeringController } from './Fms/Navigation/UnsLnavSteeringController';
 import { UnsNavDataComputer } from './Fms/Navigation/UnsNavDataComputer';
@@ -26,13 +25,13 @@ import { UnsPositionSystem } from './Fms/Navigation/UnsPositionSystems';
 import { UnsRadioNavaidManager } from './Fms/Navigation/UnsRadioNavaidManager';
 import { UnsElapsedFlightTimeInstrument } from './Fms/Performance/UnsElapsedFlightTimeInstrument';
 import { UnsFuelComputerInstrument, UnsFuelComputerSimVarPublisher } from './Fms/Performance/UnsFuelComputerInstrument';
+import { UnsFlightPlanRouteLoader } from './Fms/Route/UnsFlightPlanRouteLoader';
+import { UnsFlightPlanRouteSyncManager } from './Fms/Route/UnsFlightPlanRouteSyncManager';
 import { UnsFlightPlanPredictor } from './Fms/UnsFlightPlanPredictor';
 import { UnsFms } from './Fms/UnsFms';
 import { UnsFlightPlans } from './Fms/UnsFmsTypes';
 import { UnsFmsUtils } from './Fms/UnsFmsUtils';
 import { WTUns1 } from './WTUns1';
-import { UnsFlightPlanRouteSyncManager } from './Fms/Route/UnsFlightPlanRouteSyncManager';
-import { UnsFlightPlanRouteLoader } from './Fms/Route/UnsFlightPlanRouteLoader';
 
 import './WTUns1.css';
 
@@ -102,6 +101,10 @@ export class WTUns1FsInstrument implements FsInstrument {
       maxBankAngle: 25,
       airplaneSpeedMode: FlightPathAirplaneSpeedMode.TrueAirspeedPlusWind,
       airplaneWindMode: FlightPathAirplaneWindMode.Automatic,
+      anticipatedDataCalculator: new DefaultFlightPathAnticipatedDataCalculator(this.bus,
+        {
+          descentSpeedProfileKtsBelow10k: 220, descentSpeedProfileKtsAbove10k: 260, typicalVRef: 130
+        })
     },
     this.bus,
   );
@@ -125,6 +128,8 @@ export class WTUns1FsInstrument implements FsInstrument {
   private readonly fms: UnsFms;
 
   private readonly approachStateController: UnsApproachStateController;
+
+  private readonly flightAreaComputer: UnsFlightAreaComputer;
 
   private lastCalculate = 0;
 
@@ -234,6 +239,7 @@ export class WTUns1FsInstrument implements FsInstrument {
     this.navdataComputer = new UnsNavDataComputer(this.bus, this.flightPlanner, this.fmsConfig.lnav.index, this.fms);
     this.elapsedFlightTimer = new UnsElapsedFlightTimeInstrument(this.bus, this.fmsConfig.index);
     this.approachStateController = new UnsApproachStateController(this.bus, this.fms, this.fmsConfig);
+    this.flightAreaComputer = new UnsFlightAreaComputer(this.bus, this.fms);
 
     this.backplane.addPublisher('clock', this.clockPublisher);
     this.backplane.addPublisher('hEvent', this.hEventPublisher);
@@ -251,6 +257,7 @@ export class WTUns1FsInstrument implements FsInstrument {
     this.backplane.addInstrument('flightTimer', this.flightTimerInstrument);
     this.backplane.addInstrument('elapsedFlightTimer', this.elapsedFlightTimer);
     this.backplane.addInstrument('approachState', this.approachStateController);
+    this.backplane.addInstrument('flightAreaComputer', this.flightAreaComputer);
 
     this.bus.getSubscriber<UnsPowerEvents>().on('set_uns_power').handle((powered) => powered ? this.instrument.powerOn() : this.instrument.powerOff());
 

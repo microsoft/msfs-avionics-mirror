@@ -585,7 +585,8 @@ export class MainScreen extends DisplayComponent<MainScreenProps> {
     this.flightPlanRouteSyncManager!.init(
       manager,
       new GarminPrimaryFlightPlanRouteLoader(this.fms, {
-        userFacilityScope: GnsFacilityUtils.USER_FACILITY_SCOPE
+        userFacilityScope: GnsFacilityUtils.USER_FACILITY_SCOPE,
+        allowRnpArApproaches: false,
       }),
       new GarminPrimaryFlightPlanRouteProvider(this.fms)
     );

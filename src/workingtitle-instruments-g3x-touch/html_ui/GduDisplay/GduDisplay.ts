@@ -8,6 +8,7 @@ import { G3XNavDataBarEditController } from '../Shared/Components/CnsDataBar/Cns
 import { G3XFms } from '../Shared/FlightPlan/G3XFms';
 import { G3XTouchPlugin, G3XTouchPluginBinder } from '../Shared/G3XTouchPlugin';
 import { InstrumentConfig } from '../Shared/InstrumentConfig/InstrumentConfig';
+import { G3XRadiosDataProvider } from '../Shared/Radio/G3XRadiosDataProvider';
 import { DisplayUserSettingTypes } from '../Shared/Settings/DisplayUserSettings';
 import { PfdUserSettingTypes } from '../Shared/Settings/PfdUserSettings';
 import { UiService } from '../Shared/UiSystem/UiService';
@@ -39,6 +40,9 @@ export interface GduDisplayProps extends ComponentProps {
 
   /** A provider of GPS position integrity data. */
   gpsIntegrityDataProvider: GpsIntegrityDataProvider;
+
+  /** A provider of radio data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 
   /** The factory to use to create data models for nav data bar fields. */
   navDataBarFieldModelFactory: NavDataBarFieldModelFactory;

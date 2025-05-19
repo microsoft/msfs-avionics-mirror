@@ -19,6 +19,7 @@ import { G3XAPApproachAvailableManager } from './Autopilot/G3XAPApproachAvailabl
 import { G3XNavToNavGuidanceProvider } from './Autopilot/G3XNavToNavGuidanceProvider';
 import { AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent } from './AvionicsStatus/AvionicsStatusEvents';
 import { AvionicsStatusManager } from './AvionicsStatus/AvionicsStatusManager';
+import { G3XChartsManager } from './Charts/G3XChartsManager';
 import { G3XCdiId } from './CommonTypes';
 import { G3XFplSource } from './FlightPlan/G3XFplSourceTypes';
 import { G3XInternalPrimaryFlightPlanRouteLoader } from './FlightPlan/G3XInternalPrimaryFlightPlanRouteLoader';
@@ -37,6 +38,7 @@ import { G3XTrafficUserSettings } from './Settings/G3XTrafficUserSettings';
 import { G3XUnitsUserSettings } from './Settings/G3XUnitsUserSettings';
 import { TransponderAutoAirborneManager } from './Transponder/TransponderAutoAirborneManager';
 import { TransponderAutoGroundAltManager } from './Transponder/TransponderAutoGroundAltManager';
+import { G3XUnitsUtils } from './Units/G3XUnitsUtils';
 
 /**
  * A primary instrument for the G3X Touch.
@@ -270,6 +272,8 @@ export class G3XTouchPrimaryFsInstrument extends G3XTouchFsInstrument {
   private readonly minimumsManager = new MinimumsManager(this.bus);
   private readonly minimumsUnitsManager = new MinimumsUnitsManager(this.bus);
 
+  private readonly chartsManager = new G3XChartsManager(this.chartsSettingManager);
+
   private globalSettingSaveManager?: G3XGlobalUserSettingSaveManager;
 
   private readonly flightPlanRouteSyncManager = new GarminFlightPlanRouteSyncManager();
@@ -347,7 +351,12 @@ export class G3XTouchPrimaryFsInstrument extends G3XTouchFsInstrument {
   private async doInit(): Promise<void> {
     await this.initPlugins();
 
+    this.initChartSources(this.pluginSystem);
+
     this.initPersistentSettings();
+
+    this.validateFuelUnitsSettings();
+    this.chartsManager.startReconcilePreferredSource(this.chartsSources);
 
     this.auralAlertXmlAdapter.start();
     this.auralAlertWarningAdapter.start();
@@ -376,7 +385,7 @@ export class G3XTouchPrimaryFsInstrument extends G3XTouchFsInstrument {
     this.windDataProvider.init();
     this.vnavDataProvider.init();
     this.posHeadingDataProvider.init();
-    this.comRadioSpacingDataProvider.init();
+    this.radiosDataProvider.init();
     // this.weightFuelComputer.init();
     this.savedNavComFrequenciesManager.init();
     this.navComSavedFrequenciesProvider.init();
@@ -443,19 +452,49 @@ export class G3XTouchPrimaryFsInstrument extends G3XTouchFsInstrument {
 
   /** @inheritDoc */
   protected initGlobalPersistentSettings(pluginSettings: Iterable<UserSetting<any>>): void {
-    this.globalSettingSaveManager = new G3XGlobalUserSettingSaveManager(this.bus, {
-      displaySettingManager: this.displaySettingManager,
-      pfdSettingManager: this.pfdSettingManager,
-      dateTimeSettingManager: G3XDateTimeUserSettings.getManager(this.bus),
-      trafficSettingManager: G3XTrafficUserSettings.getManager(this.bus),
-      fplCalcSettingManager: FplCalculationUserSettings.getManager(this.bus),
-      unitsSettingManager: G3XUnitsUserSettings.getManager(this.bus),
-      pluginSettings
-    });
+    this.globalSettingSaveManager = new G3XGlobalUserSettingSaveManager(
+      this.bus,
+      {
+        displaySettingManager: this.displaySettingManager,
+        pfdSettingManager: this.pfdSettingManager,
+        dateTimeSettingManager: G3XDateTimeUserSettings.getManager(this.bus),
+        trafficSettingManager: G3XTrafficUserSettings.getManager(this.bus),
+        fplCalcSettingManager: FplCalculationUserSettings.getManager(this.bus),
+        chartsSettingManager: this.chartsSettingManager,
+        unitsSettingManager: G3XUnitsUserSettings.getManager(this.bus),
+        pluginSettings
+      },
+      this.config
+    );
 
     const profileKey = `${SimVar.GetSimVarValue('ATC MODEL', 'string')}_g3x-default-profile_global`;
     this.globalSettingSaveManager.load(profileKey);
     this.globalSettingSaveManager.startAutoSave(profileKey);
+  }
+
+  /**
+   * Validates units settings related to fuel.
+   */
+  private validateFuelUnitsSettings(): void {
+    // We need to validate the units settings related to fuel to be consistent with the configured fuel type. We
+    // must do this here instead of just initializing the defaults to the proper values inside the setting manager
+    // because we can't add the configured fuel type as a dependency for the setting manager due to backward
+    // compatibility reasons.
+
+    const manager = G3XUnitsUserSettings.getManager(this.bus);
+
+    const fuelSettingModes = G3XUnitsUtils.getFuelUnitsSettingModes(this.config.units.fuelType);
+    const fuelEconomySettingModes = G3XUnitsUtils.getFuelEconomyUnitsSettingModes(this.config.units.fuelType);
+
+    const fuelSetting = manager.getSetting('unitsFuel');
+    if (!ArrayUtils.includes(fuelSettingModes, fuelSetting.get())) {
+      fuelSetting.set(fuelSettingModes[0]);
+    }
+
+    const fuelEconomySetting = manager.getSetting('unitsFuelEconomy');
+    if (!ArrayUtils.includes(fuelEconomySettingModes, fuelEconomySetting.get())) {
+      fuelEconomySetting.set(fuelEconomySettingModes[0]);
+    }
   }
 
   /**

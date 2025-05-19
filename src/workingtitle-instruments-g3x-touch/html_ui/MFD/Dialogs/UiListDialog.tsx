@@ -38,6 +38,12 @@ export type UiListDialogParams<T> = {
   /** CSS class(es) to apply to the dialog's root element. */
   class?: string;
 
+  /**
+   * The width of the dialog, in pixels. If not defined, then the dialog width is controlled by the
+   * `--ui-list-dialog-width` custom CSS variable.
+   */
+  dialogWidth?: number;
+
   /** The height of each list item, in pixels. */
   listItemHeightPx?: number;
 
@@ -112,6 +118,7 @@ export class UiListDialog extends AbstractUiView implements UiDialogView<UiListD
   private readonly listItemHeightPxDefault = this.props.uiService.gduFormat === '460' ? 100 : 50;
   private readonly listItemSpacingPxDefault = this.props.uiService.gduFormat === '460' ? 2 : 2;
 
+  private readonly dialogWidthStyle = Subject.create<string | undefined>(undefined);
   private readonly listItemLengthPx = Subject.create(this.listItemHeightPxDefault);
   private readonly listItemSpacingPx = Subject.create(this.listItemSpacingPxDefault);
   private readonly itemsPerPage = Subject.create(5);
@@ -178,6 +185,7 @@ export class UiListDialog extends AbstractUiView implements UiDialogView<UiListD
         selectedValue,
         highlightSelectedValue,
         class: cssClassesToAdd,
+        dialogWidth,
         listItemHeightPx,
         listItemSpacingPx,
         itemsPerPage,
@@ -187,6 +195,7 @@ export class UiListDialog extends AbstractUiView implements UiDialogView<UiListD
         fadeScrollBar
       } = input;
 
+      this.dialogWidthStyle.set(dialogWidth === undefined ? undefined : `${dialogWidth}px`);
       this.listItemLengthPx.set(listItemHeightPx ?? this.listItemHeightPxDefault);
       this.listItemSpacingPx.set(listItemSpacingPx ?? this.listItemSpacingPxDefault);
       this.itemsPerPage.set(itemsPerPage ?? 5);
@@ -303,7 +312,12 @@ export class UiListDialog extends AbstractUiView implements UiDialogView<UiListD
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={this.rootCssClass}>
+      <div
+        class={this.rootCssClass}
+        style={{
+          '--ui-list-dialog-requested-width': this.dialogWidthStyle
+        }}
+      >
         <UiList<any>
           ref={this.listRef}
           bus={this.props.uiService.bus}

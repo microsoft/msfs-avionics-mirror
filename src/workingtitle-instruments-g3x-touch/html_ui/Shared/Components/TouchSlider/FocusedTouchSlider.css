@@ -1,7 +1,19 @@
 html {
   --ui-slider-focused-border-color: var(--g3x-color-focus-blue);
+  --ui-slider-focused-inner-border-width: 1px;
+  --ui-slider-focused-inner-border-style: solid;
 }
 
 .touch-slider.ui-slider-focused .touch-slider-slider-container {
-  border: var(--ui-slider-focused-slider-container-border, var(--touch-slider-slider-container-border-width) var(--touch-slider-slider-container-border-style) var(--ui-button-focused-border-color));
+  border: var(--ui-slider-focused-slider-container-border, var(--touch-slider-slider-container-border-width) var(--touch-slider-slider-container-border-style) var(--ui-slider-focused-border-color));
+}
+
+.ui-slider-focused .touch-slider-slider-container::after {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: var(--ui-slider-focused-slider-container-inner-border, var(--ui-slider-focused-inner-border-width) var(--ui-slider-focused-inner-border-style) var(--ui-slider-focused-border-color));
 }

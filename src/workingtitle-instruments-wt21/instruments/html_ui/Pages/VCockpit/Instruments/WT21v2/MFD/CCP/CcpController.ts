@@ -11,6 +11,7 @@ import { CcpEventPublisherType } from './CcpEventPublisher';
 /** Cursor Control Panel Controller. */
 export class CcpController {
   private sysState: CcpControlEvents['ccp_sys_state'] = 'off';
+  private lastUpperWindowState: MFDUpperWindowState = MFDUpperWindowState.Off;
 
   // eslint-disable-next-line jsdoc/require-jsdoc
   public constructor(
@@ -28,6 +29,7 @@ export class CcpController {
           case CcpEvent.CCP_TFC: this.handleTfcButtonPress(); break;
           case CcpEvent.CCP_SYS: this.handleSysButtonPress(); break;
           case CcpEvent.CCP_TERR_WX: this.handleTerrWxButtonPress(); break;
+          case CcpEvent.CCP_CKLST: this.handleCklstButtonPress(); break;
           case CcpEvent.CCP_MEM_1: this.handleMemButtonShortPress(1); break;
           case CcpEvent.CCP_MEM_2: this.handleMemButtonShortPress(2); break;
           case CcpEvent.CCP_MEM_3: this.handleMemButtonShortPress(3); break;
@@ -104,6 +106,20 @@ export class CcpController {
     const newFormat = MapUserSettings.terrWxStates[newIndex];
 
     terrWxMFDSetting.value = newFormat;
+  }
+
+  /**
+   * Handles CKLST button press by toggling the checklist display.
+   */
+  private handleCklstButtonPress(): void {
+    const upperWindowSetting = this.mfdSettingManager.getSetting('mfdUpperWindowState');
+    const currentState = upperWindowSetting.get();
+    // If the checklist is currently open, go back to the last state before the checklist was opened.
+    const nextState = currentState === MFDUpperWindowState.Checklist ? this.lastUpperWindowState : MFDUpperWindowState.Checklist;
+
+    this.lastUpperWindowState = currentState;
+
+    upperWindowSetting.set(nextState);
   }
 
   /**

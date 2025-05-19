@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, FSComponent, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subscription,
-  UserSettingManager, VNode, Vec2Math, Vec2Subject
+  CompiledMapSystem, FSComponent, FacilityLoader, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array,
+  Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys, MapOrientation, MapRangeController, TrafficSystem } from '@microsoft/msfs-garminsdk';
@@ -28,6 +28,9 @@ import './PfdMapInset.css';
  * Component props for PfdMapInset.
  */
 export interface PfdMapInsetProps extends PfdInsetProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the inset to display traffic, or `null` if there is no traffic system. */
   trafficSystem: TrafficSystem | null;
 
@@ -57,6 +60,8 @@ export class PfdMapInset extends AbstractPfdInset<PfdMapInsetProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNavMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       // Both left and right insets can use the same bing ID because only one of them can be shown at a time. They can
       // also use the same ID as the PFD pane map because the PFD pane map and insets can't be visible at the same time.

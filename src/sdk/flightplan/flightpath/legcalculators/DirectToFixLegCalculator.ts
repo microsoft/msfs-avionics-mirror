@@ -1,11 +1,10 @@
 import { GeoCircle } from '../../../geo/GeoCircle';
 import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
-import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -26,7 +25,7 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of DirectToFixLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, true);
   }
 
@@ -50,7 +49,7 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[1], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[1], leg.leg.fixIcaoStruct);
 
     if (!terminatorPos) {
       vectors.length = 0;
@@ -115,7 +114,7 @@ export class DirectToFixLegCalculator extends AbstractFlightPathLegCalculator {
           vectors, vectorIndex,
           startPoint, startPath,
           terminatorPos,
-          state.desiredTurnRadius.asUnit(UnitType.METER),
+          state.getDesiredTurnRadius(calculateIndex),
           FlightPathUtils.getLegDesiredTurnDirection(leg.leg),
           flags
         );

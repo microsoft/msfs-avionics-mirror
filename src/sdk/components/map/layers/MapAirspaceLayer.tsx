@@ -27,6 +27,9 @@ export interface MapAirspaceLayerProps extends MapLayerProps<MapAirspaceLayerMod
   /** The event bus. */
   bus: EventBus;
 
+  /** The facility loader to use to retrieve airspaces. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** A cache of LodBoundary objects to use to cache airspace search results. */
   lodBoundaryCache: LodBoundaryCache;
 
@@ -63,11 +66,7 @@ export class MapAirspaceLayer extends MapLayer<MapAirspaceLayerProps> {
   private clippedPathStream?: ClippedPathStream;
   private readonly clipBoundsSub = VecNSubject.createFromVector(new Float64Array(4));
 
-  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus), async () => {
-    this.searchSession = new NearestLodBoundarySearchSession(this.props.lodBoundaryCache, await this.facLoader.startNearestSearchSession(FacilitySearchType.Boundary), 0.5);
-
-    this.isAttached && this.scheduleSearch(0, true);
-  });
+  private readonly facLoader = this.props.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
 
   private searchSession?: NearestLodBoundarySearchSession;
   private readonly searchedAirspaces = new Map<number, LodBoundary>();
@@ -113,6 +112,27 @@ export class MapAirspaceLayer extends MapLayer<MapAirspaceLayerProps> {
   private isDisplayInvalidated = true;
 
   private isAttached = false;
+
+  /**
+   * Creates a new instance of MapAirspaceLayer.
+   * @param props The properties of the component.
+   */
+  public constructor(props: MapAirspaceLayerProps) {
+    super(props);
+
+    this.initNearestSearchSession();
+  }
+
+  /**
+   * Initializes this layer's nearest boundary search session.
+   */
+  private async initNearestSearchSession(): Promise<void> {
+    await this.facLoader.awaitInitialization();
+
+    this.searchSession = new NearestLodBoundarySearchSession(this.props.lodBoundaryCache, await this.facLoader.startNearestSearchSession(FacilitySearchType.Boundary), 0.5);
+
+    this.isAttached && this.scheduleSearch(0, true);
+  }
 
   /** @inheritdoc */
   public onAttached(): void {

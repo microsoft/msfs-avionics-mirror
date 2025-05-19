@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, EventBus, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Subscription, Vec2Math,
-  Vec2Subject, VecNMath, VNode
+  CompiledMapSystem, EventBus, FacilityLoader, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Subscription,
+  Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -29,6 +29,9 @@ export interface ConnextWeatherPaneViewProps extends DisplayPaneViewProps {
   /** The event bus. */
   bus: EventBus;
 
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The flight planner. */
   flightPlanner: FlightPlanner<G3000FlightPlannerId>;
 
@@ -55,6 +58,8 @@ export class ConnextWeatherPaneView extends DisplayPaneView<ConnextWeatherPaneVi
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.connextMap, {
+      facilityLoader: this.props.facLoader,
+
       bingId: `pane_map_${this.props.index}`,
       bingDelay: BingUtils.getBindDelayForPane(this.props.index),
 

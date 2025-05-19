@@ -1,6 +1,7 @@
 import { ConsumerValue } from '../data/ConsumerValue';
 import { EventBus, IndexedEventType } from '../data/EventBus';
 import { KeyEventData, KeyEventManager, KeyEvents } from '../data/KeyEventManager';
+import { RegisteredSimVarUtils } from '../data/SimVars';
 import { MathUtils } from '../math/MathUtils';
 import { ArrayUtils } from '../utils/datastructures/ArrayUtils';
 import { VirtualThrottleLeverEvents } from './VirtualThrottleLeverEvents';
@@ -15,6 +16,12 @@ export interface ThrottleKeyEventHandlerController {
    * @returns The throttle lever position, in the range -1 to +1.
    */
   getThrottleLeverPos(index: number): number;
+
+  /**
+   * Checks whether the VR group interaction flag is set to true.
+   * @returns Whether the VR group interaction flag is set to true.
+   */
+  isVrGroupInteractionOn(): boolean;
 
   /**
    * Sets a raw throttle lever position.
@@ -120,6 +127,8 @@ export class ThrottleLeverManager {
 
   private keyEventManager?: KeyEventManager;
 
+  private readonly vrGroupInteractionSimVar = RegisteredSimVarUtils.createBoolean('VR GROUP INTERACTION ON');
+
   private readonly rawStep: number;
   private readonly rawStepSmall: number;
 
@@ -127,6 +136,7 @@ export class ThrottleLeverManager {
 
   private readonly keyEventHandlerController: ThrottleKeyEventHandlerController = {
     getThrottleLeverPos: this.getThrottleLeverPos.bind(this),
+    isVrGroupInteractionOn: this.vrGroupInteractionSimVar.get.bind(this.vrGroupInteractionSimVar),
     setRawThrottleLeverPosition: this.setRawThrottleLeverPosition.bind(this),
     changeRawThrottleLeverPosition: this.changeRawThrottleLeverPosition.bind(this)
   };
@@ -238,6 +248,12 @@ export class ThrottleLeverManager {
     this.keyEventManager.interceptKey('THROTTLE3_CUT_EX1', false);
     this.keyEventManager.interceptKey('THROTTLE4_CUT_EX1', false);
 
+    this.keyEventManager.interceptKey('THROTTLE_IDLE', false);
+    this.keyEventManager.interceptKey('THROTTLE1_IDLE', false);
+    this.keyEventManager.interceptKey('THROTTLE2_IDLE', false);
+    this.keyEventManager.interceptKey('THROTTLE3_IDLE', false);
+    this.keyEventManager.interceptKey('THROTTLE4_IDLE', false);
+
     this.keyEventManager.interceptKey('THROTTLE_10', false);
     this.keyEventManager.interceptKey('THROTTLE_20', false);
     this.keyEventManager.interceptKey('THROTTLE_30', false);
@@ -320,26 +336,51 @@ export class ThrottleLeverManager {
   private initDefaultKeyEventHandlers(): void {
     const axisSet = (index: number | undefined, data: Readonly<KeyEventData>): void => {
       if (data.value0 !== undefined) {
+        // If the VR group interaction SimVar is true, then all throttle key events should be handled as if they apply
+        // to all throttles, even if the key event normally only applies to a single throttle.
+        if (index !== undefined && this.vrGroupInteractionSimVar.get()) {
+          index = undefined;
+        }
         this.setRawThrottleLeverPosition((data.value0 + ThrottleLeverManager.RAW_MAX) / 2, index, data.key);
       }
     };
 
     const set = (index: number | undefined, data: Readonly<KeyEventData>): void => {
       if (data.value0 !== undefined) {
+        // If the VR group interaction SimVar is true, then all throttle key events should be handled as if they apply
+        // to all throttles, even if the key event normally only applies to a single throttle.
+        if (index !== undefined && this.vrGroupInteractionSimVar.get()) {
+          index = undefined;
+        }
         this.setRawThrottleLeverPosition(data.value0, index, data.key);
       }
     };
 
     const setConstant = (position: number, index: number | undefined, data: Readonly<KeyEventData>): void => {
+      // If the VR group interaction SimVar is true, then all throttle key events should be handled as if they apply to
+      // all throttles, even if the key event normally only applies to a single throttle.
+      if (index !== undefined && this.vrGroupInteractionSimVar.get()) {
+        index = undefined;
+      }
       this.setRawThrottleLeverPosition(position, index, data.key);
     };
 
     const changeConstant = (delta: number, index: number | undefined, data: Readonly<KeyEventData>): void => {
+      // If the VR group interaction SimVar is true, then all throttle key events should be handled as if they apply to
+      // all throttles, even if the key event normally only applies to a single throttle.
+      if (index !== undefined && this.vrGroupInteractionSimVar.get()) {
+        index = undefined;
+      }
       this.changeRawThrottleLeverPosition(delta, index, data.key);
     };
 
     const change = (direction: 1 | -1, index: number | undefined, data: Readonly<KeyEventData>): void => {
       if (data.value0 !== undefined) {
+        // If the VR group interaction SimVar is true, then all throttle key events should be handled as if they apply
+        // to all throttles, even if the key event normally only applies to a single throttle.
+        if (index !== undefined && this.vrGroupInteractionSimVar.get()) {
+          index = undefined;
+        }
         this.changeRawThrottleLeverPosition(data.value0 * direction, index, data.key);
       }
     };
@@ -357,6 +398,7 @@ export class ThrottleLeverManager {
     const setZeroAll = setConstant.bind(this, 0, undefined);
     this.defaultKeyEventHandlers.set('THROTTLE_CUT', setZeroAll);
     this.defaultKeyEventHandlers.set('THROTTLE_CUT_EX1', setZeroAll);
+    this.defaultKeyEventHandlers.set('THROTTLE_IDLE', setZeroAll);
 
     this.defaultKeyEventHandlers.set('THROTTLE_10', setConstant.bind(this, ThrottleLeverManager.RAW_MAX * 0.1, undefined));
     this.defaultKeyEventHandlers.set('THROTTLE_20', setConstant.bind(this, ThrottleLeverManager.RAW_MAX * 0.2, undefined));
@@ -410,6 +452,7 @@ export class ThrottleLeverManager {
       const setZeroSingle = setConstant.bind(this, 0, i);
       this.defaultKeyEventHandlers.set(`THROTTLE${i}_CUT`, setZeroSingle);
       this.defaultKeyEventHandlers.set(`THROTTLE${i}_CUT_EX1`, setZeroSingle);
+      this.defaultKeyEventHandlers.set(`THROTTLE${i}_IDLE`, setZeroSingle);
 
       const incrSingle = changeConstant.bind(this, this.rawStep, i);
       this.defaultKeyEventHandlers.set(`THROTTLE${i}_INCR`, incrSingle);
@@ -438,14 +481,11 @@ export class ThrottleLeverManager {
   }
 
   /**
-   * Sets the position of a throttle lever.
-   * @param index The index of the throttle lever to set, from 1 to 4, inclusive.
-   * @param pos The position to set, in the range -1 to +1.
-   * @returns The throttle lever position at the end of the operation, in the range -1 to +1.
-   * @throws Error if `index` is out of bounds.
+   * Checks whether the VR group interaction flag is set to true.
+   * @returns Whether the VR group interaction flag is set to true.
    */
-  public setThrottleLeverPos(index: number, pos: number): number {
-    return this.setThrottleLeverPosRaw(index, pos * ThrottleLeverManager.RAW_MAX) / ThrottleLeverManager.RAW_MAX;
+  public isVrGroupInteractionOn(): boolean {
+    return this.vrGroupInteractionSimVar.get();
   }
 
   /**
@@ -455,33 +495,6 @@ export class ThrottleLeverManager {
    */
   public getThrottleLeverPos(index: number): number {
     return this.getThrottleLeverPosRaw(index) / ThrottleLeverManager.RAW_MAX;
-  }
-
-  /**
-   * Changes the position of a throttle lever.
-   * @param index The index of the throttle lever to change, from 1 to 4, inclusive.
-   * @param delta The amount by which to change the lever position. The full lever range is expressed as -1 to +1.
-   * @returns The throttle lever position at the end of the operation, in the range -1 to +1.
-   * @throws Error if `index` is out of bounds.
-   */
-  public changeThrottleLeverPos(index: number, delta: number): number {
-    return this.changeThrottleLeverPosRaw(index, delta * ThrottleLeverManager.RAW_MAX) / ThrottleLeverManager.RAW_MAX;
-  }
-
-  /**
-   * Sets the raw position of a throttle lever.
-   * @param index The index of the throttle lever to set, from 1 to 4, inclusive.
-   * @param pos The raw position to set, in the range -16384 to +16384.
-   * @returns The raw throttle lever position at the end of the operation, in the range -16384 to +16384.
-   * @throws Error if `index` is out of bounds.
-   */
-  public setThrottleLeverPosRaw(index: number, pos: number): number {
-    if (index < 1 || index > ThrottleLeverManager.THROTTLE_COUNT) {
-      throw new Error(`ThrottleLeverManager: throttle index (${index}) out of bounds`);
-    }
-
-    this.setRawThrottleLeverPosition(pos, index);
-    return this.throttleLevers[index - 1].rawPosition;
   }
 
   /**
@@ -499,7 +512,57 @@ export class ThrottleLeverManager {
   }
 
   /**
+   * Sets the position of a throttle lever.
+   * 
+   * **Note:** This method ignores the state of the VR group interaction flag. Only the position of specified throttle
+   * lever will be changed.
+   * @param index The index of the throttle lever to set, from 1 to 4, inclusive.
+   * @param pos The position to set, in the range -1 to +1.
+   * @returns The throttle lever position at the end of the operation, in the range -1 to +1.
+   * @throws Error if `index` is out of bounds.
+   */
+  public setThrottleLeverPos(index: number, pos: number): number {
+    return this.setThrottleLeverPosRaw(index, pos * ThrottleLeverManager.RAW_MAX) / ThrottleLeverManager.RAW_MAX;
+  }
+
+  /**
+   * Changes the position of a throttle lever.
+   * 
+   * **Note:** This method ignores the state of the VR group interaction flag. Only the position of specified throttle
+   * lever will be changed.
+   * @param index The index of the throttle lever to change, from 1 to 4, inclusive.
+   * @param delta The amount by which to change the lever position. The full lever range is expressed as -1 to +1.
+   * @returns The throttle lever position at the end of the operation, in the range -1 to +1.
+   * @throws Error if `index` is out of bounds.
+   */
+  public changeThrottleLeverPos(index: number, delta: number): number {
+    return this.changeThrottleLeverPosRaw(index, delta * ThrottleLeverManager.RAW_MAX) / ThrottleLeverManager.RAW_MAX;
+  }
+
+  /**
+   * Sets the raw position of a throttle lever.
+   * 
+   * **Note:** This method ignores the state of the VR group interaction flag. Only the position of specified throttle
+   * lever will be changed.
+   * @param index The index of the throttle lever to set, from 1 to 4, inclusive.
+   * @param pos The raw position to set, in the range -16384 to +16384.
+   * @returns The raw throttle lever position at the end of the operation, in the range -16384 to +16384.
+   * @throws Error if `index` is out of bounds.
+   */
+  public setThrottleLeverPosRaw(index: number, pos: number): number {
+    if (index < 1 || index > ThrottleLeverManager.THROTTLE_COUNT) {
+      throw new Error(`ThrottleLeverManager: throttle index (${index}) out of bounds`);
+    }
+
+    this.setRawThrottleLeverPosition(pos, index);
+    return this.throttleLevers[index - 1].rawPosition;
+  }
+
+  /**
    * Changes the raw position of a throttle lever.
+   * 
+   * **Note:** This method ignores the state of the VR group interaction flag. Only the position of specified throttle
+   * lever will be changed.
    * @param index The index of the throttle lever to change, from 1 to 4, inclusive.
    * @param delta The amount by which to change the raw lever position. The full lever range is expressed as -16384 to
    * +16384.

@@ -9,6 +9,9 @@ export type GpwsData = {
   /** Whether the airplane is on the ground. */
   isOnGround: boolean;
 
+  /** Whether the GPWS has detected the aircraft is in takeoff (or a low go-around) */
+  isTakeoff: boolean;
+
   /** Whether GPWS has a valid position fix. */
   isPosValid: boolean;
 
@@ -32,6 +35,19 @@ export type GpwsData = {
 
   /** The altitude of the nearest runway, in feet, or `null` if nearest runway data are not available. */
   nearestRunwayAltitude: number | null;
+
+  /** Whether the steep approach mode is activated */
+  isSteepApproachActive: boolean;
+
+  /** The GPWS inhibits which are active */
+  inhibits: {
+    /** The flap inhibit */
+    flaps: boolean;
+    /** The glideslope inhibit */
+    glideslope: boolean;
+    /** The terrain (TCF and TAD) inhibit */
+    terrain: boolean;
+  }
 };
 
 /**

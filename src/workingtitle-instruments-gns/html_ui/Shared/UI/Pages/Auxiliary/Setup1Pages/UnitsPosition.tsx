@@ -117,8 +117,6 @@ export class UnitsPosition extends AuxPage {
   });
   private readonly fuelMode = this.unitsSettingsManager.getSetting('unitsFuel').map(v => {
     switch (v) {
-      case UnitsFuelSettingMode.Gallons:
-        return Fuel.Gallons;
       case UnitsFuelSettingMode.ImpGal:
         return Fuel.ImpGals;
       case UnitsFuelSettingMode.Kilograms:
@@ -127,6 +125,8 @@ export class UnitsPosition extends AuxPage {
         return Fuel.Liters;
       case UnitsFuelSettingMode.Pounds:
         return Fuel.Pounds;
+      default:
+        return Fuel.Gallons;
     }
   });
   private readonly positionFormatMode = Subject.create(positionFormat.hdddmmmmm);

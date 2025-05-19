@@ -66,6 +66,8 @@ export class UiListItem extends DisplayComponent<UiListItemProps> implements UiI
 
   private readonly isChildFocusable = Subject.create(false);
 
+  private isFocused = false;
+
   /** @inheritdoc */
   public onAfterRender(thisNode: VNode): void {
     this.thisNode = thisNode;
@@ -100,6 +102,9 @@ export class UiListItem extends DisplayComponent<UiListItemProps> implements UiI
       focusableComponent?.canBeFocused.pipe(this._canBeFocused);
     } else {
       this._canBeFocused.set(true);
+      if (focusableComponent) {
+        this.isChildFocusable.sub(this.onIsChildFocusableChanged.bind(this), true);
+      }
     }
   }
 
@@ -109,11 +114,26 @@ export class UiListItem extends DisplayComponent<UiListItemProps> implements UiI
   }
 
   /**
+   * Responds to when whether this item's designated focusable component can be focused changes.
+   * @param isChildFocusable Whether this item's designated focusable component can be focused.
+   */
+  private onIsChildFocusableChanged(isChildFocusable: boolean): void {
+    // If this item's designated focusable component can be focused and this item is currently focused, then focus the
+    // designated component. This ensures that the designated component is always focused (when it can be) while this
+    // item is focused.
+    if (isChildFocusable && this.isFocused) {
+      this.focusController.setFocusIndex(0, UiFocusDirection.Recent);
+    }
+  }
+
+  /**
    * Responds to when this list item's root button gains focus.
    * @param button This list item's root button.
    * @param direction The direction from which the root button gained focus.
    */
   private onFocusGained(button: UiTouchButton, direction: UiFocusDirection): void {
+    this.isFocused = true;
+
     this.focusController.setFocusIndex(0, direction);
 
     this.props.onFocusGained && this.props.onFocusGained(direction);
@@ -123,6 +143,8 @@ export class UiListItem extends DisplayComponent<UiListItemProps> implements UiI
    * Responds to when this list item's root button loses focus.
    */
   private onFocusLost(): void {
+    this.isFocused = false;
+
     this.focusController.removeFocus();
 
     this.props.onFocusLost && this.props.onFocusLost();

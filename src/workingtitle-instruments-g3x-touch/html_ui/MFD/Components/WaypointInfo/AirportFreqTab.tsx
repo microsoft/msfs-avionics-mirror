@@ -1,7 +1,8 @@
 import {
   AirportFacility, ApproachUtils, ArraySubject, ComRadioIndex, ComSpacing, ExtendedApproachType, Facility,
   FacilityFrequencyType, FacilityLoader, FacilityType, FacilityUtils, FSComponent, MappedSubject, MathUtils,
-  NavRadioIndex, RadioFrequencyFormatter, RadioUtils, ReadonlyFloat64Array, Subject, Subscribable, Subscription, VNode,
+  NavRadioIndex, RadioFrequencyFormatter, RadioType, RadioUtils, ReadonlyFloat64Array, Subject, Subscribable,
+  SubscribableMapFunctions, Subscription, VNode,
 } from '@microsoft/msfs-sdk';
 
 import { DynamicListData, FmsUtils } from '@microsoft/msfs-garminsdk';
@@ -14,13 +15,17 @@ import { AbstractTabbedContent } from '../../../Shared/Components/TabbedContaine
 import { TabbedContentProps } from '../../../Shared/Components/TabbedContainer/TabbedContent';
 import { UiTouchButton } from '../../../Shared/Components/TouchButton/UiTouchButton';
 import { G3XFmsUtils } from '../../../Shared/FlightPlan/G3XFmsUtils';
-import { ComRadioSpacingDataProvider } from '../../../Shared/Radio/ComRadioSpacingDataProvider';
-import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
-import { UiKnobId } from '../../../Shared/UiSystem/UiKnobTypes';
-import { UiService } from '../../../Shared/UiSystem/UiService';
-import { SelectRadioDialog } from '../../Views/SelectRadioDialog';
-import { UiViewKeys, UiViewStackLayer } from '../../../Shared/UiSystem';
 import { G3XNavComControlEvents } from '../../../Shared/NavCom/G3XNavComEventPublisher';
+import { ComRadioSpacingDataProvider } from '../../../Shared/Radio/ComRadioSpacingDataProvider';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
+import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
+import { UiInteractionUtils } from '../../../Shared/UiSystem/UiInteractionUtils';
+import { UiKnobId } from '../../../Shared/UiSystem/UiKnobTypes';
+import { UiKnobUtils } from '../../../Shared/UiSystem/UiKnobUtils';
+import { UiService } from '../../../Shared/UiSystem/UiService';
+import { UiViewKeys } from '../../../Shared/UiSystem/UiViewKeys';
+import { UiViewStackLayer } from '../../../Shared/UiSystem/UiViewTypes';
+import { SelectRadioDialog } from '../../Views/SelectRadioDialog';
 
 import './AirportFreqTab.css';
 
@@ -30,6 +35,9 @@ import './AirportFreqTab.css';
 export interface AirportFreqTabProps extends TabbedContentProps {
   /** The UI service */
   uiService: UiService;
+
+  /** Whether the tab is allowed to handle bezel rotary knob push interactions. */
+  allowKnobPush: Subscribable<boolean>;
 
   /** The facility loader */
   facLoader: FacilityLoader;
@@ -42,6 +50,9 @@ export interface AirportFreqTabProps extends TabbedContentProps {
 
   /** The dimensions of the tab's content area, as `[width, height]` in pixels. */
   tabContentDimensions: Subscribable<ReadonlyFloat64Array>;
+
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 
   /** A provider of COM radio spacing mode data. */
   comRadioSpacingDataProvider: ComRadioSpacingDataProvider;
@@ -58,7 +69,7 @@ interface AirportFrequencyData extends DynamicListData {
   type: FacilityFrequencyType;
 
   /** The frequency's radio type. */
-  radioType: 'COM' | 'NAV';
+  radioType: RadioType.Com | RadioType.Nav;
 
   /** The name of the frequency. */
   name: string;
@@ -145,19 +156,27 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
 
   private readonly navComControlEventPub = this.props.uiService.bus.getPublisher<G3XNavComControlEvents>();
 
+  private readonly addressableComRadioCount = MappedSubject.create(
+    SubscribableMapFunctions.count<boolean>(isPowered => isPowered),
+    ...Object.values(this.props.radiosDataProvider.comRadioDataProviders).map(provider => provider.isPowered)
+  );
+  private readonly hasAddressableComRadio = this.addressableComRadioCount.map(count => count > 0);
+  private readonly addressableNavRadioCount = MappedSubject.create(
+    SubscribableMapFunctions.count<boolean>(isPowered => isPowered),
+    ...Object.values(this.props.radiosDataProvider.navRadioDataProviders).map(provider => provider.isPowered)
+  );
+  private readonly hasAddressableNavRadio = this.addressableNavRadioCount.map(count => count > 0);
+
   private readonly subscriptions: Subscription[] = [
-    this.facilityState
+    this.facilityState,
+    this.addressableComRadioCount,
+    this.addressableNavRadioCount,
   ];
 
   /** @inheritDoc */
   public onAfterRender(): void {
-    this._knobLabelState.set([
-      [UiKnobId.SingleInnerPush, 'Freqs'],
-      [UiKnobId.LeftInnerPush, 'Freqs'],
-      [UiKnobId.RightInnerPush, 'Freqs']
-    ]);
-
     this.subscriptions.push(
+      this.props.allowKnobPush.sub(this.updateKnobPushLabelState.bind(this), true),
       this.props.tabContentDimensions.sub(this.onTabContentDimensionsChanged.bind(this), true)
     );
 
@@ -191,7 +210,30 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
 
   /** @inheritDoc */
   public onUiInteractionEvent(event: UiInteractionEvent): boolean {
+    if (
+      !this.props.allowKnobPush.get()
+      && UiInteractionUtils.isKnobEvent(event)
+      && UiKnobUtils.isPushKnobId(UiInteractionUtils.KNOB_EVENT_TO_KNOB_ID[event])
+    ) {
+      return false;
+    }
+
     return this.listRef.instance.onUiInteractionEvent(event);
+  }
+
+  /**
+   * Updates the UI focus and visibility state of this tab's select runway button.
+   */
+  private updateKnobPushLabelState(): void {
+    if (this.props.allowKnobPush.get()) {
+      this._knobLabelState.setValue(UiKnobId.SingleInnerPush, 'Freqs');
+      this._knobLabelState.setValue(UiKnobId.LeftInnerPush, 'Freqs');
+      this._knobLabelState.setValue(UiKnobId.RightInnerPush, 'Freqs');
+    } else {
+      this._knobLabelState.delete(UiKnobId.SingleInnerPush);
+      this._knobLabelState.delete(UiKnobId.LeftInnerPush);
+      this._knobLabelState.delete(UiKnobId.RightInnerPush);
+    }
   }
 
   /**
@@ -276,7 +318,7 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
       data.push({
         facility,
         type: freq.type,
-        radioType: 'COM',
+        radioType: RadioType.Com,
         name: AirportFreqTab.FREQ_NAME_MAP[freq.type],
         frequencyHz: freqHz
       });
@@ -297,7 +339,7 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
         data.push({
           facility,
           type: FacilityFrequencyType.None,
-          radioType: 'NAV',
+          radioType: RadioType.Nav,
           name: FmsUtils.getApproachNameAsString(approachItems[i].approach),
           frequencyHz: MathUtils.round(referenceFacility.freqMHz * 1e6, 1e3)
         });
@@ -313,7 +355,7 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
    */
   private async onFrequencyPressed(data: AirportFrequencyData): Promise<void> {
     const radioType = data.radioType;
-    const radioCount = radioType === 'NAV' ? this.props.radiosConfig.navCount : this.props.radiosConfig.comCount;
+    const radioCount = radioType === 'NAV' ? this.addressableNavRadioCount.get() : this.addressableComRadioCount.get();
 
     if (radioCount === 0) {
       return;
@@ -324,7 +366,7 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
     let simRadioIndex: ComRadioIndex | NavRadioIndex | undefined;
 
     if (radioCount > 1) {
-      // If there is more than one addressable radio, open a dialog to let the user choose a radio.
+      // If there is more than one addressable radio, then open a dialog to let the user choose a radio.
 
       const result = await this.props.uiService
         .openMfdPopup<SelectRadioDialog>(UiViewStackLayer.Overlay, UiViewKeys.SelectRadioDialog, false, { popupType: 'slideout-right-full' })
@@ -340,8 +382,18 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
 
       simRadioIndex = radioDefs[result.payload]?.simIndex;
     } else {
-      // If there is only one addressable radio, automatically tune that radio.
-      simRadioIndex = radioDefs.find(def => !!def)?.simIndex;
+      // If there is only one addressable radio, then automatically tune that radio.
+
+      const radioDataProviders = radioType === 'NAV'
+        ? this.props.radiosDataProvider.navRadioDataProviders
+        : this.props.radiosDataProvider.comRadioDataProviders;
+
+      for (const index of [1, 2] as const) {
+        const dataProvider = radioDataProviders[index];
+        if (dataProvider?.isPowered.get()) {
+          simRadioIndex = dataProvider.simIndex;
+        }
+      }
     }
 
     if (simRadioIndex === undefined) {
@@ -349,9 +401,9 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
     }
 
     if (radioType === 'COM') {
-      this.setStandbyComFrequency(simRadioIndex as ComRadioIndex, data.frequencyHz, `${data.facility.icao.slice(7, 11)} ${data.name}`);
+      this.setStandbyComFrequency(simRadioIndex as ComRadioIndex, data.frequencyHz, `${data.facility.icaoStruct.ident} ${data.name}`);
     } else {
-      this.setStandbyNavFrequency(simRadioIndex as NavRadioIndex, data.frequencyHz, `${data.facility.icao.slice(7, 11)} ${data.name}`);
+      this.setStandbyNavFrequency(simRadioIndex as NavRadioIndex, data.frequencyHz, `${data.facility.icaoStruct.ident} ${data.name}`);
     }
   }
 
@@ -392,7 +444,7 @@ export class AirportFreqTab extends AbstractTabbedContent<AirportFreqTabProps> {
         <UiListFocusable>
           <UiTouchButton
             label={frequencyText}
-            isEnabled={(data.radioType === 'COM' ? this.props.radiosConfig.comCount : this.props.radiosConfig.navCount) > 0}
+            isEnabled={data.radioType === 'NAV' ? this.hasAddressableNavRadio : this.hasAddressableComRadio}
             onPressed={this.onFrequencyPressed.bind(this, data)}
             class='airport-freq-tab-freq-button'
           />

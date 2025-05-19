@@ -21,21 +21,23 @@ import {
 
 import {
   AuralAlertUserSettings, AuralAlertVoiceSetting, AvionicsConfig, AvionicsStatus, AvionicsStatusChangeEvent,
-  AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent, AvionicsStatusManager, ChecklistPaneView,
-  ConnextWeatherPaneView, DisplayOverlayLayer, DisplayPaneContainer, DisplayPaneIndex, DisplayPaneViewFactory,
-  DisplayPaneViewKeys, EspUserSettings, FlightPlanListManager, FlightPlanStore, FuelTotalizer,
-  G3000ComRadioUserSettings, G3000EspDefinition, G3000FacilityUtils, G3000FilePaths, G3000UserSettingSaveManager,
-  GduInteractionEventUtils, GpsStatusDataProvider, GpsStatusPane, InitializationProcess, InstrumentBackplaneNames,
-  MapUserSettings, MfdNavDataBarUserSettings, NavigationMapPaneView, NavRadioMonitorUserSettings, NearestPaneView,
-  PfdUserSettings, ProcedurePreviewPaneView, ToldModule, ToldResetType, TouchdownCalloutUserSettings,
-  TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView, WeightBalancePaneView, WeightBalancePaneViewModule,
-  WTG3000BaseInstrument, WTG3000FsInstrument
+  AvionicsStatusEvents, AvionicsStatusGlobalPowerEvent, AvionicsStatusManager, ChartsPaneView, ChecklistPaneView,
+  ConnextWeatherPaneView, DefaultChartsPaneViewDataProvider, DisplayOverlayLayer, DisplayPaneContainer,
+  DisplayPaneIndex, DisplayPaneViewFactory, DisplayPaneViewKeys, EspUserSettings, FlightPlanListManager,
+  FlightPlanStore, FuelTotalizer, G3000ComRadioUserSettings, G3000EspDefinition, G3000FacilityUtils, G3000FilePaths,
+  G3000UserSettingSaveManager, GduInteractionEventUtils, GpsStatusDataProvider, GpsStatusPane, InitializationProcess,
+  InstrumentBackplaneNames, MapUserSettings, MfdNavDataBarUserSettings, NavigationMapPaneView,
+  NavRadioMonitorUserSettings, NearestPaneView, PfdUserSettings, ProcedurePreviewPaneView, ToldModule, ToldResetType,
+  TouchdownCalloutUserSettings, TrafficMapPaneView, WaypointInfoPaneView, WeatherRadarPaneView, WeightBalancePaneView,
+  WeightBalancePaneViewModule, WTG3000BaseInstrument, WTG3000FsInstrument
 } from '@microsoft/msfs-wtg3000-common';
 
+import { G3000BaroTransitionAlertManager } from './Alerts/G3000BaroTransitionAlertManager';
 import { G3000APConfig } from './Autopilot/G3000APConfig';
 import { G3000Autopilot } from './Autopilot/G3000Autopilot';
 import { G3000AutopilotPluginOptions } from './Autopilot/G3000AutopilotPluginOptions';
 import { CasMasterAuralAlertManager } from './CAS/CasMasterAuralAlertManager';
+import { G3000ChartsManager } from './Charts/G3000ChartsManager';
 import { MfdNavDataBar } from './Components/NavDataBar/MfdNavDataBar';
 import { StartupScreen } from './Components/Startup/StartupScreen';
 import { StartupScreenPrebuiltRow, StartupScreenRowFactory } from './Components/Startup/StartupScreenRow';
@@ -201,6 +203,13 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   private readonly minimumsManager = new MinimumsManager(this.bus);
   private readonly minimumsUnitsManager = new MinimumsUnitsManager(this.bus);
 
+  private readonly baroTransitionAlertManager = new G3000BaroTransitionAlertManager(
+    this.bus,
+    this.config,
+    this.pfdSensorsSettingManager,
+    this.flightPlanStore
+  );
+
   private readonly trafficInstrument = new TrafficInstrument(this.bus, { realTimeUpdateFreq: 2, simTimeUpdateFreq: 1, contactDeprecateTime: 10 });
   private readonly xpdrInstrument = new XPDRInstrument(this.bus);
   private readonly trafficAvionicsSystem = this.config.traffic.resolve()(this.bus, this.trafficInstrument, 10000);
@@ -299,6 +308,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   );
 
   private readonly initializationManager = new InitializationManager(this.bus);
+
+  private readonly chartsManager = new G3000ChartsManager(this.bus, this.fms, this.fmsPositionSystemSelector.selectedIndex);
 
   private checklistManager?: ChecklistManager;
 
@@ -400,6 +411,9 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
   private async doInit(): Promise<void> {
     await this.initPlugins();
 
+    this.initChartSources(this.pluginSystem);
+    this.chartsManager.init(this.chartsSources);
+
     await this.initChecklist(this.pluginSystem);
 
     const pluginPersistentSettings = new Map<string, UserSetting<any>>();
@@ -413,6 +427,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     if (!this.config.persistentUserSettings.disablePersistentSettings) {
       this.initPersistentSettings(this.config.persistentUserSettings.aircraftKey, pluginPersistentSettings.values());
     }
+
+    this.chartsManager.startReconcilePreferredSource();
 
     this.auralAlertXmlAdapter.start();
     this.auralAlertWarningAdapter.start();
@@ -453,6 +469,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.fmsSpeedManager?.init();
     this.minimumsUnitsManager.init();
     this.xpdrTcasManager?.init(true);
+    this.baroTransitionAlertManager.init();
     this.trafficSystem.init();
 
     if (this.terrainSystem) {
@@ -670,7 +687,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
     this.flightPlanRouteSyncManager.init(
       manager,
       new GarminPrimaryFlightPlanRouteLoader(this.fms, {
-        userFacilityScope: G3000FacilityUtils.USER_FACILITY_SCOPE
+        userFacilityScope: G3000FacilityUtils.USER_FACILITY_SCOPE,
+        allowRnpArApproaches: this.config.fms.approach.supportRnpAr,
       }),
       new GarminPrimaryFlightPlanRouteProvider(this.fms)
     );
@@ -842,6 +860,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         <TrafficMapPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -854,6 +873,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         <ConnextWeatherPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           windDataProvider={this.windDataProvider}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -866,6 +886,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         <ProcedurePreviewPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           fms={this.fms}
           flightPathCalculator={this.flightPathCalculator}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -895,6 +916,25 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
           windDataProvider={this.windDataProvider}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
           config={this.config.map}
+        />
+      );
+    });
+
+    this.displayPaneViewFactory.registerView(DisplayPaneViewKeys.Charts, index => {
+      return (
+        <ChartsPaneView
+          index={index}
+          dataProviderFactory={() => new DefaultChartsPaneViewDataProvider(this.bus, this.chartsSources, index, this.pfdSensorsSettingManager, false)}
+          chartsConfig={this.config.charts}
+        />
+      );
+    });
+    this.displayPaneViewFactory.registerView(DisplayPaneViewKeys.ProcedurePreviewCharts, index => {
+      return (
+        <ChartsPaneView
+          index={index}
+          dataProviderFactory={() => new DefaultChartsPaneViewDataProvider(this.bus, this.chartsSources, index, this.pfdSensorsSettingManager, true)}
+          chartsConfig={this.config.charts}
         />
       );
     });
@@ -1111,6 +1151,9 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
 
       this.fmsSpeedManager?.resetUserOverride();
 
+      this.baroTransitionAlertManager.reset();
+      this.baroTransitionAlertManager.pause();
+
       this.vSpeedBugManager.pause();
       this.trafficOperatingModeManager?.pause();
       this.xpdrTcasManager?.pause();
@@ -1144,6 +1187,8 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
         EspUserSettings.getManager(this.bus).getSetting('espEnabled').value = true;
         this.esp.setAvionicsPowered(true);
       }
+
+      this.baroTransitionAlertManager.resume();
 
       this.terrainSystem?.turnOn();
 
@@ -1191,6 +1236,7 @@ export class WTG3000MfdInstrument extends WTG3000FsInstrument {
       this.toldManager.reset(ToldResetType.All);
       this.toldManager.resume();
       this.toldComputer?.resume();
+      this.chartsManager.reset();
       this.checklistManager?.wake();
 
       // Set generic timer mode to counting up.

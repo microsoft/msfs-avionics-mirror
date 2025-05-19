@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+}
+
+.gpws-inhibit-container .page-container {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: 650px;
+  height: 500px;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.gpws-inhibit-container .page-container .title {
+  position: absolute;
+  top: 15px;
+  left: 20px;
+  font-size: 28px;
+  font-family: sans-serif;
+}
+
+.gpws-inhibit-container .page-container .touch-button {
+  height: 80px;
+  width: 33%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-top: 7px solid lightgray;
+  margin-left: 4px;
+  background-color: #272727;
+  display: flex;
+}
+
+.gpws-inhibit-container .page-container .touch-button-active {
+  border-top: 7px solid green;
+}
+
+.gpws-inhibit-container .page-container .touch-button.touch-button-base,
+.gpws-inhibit-container .page-container .touch-button-base {
+  border-image-source: none;
+}
+
+.gpws-inhibit-container .page-container .touch-button.touch-button-base.touch-button-active::after {
+  content: none;
+}
+
+.gpws-inhibit-container .page-container .touch-button-base.touch-button-active::after,
+.gpws-inhibit-container .page-container .touch-button-base:hover::after {
+  content: none;
+}
+
+.gpws-inhibit-container .page-container .touch-button-label {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  font-size: 20px;
+  margin: auto auto;
+}
+
+.gpws-inhibit-container .tsc-tabbed-content-container {
+  position: relative;
+  top: 0px;
+  left: 150px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 641px;
+}
+
+.gpws-inhibit-container .tsc-tabbed-content-container>div {
+  position: absolute !important;
+  top: 95px !important;
+  left: -130px !important;
+}
+
+.gpws-inhibit-button-active {
+  height: 10px;
+  width: 35%;
+  border: 2px solid var(--epic2-color-grey);
+  border-radius: 4px;
+  transform: translateY(-5px);
+}
+
+.gpws-inhibit-button-active.active {
+  background-color: var(--epic2-color-green);
+}
+
+.gpws-inhibit-button.touch-button {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

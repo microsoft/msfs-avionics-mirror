@@ -233,19 +233,23 @@ export class FlightPlanAmendListItem extends DisplayComponent<FlightPlanAmendLis
    * Sets the visibility of the join button
    * @param data The amend waypoint selected
    */
-  private setJoinButtonVisibility(data: FlightPlanLegData | undefined): void {
-    if (data && ICAO.isValueFacility(data.leg.leg.fixIcaoStruct, FacilityType.Intersection)) {
+  private async setJoinButtonVisibility(data: FlightPlanLegData | undefined): Promise<void> {
+    if (data && ICAO.isValueFacility(data.leg.leg.fixIcaoStruct)) {
       const segmentType = data.segment.segmentType;
       if (segmentType == FlightPlanSegmentType.Departure || segmentType == FlightPlanSegmentType.Enroute) {
-        this.props.fms.facLoader.getFacility(FacilityType.Intersection, data.leg.leg.fixIcaoStruct).then((fac) => {
-          this.isIntersection.set((fac && fac.routes !== undefined && fac.routes.length > 0) ? true : false);
-        });
-      } else {
-        this.isIntersection.set(false);
+        switch (ICAO.getFacilityTypeFromValue(data.leg.leg.fixIcaoStruct)) {
+          case FacilityType.VOR:
+          case FacilityType.NDB:
+          case FacilityType.Intersection: {
+            const fac = await this.props.fms.facLoader.tryGetFacility(FacilityType.Intersection, data.leg.leg.fixIcaoStruct);
+            this.isIntersection.set(fac?.routes !== undefined && fac.routes.length > 0);
+            return;
+          }
+        }
       }
-    } else {
-      this.isIntersection.set(false);
     }
+
+    this.isIntersection.set(false);
   }
 
   /** @inheritdoc */

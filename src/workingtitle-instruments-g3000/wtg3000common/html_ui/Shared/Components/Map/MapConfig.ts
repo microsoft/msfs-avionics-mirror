@@ -5,7 +5,7 @@ import { G3000FilePaths } from '../../G3000FilePaths';
  * A configuration object which defines options related to maps.
  */
 export class MapConfig implements Config {
-  private static readonly DEFAULT_AIRPLANE_ICON_SRC = `${G3000FilePaths.ASSETS_PATH}/Images/Map/airplane_generic.svg`;
+  private static readonly DEFAULT_AIRPLANE_ICON_SRC = `${G3000FilePaths.ASSETS_PATH}/Images/Map/icon_airplane_generic.png`;
   private static readonly DEFAULT_TRAFFIC_RANGE_LABEL_RADIAL = 135;
 
   /** The path to the own airplane icon's image asset. */

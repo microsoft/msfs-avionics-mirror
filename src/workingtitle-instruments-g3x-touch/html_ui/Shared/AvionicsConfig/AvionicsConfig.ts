@@ -1,5 +1,6 @@
 import { Annunciation, XMLAnnunciationFactory } from '@microsoft/msfs-sdk';
 
+import { G3XChartsConfig } from '../Charts/G3XChartsConfig';
 import { MapConfig } from '../Components/Map/MapConfig';
 import { DefaultConfigFactory } from '../Config/DefaultConfigFactory';
 import { TrafficConfig } from '../Traffic/TrafficConfig';
@@ -12,6 +13,7 @@ import { FmsConfig } from './FmsConfig';
 import { GduDefsConfig } from './GduDefsConfig';
 import { RadiosConfig } from './RadiosConfig';
 import { SensorsConfig } from './SensorsConfig';
+import { UnitsConfig } from './UnitsConfig';
 
 /**
  * A configuration object which defines options for G3X Touch avionics systems.
@@ -49,6 +51,12 @@ export class AvionicsConfig {
   /** A config that defines options for maps. */
   public readonly map: MapConfig;
 
+  /** A config that defines options for electronic charts. */
+  public readonly charts: G3XChartsConfig;
+
+  /** A config that defines options for measurement units. */
+  public readonly units: UnitsConfig;
+
   /** A config that defines options for the display of engine information. */
   public readonly engine: EngineConfig;
 
@@ -74,6 +82,8 @@ export class AvionicsConfig {
     this.autopilot = this.parseAutopilotConfig(baseInstrument, g3xRoot?.querySelector(':scope>Autopilot') ?? null);
     this.traffic = this.parseTrafficConfig(baseInstrument, g3xRoot?.querySelector(':scope>Traffic') ?? null);
     this.map = this.parseMapConfig(g3xRoot?.querySelector(':scope>Map') ?? null);
+    this.charts = this.parseChartsConfig(g3xRoot?.querySelector(':scope>Charts') ?? null);
+    this.units = this.parseUnitsConfig(g3xRoot?.querySelector(':scope>Units') ?? null);
     this.engine = this.parseEngineConfig(baseInstrument, g3xRoot?.querySelector(':scope>Engine') ?? null);
 
     const casAnnunciationsElement = g3xRoot?.querySelector(':scope>Annunciations');
@@ -258,6 +268,40 @@ export class AvionicsConfig {
     }
 
     return new MapConfig(undefined);
+  }
+
+  /**
+   * Parses an electronic charts configuration object from a configuration document element.
+   * @param element A configuration document element.
+   * @returns The electronic charts configuration defined by the configuration document element.
+   */
+  private parseChartsConfig(element: Element | null): G3XChartsConfig {
+    if (element !== null) {
+      try {
+        return new G3XChartsConfig(element);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new G3XChartsConfig(undefined);
+  }
+
+  /**
+   * Parses a units configuration object from a configuration document element.
+   * @param element A configuration document element.
+   * @returns The units configuration defined by the configuration document element.
+   */
+  private parseUnitsConfig(element: Element | null): UnitsConfig {
+    if (element !== null) {
+      try {
+        return new UnitsConfig(element);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return new UnitsConfig(undefined);
   }
 
   /**

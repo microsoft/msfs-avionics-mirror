@@ -83,17 +83,19 @@ export interface CasEvents {
   /** Activate an alert at a given priority. */
   'cas_activate_alert': {
     /** The alert key that's going active. */
-    key: CasAlertKey,
+    key: CasAlertKey;
     /** The priority the new alert will have. */
-    priority: AnnunciationType
+    priority: AnnunciationType;
+    /** Whether the new alert should be initialized as acknowledged. Defaults to `false`. */
+    initialAcknowledge?: boolean;
   };
 
   /** Deactivate an alert. */
   'cas_deactivate_alert': {
     /** The alert key that's going inactive. */
-    key: CasAlertKey,
+    key: CasAlertKey;
     /** The priority of the alert that's going inactive. */
-    priority: AnnunciationType
+    priority: AnnunciationType;
   };
 
   /** Sets whether newly activated alerts are initialized as acknowledged. */
@@ -105,9 +107,9 @@ export interface CasEvents {
   /** Acknowledges a single alert. */
   'cas_single_acknowledge': {
     /** The alert key that's going active. */
-    key: CasAlertKey,
+    key: CasAlertKey;
     /** The priority the new alert will have. */
-    priority: AnnunciationType
+    priority: AnnunciationType;
   };
 
   /** Enable a CAS inhibit state. */
@@ -177,6 +179,17 @@ export interface CasStateEvents {
 }
 
 /**
+ * An alert that has been scheduled to be activated at the end of a debounce.
+ */
+type ScheduledAlert = {
+  /** The amount of time remaining before the alert can be activated, in milliseconds. */
+  timeRemaining: number;
+
+  /** Whether the alert should be initially acknowledged when activated. */
+  initialAcknowledge: boolean;
+};
+
+/**
  * A system for CAS management.
  *
  * Every avionics system must have exactly one instance of CasSystem configured as the primary system. This is the one
@@ -195,8 +208,8 @@ export class CasSystem {
   private registeredAlerts = new Map<string, CasAlertDefinition>();
   private activeInhibitStates = new Set<string>();
 
-  private scheduledSuffixedAlerts = new Map<string, Map<string, Map<AnnunciationType, number>>>();
-  private scheduledUnsuffixedAlerts = new Map<string, Map<AnnunciationType, number>>();
+  private readonly scheduledSuffixedAlerts = new Map<string, Map<string, Map<AnnunciationType, ScheduledAlert>>>();
+  private readonly scheduledUnsuffixedAlerts = new Map<string, Map<AnnunciationType, ScheduledAlert>>();
   private previousScheduleCheckTime = -1;
 
   private isPrimary: boolean;
@@ -286,7 +299,7 @@ export class CasSystem {
     });
 
     this.casSubscriber.on('cas_activate_alert').handle(eventData => {
-      this.scheduleAlert(eventData.key, eventData.priority);
+      this.scheduleAlert(eventData.key, eventData.priority, eventData.initialAcknowledge === true);
     });
 
     this.casSubscriber.on('cas_deactivate_alert').handle(eventData => {
@@ -352,9 +365,10 @@ export class CasSystem {
    * Create a new message from an alert key at a given priority.
    * @param alertKey The alert key.
    * @param priority The priority.
+   * @param initialAcknowledge Whether the alert is initially acknowledged.
    * @returns A new CasActiveMessage or undefined if the key was invalid.
    */
-  private createNewMessage(alertKey: CasAlertKey, priority: AnnunciationType): CasActiveMessage | undefined {
+  private createNewMessage(alertKey: CasAlertKey, priority: AnnunciationType, initialAcknowledge: boolean): CasActiveMessage | undefined {
     const def = this.registeredAlerts.get(alertKey.uuid);
     if (def === undefined) {
       return undefined;
@@ -372,7 +386,7 @@ export class CasSystem {
       uuid: alertKey.uuid,
       message: def.message ?? 'MISSING MESSAGE',
       priority: priority,
-      acknowledged: this.initialAcknowledge,
+      acknowledged: initialAcknowledge,
       inhibited: inhibited,
       suppressed: false,
       lastActive: Date.now(),
@@ -386,15 +400,16 @@ export class CasSystem {
    * Schedule an alert to go active at the end of its debounce time.
    * @param alertKey The UUID and optional suffix of the alert to handle.
    * @param priority The priority of the alert to fire.
+   * @param initialAcknowledge Whether the alert is initially acknowledged.
    */
-  private scheduleAlert(alertKey: CasAlertKey, priority: AnnunciationType): void {
+  private scheduleAlert(alertKey: CasAlertKey, priority: AnnunciationType, initialAcknowledge: boolean): void {
     if (!this.checkValidAlertKey(alertKey)) {
       return;
     }
 
     const debounceTime = this.registeredAlerts.get(alertKey.uuid)?.debounceTime;
     if (debounceTime === undefined) {
-      this.activateAlert(alertKey, priority);
+      this.activateAlert(alertKey, priority, initialAcknowledge);
       return;
     }
 
@@ -402,30 +417,28 @@ export class CasSystem {
     if (alertKey.suffix !== undefined) {
       let uuidMap = this.scheduledSuffixedAlerts.get(alertKey.uuid);
       if (uuidMap === undefined) {
-        uuidMap = new Map<string, Map<AnnunciationType, number>>();
+        uuidMap = new Map<string, Map<AnnunciationType, ScheduledAlert>>();
         this.scheduledSuffixedAlerts.set(alertKey.uuid, uuidMap);
       }
       let suffixMap = uuidMap.get(alertKey.suffix);
       if (suffixMap === undefined) {
-        suffixMap = new Map<AnnunciationType, number>();
+        suffixMap = new Map<AnnunciationType, ScheduledAlert>();
         uuidMap.set(alertKey.suffix, suffixMap);
       }
-      const time = suffixMap.get(priority);
-      if (time !== undefined) {
+      if (suffixMap.get(priority)) {
         return;
       }
-      suffixMap.set(priority, debounceTime);
+      suffixMap.set(priority, { timeRemaining: debounceTime, initialAcknowledge });
     } else {
       let uuidMap = this.scheduledUnsuffixedAlerts.get(alertKey.uuid);
       if (uuidMap === undefined) {
-        uuidMap = new Map<AnnunciationType, number>();
+        uuidMap = new Map<AnnunciationType, ScheduledAlert>();
         this.scheduledUnsuffixedAlerts.set(alertKey.uuid, uuidMap);
       }
-      const time = uuidMap.get(priority);
-      if (time !== undefined) {
+      if (uuidMap.has(priority)) {
         return;
       }
-      uuidMap.set(priority, debounceTime);
+      uuidMap.set(priority, { timeRemaining: debounceTime, initialAcknowledge });
     }
   }
 
@@ -440,13 +453,11 @@ export class CasSystem {
       if (deltaTime > 0) {
         // Handle unsuffixed alerts.
         for (const [uuid, uuidMap] of this.scheduledUnsuffixedAlerts) {
-          for (const [priority, delay] of uuidMap) {
-            const newDelay = delay - deltaTime;
-            if (newDelay <= 0) {
+          for (const [priority, alert] of uuidMap) {
+            alert.timeRemaining -= deltaTime;
+            if (alert.timeRemaining <= 0) {
               uuidMap.delete(priority);
-              this.activateAlert({ uuid: uuid }, priority);
-            } else {
-              uuidMap.set(priority, newDelay);
+              this.activateAlert({ uuid: uuid }, priority, alert.initialAcknowledge);
             }
           }
         }
@@ -455,13 +466,11 @@ export class CasSystem {
         for (const [uuid, uuidMap] of this.scheduledSuffixedAlerts) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for (const [suffix, suffixMap] of uuidMap) {
-            for (const [priority, delay] of suffixMap) {
-              const newDelay = delay - deltaTime;
-              if (newDelay <= 0) {
+            for (const [priority, alert] of suffixMap) {
+              alert.timeRemaining -= deltaTime;
+              if (alert.timeRemaining <= 0) {
                 suffixMap.delete(priority);
-                this.activateAlert({ uuid: uuid, suffix: suffix }, priority);
-              } else {
-                suffixMap.set(priority, newDelay);
+                this.activateAlert({ uuid: uuid, suffix: suffix }, priority, alert.initialAcknowledge);
               }
             }
           }
@@ -476,24 +485,27 @@ export class CasSystem {
    * Handle an alert going active.
    * @param alertKey The UUID and optional suffix of the alert to handle.
    * @param priority The priority of the alert to fire.
+   * @param initialAcknowledge Whether the alert is initially acknowledged.
    */
-  private activateAlert(alertKey: CasAlertKey, priority: AnnunciationType): void {
+  private activateAlert(alertKey: CasAlertKey, priority: AnnunciationType, initialAcknowledge: boolean): void {
     if (!this.checkValidAlertKey(alertKey)) {
       return;
     }
+
+    initialAcknowledge ||= this.initialAcknowledge;
 
     // Check to see if there's an existing alert for this message at this priority level.
     const messagesAtPriority = this.allMessages.get(priority);
     const uuidMessageAtPriority = messagesAtPriority?.get(alertKey.uuid);
     if (uuidMessageAtPriority === undefined) {
       // There's not already an existing message, so we make one.
-      const newMessage = this.createNewMessage(alertKey, priority);
+      const newMessage = this.createNewMessage(alertKey, priority, initialAcknowledge);
       if (newMessage !== undefined) {
         messagesAtPriority?.set(alertKey.uuid, newMessage);
       }
     } else {
       // There is an existing message at this priority level so we need to update it instead.
-      uuidMessageAtPriority.acknowledged &&= this.initialAcknowledge;
+      uuidMessageAtPriority.acknowledged &&= initialAcknowledge;
       uuidMessageAtPriority.lastActive = Date.now();
 
       // Suffix handling.  If one is in the alert key, make sure it's added to the active
@@ -506,7 +518,7 @@ export class CasSystem {
         if (!suffixes.includes(alertKey.suffix)) {
           suffixes.push(alertKey.suffix);
 
-          if (this.initialAcknowledge) {
+          if (initialAcknowledge) {
             acknowledgedSuffixes.push(alertKey.suffix);
           }
 
@@ -515,7 +527,7 @@ export class CasSystem {
             const comparator = (a: string, b: string): number => suffixOrder.indexOf(a) - suffixOrder.indexOf(b);
             suffixes.sort(comparator);
 
-            if (this.initialAcknowledge) {
+            if (initialAcknowledge) {
               acknowledgedSuffixes.sort(comparator);
             }
           }

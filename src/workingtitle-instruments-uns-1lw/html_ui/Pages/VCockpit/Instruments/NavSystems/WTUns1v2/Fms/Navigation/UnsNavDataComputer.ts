@@ -1,7 +1,7 @@
 import {
   BitFlags, ClockEvents, ConsumerSubject, ControlEvents, EventBus, FlightPathUtils, FlightPathVectorFlags, FlightPlanner, GeoCircle, GeoPoint,
-  GeoPointInterface, GNSSEvents, LegDefinition, LegDefinitionFlags, LegType, LNavEvents, LNavTransitionMode, LNavUtils, MagVar, NavEvents,
-  NavSourceId, NavSourceType, Publisher, Subject, UnitType
+  GeoPointInterface, GNSSEvents, LegDefinition, LegDefinitionFlags, LegType, LNavEvents, LNavTransitionMode, LNavUtils, MagVar, NavEvents, NavSourceId,
+  NavSourceType, Publisher, Subject, UnitType
 } from '@microsoft/msfs-sdk';
 
 import { UnsLNavConfig } from '../../Config/LNavConfigBuilder';
@@ -68,7 +68,7 @@ export class UnsNavDataComputer {
   private readonly lnavIsSuspended: ConsumerSubject<boolean>;
 
   private readonly eventBusTopicPublishers: {
-    [P in keyof Omit<BaseUnsLNavDataEvents, 'lnavdata_cdi_scale_label'>]: LNavDataTopicPublisher<P>;
+    [P in keyof Omit<BaseUnsLNavDataEvents, 'lnavdata_flight_area'>]: LNavDataTopicPublisher<P>;
   };
 
   private cdiSource?: NavSourceId;
@@ -142,7 +142,7 @@ export class UnsNavDataComputer {
    */
   private republishEventBusTopics(): void {
     for (const topic in this.eventBusTopicPublishers) {
-      this.eventBusTopicPublishers[topic as keyof Omit<BaseUnsLNavDataEvents, 'lnavdata_cdi_scale_label'>].publish();
+      this.eventBusTopicPublishers[topic as keyof Omit<BaseUnsLNavDataEvents, 'lnavdata_flight_area'>].publish();
     }
   }
 

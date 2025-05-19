@@ -32,6 +32,8 @@ export class G3XTouchSecondaryFsInstrument extends G3XTouchFsInstrument {
   private async doInit(): Promise<void> {
     await this.initPlugins();
 
+    this.initChartSources(this.pluginSystem);
+
     this.initPersistentSettings();
 
     this.backplane.init();
@@ -44,7 +46,7 @@ export class G3XTouchSecondaryFsInstrument extends G3XTouchFsInstrument {
     this.windDataProvider.init();
     this.vnavDataProvider.init();
     this.posHeadingDataProvider.init();
-    this.comRadioSpacingDataProvider.init();
+    this.radiosDataProvider.init();
     this.navComSavedFrequenciesProvider.init();
     this.mapTerrainWxSettingCompatManager.init();
 

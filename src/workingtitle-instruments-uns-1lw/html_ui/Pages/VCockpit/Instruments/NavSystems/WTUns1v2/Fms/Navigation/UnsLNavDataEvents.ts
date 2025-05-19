@@ -1,18 +1,6 @@
 import { BaseLNavDataEvents } from '@microsoft/msfs-sdk';
 
-/**
- * Valid CDI scale labels for the LVar scale enum.
- */
-export enum CDIScaleLabel {
-  Departure,
-  Terminal,
-  TerminalDeparture,
-  TerminalArrival,
-  Enroute,
-  Oceanic,
-  Approach,
-  MissedApproach
-}
+import { UnsFlightAreas } from '../UnsFlightAreas';
 
 /**
  * Events derived from Epic 2 LNAV-related data sim vars.
@@ -22,7 +10,7 @@ export interface BaseUnsLNavDataEvents extends Omit<BaseLNavDataEvents, 'lnavdat
   lnavdata_nominal_leg_index: number;
 
   /** The current CDI scale label. */
-  lnavdata_cdi_scale_label: CDIScaleLabel;
+  lnavdata_flight_area: UnsFlightAreas;
 
   /** The straight-line distance between the present position and the destination, in nautical miles. */
   lnavdata_destination_distance_direct: number;

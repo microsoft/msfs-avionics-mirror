@@ -72,6 +72,7 @@ export class FlightPlanConfigSection extends DisplayComponent<FlightPlanConfigSe
         fms={this.props.fms}
         modalService={this.props.modalService}
         activeFlightPlanStore={this.props.activeFlightPlanStore}
+        pendingFlightPlanStore={this.props.pendingFlightPlanStore}
         perfPlanRepository={this.props.perfPlanRepository}
         inputFocusManager={this.inputFocusManager}
         vSpeedController={this.props.vSpeedController}
@@ -84,6 +85,7 @@ export class FlightPlanConfigSection extends DisplayComponent<FlightPlanConfigSe
         bus={this.props.bus}
         modalService={this.props.modalService}
         activeFlightPlanStore={this.props.activeFlightPlanStore}
+        pendingFlightPlanStore={this.props.pendingFlightPlanStore}
         fms={this.props.fms}
         perfPlanRepository={this.props.perfPlanRepository}
         inputFocusManager={this.inputFocusManager}

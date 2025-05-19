@@ -10,13 +10,15 @@ import {
 } from '@microsoft/msfs-sdk';
 
 import {
-  AdfRadioSource, AvionicsConfig, DefaultAirGroundDataProvider, DefaultAirspeedDataProvider, DefaultAltitudeDataProvider, DefaultAttitudeDataProvider,
-  DefaultAutopilotDataProvider, DefaultAutothrottleDataProvider, DefaultFlapWarningDataProvider, DefaultHeadingDataProvider, DefaultInertialDataProvider,
-  DefaultLandingGearDataProvider, DefaultNavigationSourceDataProvider, DefaultRadioAltimeterDataProvider, DefaultStallWarningDataProvider,
-  DefaultTawsDataProvider, DefaultTcasRaCommandDataProvider, DefaultVerticalDeviationDataProvider, DefaultVSpeedDataProvider, DisplayUnitDefinition, DisplayUnitIndices, Epic2Adsb,
-  Epic2BearingPointerNavIndicator, Epic2CourseNeedleNavIndicator, Epic2CourseNeedleNavSourceNames, Epic2FsInstrument, Epic2GhostNeedleNavIndicator,
-  Epic2GhostNeedleNavSourceNames, Epic2NavIndicator, Epic2NavIndicatorName, Epic2NavIndicators, Epic2NavSourceNames, Epic2TcasII, Epic2TransponderManager,
-  Epic2VSpeedController, GpsSource, InstrumentBackplaneNames, MapDataProvider, MapWaypointsDisplay, NavIndicators, NavRadioNavSource, NavSources
+  AdfRadioSource, AltitudeLossAfterTakeoffModule, AvionicsConfig, DefaultAirGroundDataProvider, DefaultAirspeedDataProvider, DefaultAltitudeDataProvider,
+  DefaultAttitudeDataProvider, DefaultAutopilotDataProvider, DefaultAutothrottleDataProvider, DefaultFlapWarningDataProvider, DefaultHeadingDataProvider,
+  DefaultInertialDataProvider, DefaultLandingGearDataProvider, DefaultNavigationSourceDataProvider, DefaultRadioAltimeterDataProvider,
+  DefaultStallWarningDataProvider, DefaultTawsDataProvider, DefaultTcasRaCommandDataProvider, DefaultVerticalDeviationDataProvider, DefaultVSpeedDataProvider,
+  DisplayUnitDefinition, DisplayUnitIndices, Epic2Adsb, Epic2BearingPointerNavIndicator, Epic2CourseNeedleNavIndicator, Epic2CourseNeedleNavSourceNames,
+  Epic2FsInstrument, Epic2GhostNeedleNavIndicator, Epic2GhostNeedleNavSourceNames, Epic2NavIndicator, Epic2NavIndicatorName, Epic2NavIndicators,
+  Epic2NavSourceNames, Epic2TcasII, Epic2TransponderManager, Epic2VSpeedController, ExcessiveDescentRateModule, ExcessiveGlideslopeDeviationModule,
+  ExcessiveTerrainClosureModule, GpsSource, Gpws, GpwsAlertController, InstrumentBackplaneNames, MapDataProvider, MapWaypointsDisplay, NavIndicators,
+  NavRadioNavSource, NavSources, TouchdownCalloutModule, UnsafeTerrainClearanceModule
 } from '@microsoft/msfs-epic2-shared';
 
 import { HorizonSectionContainer } from './Components/HorizonSectionContainer';
@@ -32,6 +34,8 @@ import { PfdControllerSystem } from './Systems/PfdControllerSystem';
 /** The PFD instrument. */
 export class Epic2PfdInstrument extends Epic2FsInstrument {
   private readonly soundServer?: SoundServer;
+  private readonly gpws?: Gpws;
+  private readonly gpwsAlertController?: GpwsAlertController;
   private readonly tcas: Epic2TcasII;
   private readonly tcasAdvisoryDataProvider: DefaultTcasAdvisoryDataProvider;
   private readonly tcasRaCommandDataProvider: DefaultTcasRaCommandDataProvider;
@@ -158,6 +162,16 @@ export class Epic2PfdInstrument extends Epic2FsInstrument {
     if (this.displayUnitIndex === DisplayUnitIndices.PfdLeft) {
       new MinimumsAlertController(this.bus, this.airGroundDataProvider, this.altitudeDataProvider, this.radioAltimeterDataProvider);
       new MinimumsStateController(this.bus);
+
+      this.gpws = new Gpws(this.bus, 1, this.facLoader, this.autopilotDataProvider);
+      this.gpwsAlertController = new GpwsAlertController(this.bus);
+      this.gpws.addModule(new TouchdownCalloutModule(this.bus, this.gpwsAlertController, [500, 100, 50, 40, 30, 20, 10], this.altitudeDataProvider));
+      this.gpws.addModule(new ExcessiveDescentRateModule(this.bus, this.gpwsAlertController));
+      this.gpws.addModule(new ExcessiveTerrainClosureModule(this.bus, this.gpwsAlertController, this.airspeedDataProvider, this.verticalDeviationDataProvider));
+      this.gpws.addModule(new AltitudeLossAfterTakeoffModule(this.bus, this.gpwsAlertController));
+      this.gpws.addModule(new UnsafeTerrainClearanceModule(this.bus, this.gpwsAlertController, this.airspeedDataProvider));
+      this.gpws.addModule(new ExcessiveGlideslopeDeviationModule(this.bus, this.gpwsAlertController, this.verticalDeviationDataProvider, this.autopilotDataProvider));
+
     }
 
     this.tcas = new Epic2TcasII(this.bus, this.trafficInstrument, new Epic2Adsb(this.bus), this.config.sensors.acasDefinition);
@@ -198,6 +212,7 @@ export class Epic2PfdInstrument extends Epic2FsInstrument {
     this.tcas.init();
     this.tcasAdvisoryDataProvider.init();
     this.tcasRaCommandDataProvider.init();
+    this.gpws?.init();
     this.transponder.init();
     // init plugins before super init so they have a chance to hook up to the backplane etc.
     this.initPluginSystem().then(() => {

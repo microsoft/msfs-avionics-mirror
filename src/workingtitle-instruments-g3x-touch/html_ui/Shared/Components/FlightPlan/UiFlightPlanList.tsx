@@ -329,26 +329,51 @@ export class UiFlightPlanList extends DisplayComponent<UiFlightPlanListProps> im
    */
   private onActiveArrowStateChanged(state: readonly [number, number, number, number, ReadonlyFloat64Array]): void {
     const [toLegIndex, fromLegIndex, itemLength, itemSpacing, renderWindow] = state;
+    const [renderWindowStart, renderWindowEnd] = renderWindow;
 
-    if (toLegIndex < 0) {
+    // If there is no valid TO leg or the arrow is completely outside the render window, then hide it.
+    if (toLegIndex < 0 || toLegIndex < renderWindowStart) {
       this.arrowFromToHidden.set(true);
       this.arrowDtoHidden.set(true);
       return;
     }
 
-    this.positionArrowEnd(this.arrowToTransform, toLegIndex, itemLength, itemSpacing, renderWindow[0]);
-
     if (fromLegIndex < 0 || fromLegIndex >= toLegIndex) {
       // There is no valid FROM leg.
+
+      // If the arrow is completely outside the render window, then hide it.
+      if (toLegIndex >= renderWindowEnd) {
+        this.arrowFromToHidden.set(true);
+        this.arrowDtoHidden.set(true);
+        return;
+      }
+
+      this.positionArrowEnd(this.arrowToTransform, toLegIndex, itemLength, itemSpacing, renderWindowStart);
+
       this.arrowFromToHidden.set(true);
       this.arrowDtoHidden.set(false);
     } else {
       // There is a valid FROM leg.
+
+      // If the arrow is completely outside the render window, then hide it.
+      if (fromLegIndex >= renderWindowEnd) {
+        this.arrowFromToHidden.set(true);
+        this.arrowDtoHidden.set(true);
+        return;
+      }
+
+      // Clamp the arrow to extend at most from the leg immediately before the start of the render window to the leg
+      // immediately after the end of the render window. This ensures that the arrow does not extend too far outside
+      // the render window.
+      const drawFromIndex = Math.max(fromLegIndex, renderWindowStart - 1);
+      const drawToIndex = Math.min(toLegIndex, renderWindowEnd);
+
+      this.positionArrowEnd(this.arrowToTransform, drawToIndex, itemLength, itemSpacing, renderWindowStart);
+      this.positionArrowEnd(this.arrowFromTransform, drawFromIndex, itemLength, itemSpacing, renderWindowStart);
+      this.positionArrowStem(this.arrowStemTransform, drawFromIndex, drawToIndex, itemLength, itemSpacing, renderWindowStart);
+
       this.arrowFromToHidden.set(false);
       this.arrowDtoHidden.set(true);
-
-      this.positionArrowEnd(this.arrowFromTransform, fromLegIndex, itemLength, itemSpacing, renderWindow[0]);
-      this.positionArrowStem(this.arrowStemTransform, fromLegIndex, toLegIndex, itemLength, itemSpacing, renderWindow[0]);
     }
   }
 

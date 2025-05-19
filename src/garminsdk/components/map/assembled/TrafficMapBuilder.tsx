@@ -40,6 +40,9 @@ import {
  * Options for creating a Garmin traffic map.
  */
 export type TrafficMapOptions = {
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** The traffic system from which to retrieve intruder data. */
   trafficSystem: TrafficSystem;
 
@@ -286,6 +289,9 @@ export class TrafficMapBuilder {
     options.includeFailedBanner ??= true;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.orientation, { [MapOrientation.HeadingUp]: options.targetOffset }, { [MapOrientation.HeadingUp]: options.rangeEndpoints })
       .withController<
@@ -703,7 +709,7 @@ export class TrafficMapBuilder {
     if (options.flightPlanner !== undefined) {
       optionsToUse.flightPlanWaypointRecordManagerFactory = (context, renderer) => {
         return new MapDefaultFlightPlanWaypointRecordManager(
-          new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+          context[MapSystemKeys.FacilityLoader],
           GarminFacilityWaypointCache.getCache(context.bus),
           renderer,
           MapWaypointRenderRole.FlightPlanInactive,

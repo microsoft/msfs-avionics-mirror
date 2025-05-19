@@ -40,11 +40,17 @@ export enum CDIScaleLabel {
  * Events related to Garmin LNAV data keyed by base topic names.
  */
 export interface BaseLNavDataEvents extends SdkBaseLNavDataEvents {
+  /** Whether LNAV is nominally attempting to steer to follow a constant heading instead of a track. */
+  lnavdata_is_steer_heading: boolean;
+
   /** The nominal desired track at the beginning of the flight plan leg following the currently tracked leg, in degrees true. */
   lnavdata_next_dtk_true: number;
 
   /** The nominal desired track at the beginning of the flight plan leg following the currently tracked leg, in degrees magnetic. */
   lnavdata_next_dtk_mag: number;
+
+  /** Whether the flight plan leg following the currently tracked leg is a nominally flown as a constant heading leg. */
+  lnavdata_next_is_steer_heading: boolean;
 
   /** The current CDI scale label. */
   lnavdata_cdi_scale_label: CDIScaleLabel;

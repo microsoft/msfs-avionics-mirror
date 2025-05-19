@@ -108,6 +108,8 @@ export class NavigationMapPaneView extends DisplayPaneView<NavigationMapPaneView
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.navMap, {
+      facilityLoader: this.props.facLoader,
+
       bingId: `pane_map_${this.props.index}`,
       bingDelay: BingUtils.getBindDelayForPane(this.props.index),
 

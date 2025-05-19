@@ -4,9 +4,9 @@ import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -31,7 +31,7 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of TrackFromFixLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -41,7 +41,7 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const startFacility = this.facilityCache.get(leg.leg.fixIcao);
+    const startFacility = this.facilityCache.getFacility(leg.leg.fixIcaoStruct);
     leg.calculated!.courseMagVar = startFacility === undefined ? 0 : this.getLegMagVar(leg.leg, startFacility);
   }
 
@@ -56,7 +56,7 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
 
     if (!originPos) {
       vectors.length = 0;
@@ -83,7 +83,7 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
         vectors, vectorIndex,
         state.currentPosition, state.currentCourse,
         endPos,
-        state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+        state.getDesiredTurnRadius(calculateIndex), undefined,
         flags
       );
     } else {
@@ -106,7 +106,7 @@ export class TrackFromFixLegCalculator extends AbstractFlightPathLegCalculator {
             vectors, vectorIndex,
             state.currentPosition, startPath,
             originPos, endPath,
-            state.desiredTurnRadius.asUnit(UnitType.METER),
+            state.getDesiredTurnRadius(calculateIndex),
             undefined,
             FlightPathVectorFlags.Discontinuity, true
           );

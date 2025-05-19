@@ -1,6 +1,4 @@
-import {
-  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, HEvent, Subject, Subscription, UserSettingManager, VNode
-} from '@microsoft/msfs-sdk';
+import { ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, HEvent, Subscription, UserSettingManager, VNode } from '@microsoft/msfs-sdk';
 
 import {
   Epic2ApPanelEvents, Epic2BezelButtonEvents, FmsMessageControlEvents, FmsMessageEvents, MapDisplayMode, MfdAliasedUserSettingTypes, ModalKey, ModalService,
@@ -193,8 +191,8 @@ export class MfdMapSideButtons extends DisplayComponent<MfdMapSideButtonProps> {
           />
         </div>
         <TouchButton label="Nrst" variant="base" onPressed={() => this.onNrstButtonPressed()} />
+        <TouchButtonCheckbox label="VSD" class="mfd-side-button-vsd" isChecked={this.props.settings.getSetting('vsdEnabled')} variant="base" />
         <TouchButton label="Charts" variant="base" onPressed={() => this.onChartsButtonPressed()} />
-        <TouchButtonCheckbox label="VSD" class="mfd-side-button-vsd" isChecked={Subject.create<boolean>(false)} isEnabled={false} variant="base" />
       </div>
     );
   }

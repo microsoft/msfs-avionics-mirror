@@ -45,6 +45,9 @@ export type NextGenNearestMapTrafficIconOptions
  * Options for creating a next-generation (NXi, G3000, etc) Garmin nearest waypoint map.
  */
 export type NextGenNearestMapOptions = {
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
 
@@ -411,6 +414,9 @@ export class NextGenNearestMapBuilder {
     options.showTrafficAltRestriction ??= true;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,
         options.nauticalRangeArray ?? MapUtils.nextGenMapRanges(UnitsDistanceSettingMode.Nautical),
@@ -491,7 +497,7 @@ export class NextGenNearestMapBuilder {
           drawEntirePlan: false,
           waypointRecordManagerFactory: (context, renderer) => {
             return new MapDefaultFlightPlanWaypointRecordManager(
-              new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+              context[MapSystemKeys.FacilityLoader],
               GarminFacilityWaypointCache.getCache(context.bus),
               renderer,
               MapWaypointRenderRole.FlightPlanInactive,

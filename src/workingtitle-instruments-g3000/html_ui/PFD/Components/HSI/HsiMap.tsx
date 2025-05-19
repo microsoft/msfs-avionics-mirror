@@ -1,7 +1,8 @@
 import {
-  BasicNavAngleSubject, BasicNavAngleUnit, CompiledMapSystem, ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent,
-  MappedSubject, MapSystemBuilder, MathUtils, NavSourceType, NumberFormatter, NumberUnitSubject, ObjectSubject, SetSubject, Subject,
-  Subscribable, Subscription, UnitType, Vec2Math, VNode, VorToFrom
+  BasicNavAngleSubject, BasicNavAngleUnit, CompiledMapSystem, ComponentProps, DisplayComponent, EventBus,
+  FlightPlanner, FSComponent, MappedSubject, MapSystemBuilder, MathUtils, NavSourceType, NumberFormatter,
+  NumberUnitSubject, ObjectSubject, SetSubject, Subject, Subscribable, Subscription, UnitType, Vec2Math, VNode,
+  VorToFrom
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -10,8 +11,8 @@ import {
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  BingUtils, DisplayPaneIndex, DisplayPaneViewEvent, G3000FlightPlannerId, G3000MapBuilder, MapConfig, MapUserSettings,
-  NavSourceFormatter, PfdControllerInteractionEvent, PfdIndex, PfdSensorsUserSettingManager
+  BingUtils, DisplayPaneIndex, DisplayPaneViewEvent, FmsConfig, G3000FlightPlannerId, G3000MapBuilder, MapConfig,
+  MapUserSettings, NavSourceFormatter, PfdControllerInteractionEvent, PfdIndex, PfdSensorsUserSettingManager
 } from '@microsoft/msfs-wtg3000-common';
 
 import { ActiveNavNeedle } from './ActiveNavNeedle';
@@ -38,6 +39,9 @@ export interface HsiMapProps extends ComponentProps {
 
   /** The index of the PFD to which the HSI map belongs. */
   pfdIndex: PfdIndex;
+
+  /** A configuration object defining options for the FMS. */
+  fmsConfig: FmsConfig;
 
   /** A configuration object defining options for the map. */
   config: MapConfig;
@@ -203,19 +207,21 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
   ).pause();
 
   private readonly noDeviationText = MappedSubject.create(
-    ([source, isLocalizer]): string => {
+    ([source, isLocalizer, isCourseHeading]): string => {
       if (source?.getType() === NavSourceType.Gps) {
-        return 'NO DTK';
+        return isCourseHeading ? 'HDG LEG' : 'NO DTK';
       } else {
         return isLocalizer ? 'NO LOC' : 'NO VOR';
       }
     },
     this.props.dataProvider.activeNavIndicator.source,
-    this.props.dataProvider.activeNavIndicator.isLocalizer
+    this.props.dataProvider.activeNavIndicator.isLocalizer,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading
   ).pause();
 
   private readonly navSourceText = MappedSubject.create(
-    NavSourceFormatter.createForIndicator('FMS', false, false, false, true).bind(undefined, this.props.dataProvider.activeNavIndicator),
+    NavSourceFormatter.createForIndicator(this.props.fmsConfig.navSourceLabelText, false, false, false, true)
+      .bind(undefined, this.props.dataProvider.activeNavIndicator),
     this.props.dataProvider.activeNavIndicator.source,
     this.props.dataProvider.activeNavIndicator.isLocalizer
   ).pause();
@@ -226,10 +232,15 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
   private readonly navSensitivityText = Subject.create('');
 
   private readonly isXtkVisible = MappedSubject.create(
-    ([activeNavSource, lnavXtk, cdiScale]): boolean => {
-      return activeNavSource !== null && activeNavSource.getType() === NavSourceType.Gps && lnavXtk !== null && Math.abs(lnavXtk) >= (cdiScale ?? 0);
+    ([activeNavSource, isCourseHeading, lnavXtk, cdiScale]): boolean => {
+      return activeNavSource !== null
+        && activeNavSource.getType() === NavSourceType.Gps
+        && !isCourseHeading
+        && lnavXtk !== null
+        && Math.abs(lnavXtk) >= (cdiScale ?? 0);
     },
     this.props.dataProvider.activeNavIndicator.source,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading,
     this.props.dataProvider.lnavXtk,
     this.props.dataProvider.activeNavIndicator.lateralDeviationScale
   ).pause();
@@ -254,6 +265,7 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
   private turnRateSub?: Subscription;
   private isHeadingDataFailedSub?: Subscription;
 
+  private isCourseHeadingSub?: Subscription;
   private lateralDeviationSub?: Subscription;
   private toFromSub?: Subscription;
 
@@ -342,13 +354,26 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
 
     // ---- Lateral deviation ----
 
-    const lateralDeviationSub = this.lateralDeviationSub = this.props.dataProvider.activeNavIndicator.lateralDeviation.sub(deviation => {
+    this.isCourseHeadingSub = this.props.dataProvider.activeNavIndicator.isCourseHeading.sub(isCourseHeading => {
+      if (isCourseHeading) {
+        this.deviationCssClass.add('hsi-map-deviation-fail-magenta');
+      } else {
+        this.deviationCssClass.delete('hsi-map-deviation-fail-magenta');
+      }
+    }, false, true);
+
+    this.lateralDeviationSub = this.props.dataProvider.activeNavIndicator.lateralDeviation.sub(deviation => {
       if (deviation === null) {
         this.deviationCssClass.add('hsi-map-deviation-fail');
+
+        this.isCourseHeadingSub!.resume(true);
         this.noDeviationText.resume();
       } else {
-        this.deviationCssClass.delete('hsi-map-deviation-fail');
+        this.isCourseHeadingSub!.pause();
         this.noDeviationText.pause();
+
+        this.deviationCssClass.delete('hsi-map-deviation-fail');
+        this.deviationCssClass.delete('hsi-map-deviation-fail-magenta');
 
         this.deviationTranslate.set(MathUtils.clamp(Math.round(deviation * 71), -89, 89));
       }
@@ -437,7 +462,7 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
 
         isHeadingDataFailedSub.resume(true);
 
-        lateralDeviationSub.resume(true);
+        this.lateralDeviationSub!.resume(true);
         toFromSub.resume(true);
         this.deviationType.resume();
 
@@ -474,7 +499,8 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
 
         turnRateSub.pause();
 
-        lateralDeviationSub.pause();
+        this.lateralDeviationSub!.pause();
+        this.isCourseHeadingSub!.pause();
         toFromSub.pause();
         this.deviationType.pause();
         this.noDeviationText.pause();
@@ -720,6 +746,7 @@ export class HsiMap extends DisplayComponent<HsiMapProps> {
     this.turnRateSub?.destroy();
     this.isHeadingDataFailedSub?.destroy();
 
+    this.isCourseHeadingSub?.destroy();
     this.lateralDeviationSub?.destroy();
     this.toFromSub?.destroy();
 

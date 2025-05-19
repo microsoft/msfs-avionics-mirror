@@ -1,6 +1,7 @@
 import {
-  ComponentProps, DebounceTimer, DisplayComponent, EventBus, FSComponent, MappedSubject, SetSubject, Subject, Subscribable,
-  SubscribableArray, SubscribableSet, SubscribableUtils, Subscription, VNode,
+  ComponentProps, DebounceTimer, DisplayComponent, EventBus, FSComponent, MappedSubject, ReadonlyFloat64Array,
+  SetSubject, Subject, Subscribable, SubscribableArray, SubscribableSet, SubscribableUtils, Subscription,
+  ToggleableClassNameRecord, Vec2Math, Vec2Subject, VNode,
 } from '@microsoft/msfs-sdk';
 
 import { DynamicList, DynamicListData } from '@microsoft/msfs-wtg3000-common';
@@ -67,7 +68,7 @@ export interface GtcListProps<DataType> extends ComponentProps, GtcListFormattin
   onDestroy?: () => void;
 
   /** CSS class(es) to add to the list's root element. */
-  class?: string | SubscribableSet<string>;
+  class?: string | SubscribableSet<string> | ToggleableClassNameRecord;
 }
 
 /**
@@ -76,9 +77,17 @@ export interface GtcListProps<DataType> extends ComponentProps, GtcListFormattin
  * editing of GTC sidebar state to show/hide the arrow buttons as appropriate.
  */
 export class GtcList<DataType extends DynamicListData> extends DisplayComponent<GtcListProps<DataType>> implements GtcInteractionHandler {
-  private readonly gtcListRef = FSComponent.createRef<HTMLDivElement>();
   private readonly scrollBarRef = FSComponent.createRef<HTMLDivElement>();
   private readonly touchListRef = FSComponent.createRef<GarminTouchList>();
+
+  private readonly _renderWindow = Vec2Subject.create(Vec2Math.create(0, Infinity));
+  /**
+   * The window of rendered list items, as `[startIndex, endIndex]`, where `startIndex` is the index of the first
+   * rendered item, inclusive, and `endIndex` is the index of the last rendered item, exclusive. These indexes are
+   * defined after item sorting and visibility have been taken into account, such that index `i` refers to the *i*th
+   * visible item in sorted order.
+   */
+  public readonly renderWindow = this._renderWindow as Subscribable<ReadonlyFloat64Array>;
 
   private readonly visibleItemCount = Subject.create(0);
 
@@ -89,11 +98,12 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
   private readonly sidebarState = SubscribableUtils.toSubscribable(this.props.sidebarState ?? null, true) as Subscribable<SidebarState | null>;
 
-  private cssClassSub?: Subscription;
-  private sidebarStateSub?: Subscription;
+  private readonly subscriptions: Subscription[] = [];
 
   /** @inheritdoc */
   public onAfterRender(): void {
+    this.touchListRef.instance.renderWindow.pipe(this._renderWindow);
+
     if (this.props.data === undefined || this.props.renderItem === undefined) {
       // Render children into the touch list.
 
@@ -178,13 +188,15 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
     this.touchListRef.instance.scrollPosFraction.sub(updateScrollBarTranslation, true);
     this.touchListRef.instance.scrollBarLengthFraction.sub(updateScrollBarTranslation, true);
 
-    this.sidebarStateSub = this.sidebarState.sub(sidebarState => {
-      if (sidebarState === null) {
-        arrowButtonsStateSub.pause();
-      } else {
-        arrowButtonsStateSub.resume(true);
-      }
-    }, true);
+    this.subscriptions.push(
+      this.sidebarState.sub(sidebarState => {
+        if (sidebarState === null) {
+          arrowButtonsStateSub.pause();
+        } else {
+          arrowButtonsStateSub.resume(true);
+        }
+      }, true)
+    );
 
     const { onTopVisibleIndexChanged } = this.props;
     if (onTopVisibleIndexChanged) {
@@ -352,7 +364,12 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
 
     if (typeof this.props.class === 'object') {
       cssClass = SetSubject.create(['gtc-list']);
-      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, ['gtc-list']);
+      const sub = FSComponent.bindCssClassSet(cssClass, this.props.class, ['gtc-list']);
+      if (Array.isArray(sub)) {
+        this.subscriptions.push(...sub);
+      } else {
+        this.subscriptions.push(sub);
+      }
     } else if (this.props.class !== undefined) {
       cssClass = [
         'gtc-list',
@@ -364,7 +381,7 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
     }
 
     return (
-      <div ref={this.gtcListRef} class={cssClass}>
+      <div class={cssClass}>
         <GarminTouchList
           ref={this.touchListRef}
           lengthPx={this.props.heightPx}
@@ -398,8 +415,9 @@ export class GtcList<DataType extends DynamicListData> extends DisplayComponent<
     this.dynamicList?.destroy();
     this.updateRenderedWrappersTimer.clear();
 
-    this.cssClassSub?.destroy();
-    this.sidebarStateSub?.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
     super.destroy();
   }

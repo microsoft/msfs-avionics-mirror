@@ -2,7 +2,7 @@ import { FacilityWaypoint, IntersectionFacility, MutableSubscribable, NdbFacilit
 
 import { MinimumsDataProvider, ObsSuspDataProvider, VNavDataProvider } from '@microsoft/msfs-garminsdk';
 
-import { FlightPlanListManager, FmsSpeedTargetDataProvider } from '@microsoft/msfs-wtg3000-common';
+import { FlightPlanListManager, FmsSpeedTargetDataProvider, G3000ChartsSource } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcPositionHeadingDataProvider } from './Navigation/GtcPositionHeadingDataProvider';
 import { GtcUserWaypointEditController } from './Navigation/GtcUserWaypointEditController';
@@ -49,4 +49,7 @@ export type G3000GtcViewContext = {
 
   /** An array containing all existing user waypoints. */
   existingUserWptArray: SubscribableArray<FacilityWaypoint<UserFacility>>;
+
+  /** An iterable of all available electronic chart sources. */
+  chartsSources: Iterable<G3000ChartsSource>;
 };

@@ -2,9 +2,9 @@ import { LatLonInterface } from '../../../geo/GeoInterfaces';
 import { GeoPoint } from '../../../geo/GeoPoint';
 import { MagVar } from '../../../geo/MagVar';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { CircleInterceptLegCalculator, CircleInterceptLegPathToInterceptInfo } from './CircleInterceptLegCalculator';
 
@@ -19,7 +19,7 @@ export class RadialInterceptLegCalculator extends CircleInterceptLegCalculator {
    * @param facilityCache This calculator's cache of facilities.
    * @param isHeadingLeg Whether the calculator calculates flight plan legs flown with constant heading.
    */
-  public constructor(facilityCache: Map<string, Facility>, isHeadingLeg: boolean) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache, isHeadingLeg: boolean) {
     super(facilityCache, isHeadingLeg);
   }
 
@@ -32,7 +32,7 @@ export class RadialInterceptLegCalculator extends CircleInterceptLegCalculator {
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
 
     if (magVar === undefined) {
       let position: LatLonInterface | undefined;
@@ -59,7 +59,7 @@ export class RadialInterceptLegCalculator extends CircleInterceptLegCalculator {
     out: CircleInterceptLegPathToInterceptInfo
   ): CircleInterceptLegPathToInterceptInfo | undefined {
     const leg = legs[calculateIndex];
-    const radialCenter = this.getPositionFromIcao(leg.leg.originIcao, this.geoPointCache[0]);
+    const radialCenter = this.getPositionFromIcao(leg.leg.originIcaoStruct, this.geoPointCache[0]);
     if (radialCenter) {
       out.circle.setAsGreatCircle(radialCenter, MagVar.magneticToTrue(leg.leg.theta, leg.calculated!.courseMagVar));
       radialCenter.toCartesian(out.start);

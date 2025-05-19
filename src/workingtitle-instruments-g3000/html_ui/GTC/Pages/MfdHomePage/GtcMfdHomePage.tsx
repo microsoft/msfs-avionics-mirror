@@ -138,10 +138,12 @@ export class GtcMfdHomePage extends GtcView<GtcMfdHomePageProps> {
             onPressed={() => this.props.gtcService.changePageTo(GtcViewKeys.Procedures)}
             class="gtc-directory-button mfd-home-img-offset-button"
           />
-          <ImgTouchButton
+          <GtcDesignatedPaneButton
+            displayPaneSettingManager={this.displayPaneSettingManager}
+            selectedPaneViewKeys={[DisplayPaneViewKeys.Charts]}
             label="Charts"
             imgSrc={`${G3000FilePaths.ASSETS_PATH}/Images/GTC/icon_small_charts.png`}
-            isEnabled={false}
+            onPressed={() => this.props.gtcService.changePageTo(GtcViewKeys.Charts)}
             class="gtc-directory-button"
           />
         </div>

@@ -25,6 +25,22 @@ export enum G3XUnitsFuelEconomySettingMode {
   Statute = 'Statute',
   MetricKmPerL = 'MetricKmPerL',
   MetricLPer100Km = 'MetricLPer100Km',
+  NauticalJetA = 'NauticalJetA',
+  StatuteJetA = 'StatuteJetA',
+  MetricKmPerLJetA = 'MetricKmPerLJetA',
+  MetricLPer100KmJetA = 'MetricLPer100KmJetA',
+  Nautical100LL = 'Nautical100LL',
+  Statute100LL = 'Statute100LL',
+  MetricKmPerL100LL = 'MetricKmPerL100LL',
+  MetricLPer100Km100LL = 'MetricLPer100Km100LL',
+  NauticalAutogas = 'NauticalAutogas',
+  StatuteAutogas = 'StatuteAutogas',
+  MetricKmPerLAutogas = 'MetricKmPerLAutogas',
+  MetricLPer100KmAutogas = 'MetricLPer100KmAutogas',
+  NauticalSim = 'NauticalSim',
+  StatuteSim = 'StatuteSim',
+  MetricKmPerLSim = 'MetricKmPerLSim',
+  MetricLPer100KmSim = 'MetricLPer100KmSim',
 }
 
 /**
@@ -72,7 +88,12 @@ export class DefaultG3XUnitsUserSettingManager extends DefaultUnitsUserSettingMa
    * @param sourceSettingManager The manager from which to source setting values.
    */
   public constructor(sourceSettingManager: UserSettingManager<G3XUnitsUserSettingTypes>) {
-    super(sourceSettingManager);
+    super(sourceSettingManager, {
+      simFuelUnits: {
+        fuel: [G3XUnitType.LITER_SIM_FUEL, G3XUnitType.GALLON_SIM_FUEL, G3XUnitType.IMP_GALLON_SIM_FUEL],
+        fuelFlow: [G3XUnitType.LPH_SIM_FUEL, G3XUnitType.GPH_SIM_FUEL, G3XUnitType.IGPH_SIM_FUEL],
+      }
+    });
 
     sourceSettingManager.getSetting('unitsBaroPressure').sub(value => {
       switch (value) {
@@ -89,11 +110,56 @@ export class DefaultG3XUnitsUserSettingManager extends DefaultUnitsUserSettingMa
 
     sourceSettingManager.getSetting('unitsFuelEconomy').sub(value => {
       switch (value) {
-        case G3XUnitsFuelEconomySettingMode.Statute:
-          this._fuelEconomyUnits.set(UnitType.MILE_PER_GALLON_FUEL);
+        case G3XUnitsFuelEconomySettingMode.StatuteSim:
+          this._fuelEconomyUnits.set(G3XUnitType.MILE_PER_GALLON_SIM_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricKmPerLSim:
+          this._fuelEconomyUnits.set(G3XUnitType.KM_PER_LITER_SIM_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricLPer100KmSim:
+          this._fuelEconomyUnits.set(G3XUnitType.LITER_SIM_FUEL_PER_100KM);
+          break;
+        case G3XUnitsFuelEconomySettingMode.NauticalJetA:
+          this._fuelEconomyUnits.set(UnitType.NMILE_PER_GALLON_JET_A_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.StatuteJetA:
+          this._fuelEconomyUnits.set(UnitType.MILE_PER_GALLON_JET_A_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricKmPerLJetA:
+          this._fuelEconomyUnits.set(G3XUnitType.KM_PER_LITER_JET_A_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricLPer100KmJetA:
+          this._fuelEconomyUnits.set(G3XUnitType.LITER_JET_A_FUEL_PER_100KM);
+          break;
+        case G3XUnitsFuelEconomySettingMode.Nautical100LL:
+          this._fuelEconomyUnits.set(UnitType.NMILE_PER_GALLON_100LL_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.Statute100LL:
+          this._fuelEconomyUnits.set(UnitType.MILE_PER_GALLON_100LL_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricKmPerL100LL:
+          this._fuelEconomyUnits.set(G3XUnitType.KM_PER_LITER_100LL_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricLPer100Km100LL:
+          this._fuelEconomyUnits.set(G3XUnitType.LITER_100LL_FUEL_PER_100KM);
+          break;
+        case G3XUnitsFuelEconomySettingMode.NauticalAutogas:
+          this._fuelEconomyUnits.set(UnitType.NMILE_PER_GALLON_AUTOGAS_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.StatuteAutogas:
+          this._fuelEconomyUnits.set(UnitType.MILE_PER_GALLON_AUTOGAS_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricKmPerLAutogas:
+          this._fuelEconomyUnits.set(G3XUnitType.KM_PER_LITER_AUTOGAS_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.MetricLPer100KmAutogas:
+          this._fuelEconomyUnits.set(G3XUnitType.LITER_AUTOGAS_FUEL_PER_100KM);
           break;
         case G3XUnitsFuelEconomySettingMode.Nautical:
           this._fuelEconomyUnits.set(UnitType.NMILE_PER_GALLON_FUEL);
+          break;
+        case G3XUnitsFuelEconomySettingMode.Statute:
+          this._fuelEconomyUnits.set(UnitType.MILE_PER_GALLON_FUEL);
           break;
         case G3XUnitsFuelEconomySettingMode.MetricKmPerL:
           this._fuelEconomyUnits.set(G3XUnitType.KM_PER_LITER_FUEL);
@@ -101,6 +167,8 @@ export class DefaultG3XUnitsUserSettingManager extends DefaultUnitsUserSettingMa
         case G3XUnitsFuelEconomySettingMode.MetricLPer100Km:
           this._fuelEconomyUnits.set(G3XUnitType.LITER_PER_100KM);
           break;
+        default:
+          this._fuelEconomyUnits.set(G3XUnitType.NMILE_PER_GALLON_SIM_FUEL);
       }
     }, true);
   }
@@ -152,9 +220,9 @@ export class G3XUnitsUserSettings {
       unitsAltitude: UnitsAltitudeSettingMode.Feet,
       unitsTemperature: UnitsTemperatureSettingMode.Celsius,
       unitsWeight: UnitsWeightSettingMode.Pounds,
-      unitsFuel: UnitsFuelSettingMode.Gallons,
+      unitsFuel: UnitsFuelSettingMode.GallonsSim,
       unitsBaroPressure: G3XUnitsBaroPressureSettingMode.InHg,
-      unitsFuelEconomy: G3XUnitsFuelEconomySettingMode.Nautical,
+      unitsFuelEconomy: G3XUnitsFuelEconomySettingMode.NauticalSim,
     };
   }
 }

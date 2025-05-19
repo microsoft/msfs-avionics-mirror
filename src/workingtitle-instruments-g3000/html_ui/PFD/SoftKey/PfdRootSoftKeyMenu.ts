@@ -1,7 +1,7 @@
 import { ComputedSubject, ControlEvents, MappedSubject, MappedSubscribable, Subscribable, Subscription, UserSettingManager } from '@microsoft/msfs-sdk';
 import { ObsSuspDataProvider, ObsSuspModes, SoftKeyMenu, SoftKeyMenuSystem } from '@microsoft/msfs-garminsdk';
 import {
-  DisplayPaneControlEvents, DisplayPaneIndex, G3000NavIndicator, NavSourceFormatter, PfdIndex, PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes,
+  DisplayPaneControlEvents, DisplayPaneIndex, FmsConfig, G3000NavIndicator, NavSourceFormatter, PfdIndex, PfdMapLayoutSettingMode, PfdMapLayoutUserSettingTypes,
   RadiosConfig
 } from '@microsoft/msfs-wtg3000-common';
 
@@ -32,6 +32,7 @@ export class PfdRootSoftKeyMenu extends SoftKeyMenu {
    * @param obsSuspDataProvider A provider of OBS/SUSP data.
    * @param mapLayoutSettingManager A manager for map layout settings for this menu's PFD.
    * @param radiosConfig The radios configuration object.
+   * @param fmsConfig The FMS configuration object.
    * @param declutter Whether this menu's parent PFD is decluttered.
    * @param isSplit Whether the menu is a split-mode menu.
    */
@@ -42,6 +43,7 @@ export class PfdRootSoftKeyMenu extends SoftKeyMenu {
     obsSuspDataProvider: ObsSuspDataProvider,
     mapLayoutSettingManager: UserSettingManager<PfdMapLayoutUserSettingTypes>,
     radiosConfig: RadiosConfig,
+    fmsConfig: FmsConfig,
     declutter: Subscribable<boolean>,
     isSplit: boolean
   ) {
@@ -155,7 +157,13 @@ export class PfdRootSoftKeyMenu extends SoftKeyMenu {
     const activeNavItem = this.addItem(activeNavSoftkeyIndex, 'Active NAV', () => { controlPublisher.pub('cdi_src_switch', true, true, false); });
 
     this.activeNavValue = MappedSubject.create(
-      NavSourceFormatter.createForIndicator('FMS', false, radiosConfig.dmeCount > 1, radiosConfig.adfCount > 1, true).bind(undefined, activeNavIndicator),
+      NavSourceFormatter.createForIndicator(
+        fmsConfig.navSourceLabelText,
+        false,
+        radiosConfig.dmeCount > 1,
+        radiosConfig.adfCount > 1,
+        true
+      ).bind(undefined, activeNavIndicator),
       activeNavIndicator.source,
       activeNavIndicator.isLocalizer
     );

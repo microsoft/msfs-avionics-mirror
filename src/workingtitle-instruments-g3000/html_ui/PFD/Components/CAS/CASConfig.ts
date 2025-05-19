@@ -79,12 +79,10 @@ export class CASConfig implements Config {
    * @returns The default maximum number of CAS messages to display when the PFD is in split mode.
    */
   private getDefaultAlertCountSplitScreen(pfdLayoutConfig: PfdLayoutConfig): number {
-    if (pfdLayoutConfig.includeSoftKeys && pfdLayoutConfig.useNavStatusBanner) {
+    if (pfdLayoutConfig.includeSoftKeys) {
       return 8;
-    } else if (pfdLayoutConfig.includeSoftKeys || pfdLayoutConfig.useNavStatusBanner) {
-      return 11;
     } else {
-      return 12;
+      return 11;
     }
   }
 }

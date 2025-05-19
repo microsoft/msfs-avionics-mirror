@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
+
 /**
  * Utility type to get the family of a unit type.
  */
@@ -930,6 +931,7 @@ export enum UnitFamily {
   DistancePerWeight = 'distance_per_weight',
   DistanceRatio = 'distance_ratio',
   WeightPerDistance = 'weight_per_distance',
+  Area = 'area',
 }
 
 /**
@@ -962,24 +964,14 @@ export class UnitType {
   public static readonly HOUR = new SimpleUnit(UnitFamily.Duration, 'hour', 3600);
 
   public static readonly KILOGRAM = new SimpleUnit(UnitFamily.Weight, 'kilogram', 1);
-  public static readonly POUND = new SimpleUnit(UnitFamily.Weight, 'pound', 0.453592);
+  public static readonly POUND = new SimpleUnit(UnitFamily.Weight, 'pound', 0.45359237);
   public static readonly SLUG = new SimpleUnit(UnitFamily.Weight, 'slug', 14.59390);
-  public static readonly TON = new SimpleUnit(UnitFamily.Weight, 'ton', 907.185);
+  public static readonly TON = new SimpleUnit(UnitFamily.Weight, 'ton', 907.18474);
   public static readonly TONNE = new SimpleUnit(UnitFamily.Weight, 'tonne', 1000);
 
-  /** Weight equivalent of one liter of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly LITER_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter', 0.80283679);
-  /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon', 3.0390664);
-  /** Weight equivalent of one liter of fuel, using the generic conversion 1 gallon = 6.0 pounds. */
-  public static readonly LITER_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter', 0.71895832);
-  /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.0 pounds. */
-  public static readonly GALLON_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon', 2.721552);
-  /** Weight equivalent of one imperial gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly IMP_GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon', 3.6497683);
-
   public static readonly LITER = new SimpleUnit(UnitFamily.Volume, 'liter', 1);
-  public static readonly GALLON = new SimpleUnit(UnitFamily.Volume, 'gallon', 3.78541);
+  public static readonly GALLON = new SimpleUnit(UnitFamily.Volume, 'gallon', 3.785411784);
+  public static readonly IMP_GALLON = new SimpleUnit(UnitFamily.Volume, 'imperial gallon', 4.54609);
 
   /** Hectopascal. */
   public static readonly HPA = new SimpleUnit(UnitFamily.Pressure, 'hectopascal', 1);
@@ -1035,12 +1027,6 @@ export class UnitType {
   public static readonly KGH = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.KILOGRAM], [UnitType.HOUR]);
   /** Pound per hour. */
   public static readonly PPH = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.POUND], [UnitType.HOUR]);
-  /** Weight equivalent of one liter of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly LPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_FUEL], [UnitType.HOUR]);
-  /** Weight equivalent of one gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly GPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_FUEL], [UnitType.HOUR]);
-  /** Weight equivalent of one imperial gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
-  public static readonly IGPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_FUEL], [UnitType.HOUR]);
 
   /** Density in slugs per cubic foot */
   public static readonly SLUG_PER_FT3 = new CompoundUnit(UnitFamily.Density, [UnitType.SLUG], [UnitType.FOOT, UnitType.FOOT, UnitType.FOOT]);
@@ -1052,11 +1038,117 @@ export class UnitType {
   /** Pound (force). */
   public static readonly POUND_FORCE = new CompoundUnit(UnitFamily.Force, [UnitType.POUND, UnitType.G_METER], [UnitType.SECOND, UnitType.SECOND]);
 
+  /** One foot per nautical mile. */
+  public static readonly FOOT_PER_NMILE = new CompoundUnit(UnitFamily.DistanceRatio, [UnitType.FOOT], [UnitType.NMILE]);
+
+  /** Square meter */
+  public static readonly METER_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.METER, UnitType.METER], []);
+  public static readonly CENTIMETER_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.CENTIMETER, UnitType.CENTIMETER], []);
+  public static readonly KILOMETER_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.KILOMETER, UnitType.KILOMETER], []);
+  public static readonly INCH_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.INCH, UnitType.INCH], []);
+  public static readonly FOOT_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.FOOT, UnitType.FOOT], []);
+  /** Statute mile squared. */
+  public static readonly MILE_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.MILE, UnitType.MILE], []);
+  /** Nautical mile squared. */
+  public static readonly NMILE_SQ = new CompoundUnit(UnitFamily.Area, [UnitType.NMILE, UnitType.NMILE], []);
+
+  // Fuel units
+
+  /** Weight equivalent of one liter of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly LITER_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter fuel', UnitType.LITER.convertTo(UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon fuel', UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM));
+  /** Weight equivalent of one imperial gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly IMP_GALLON_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon fuel', UnitType.IMP_GALLON.convertTo(UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one liter of Jet-A fuel, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly LITER_JET_A_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter jet a', UnitType.LITER.convertTo(UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one gallon of Jet-A fuel, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly GALLON_JET_A_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon jet a', UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM));
+  /** Weight equivalent of one imperial gallon of Jet-A fuel, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly IMP_GALLON_JET_A_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon jet a', UnitType.IMP_GALLON.convertTo(UnitType.POUND.convertTo(6.7, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one liter of 100LL fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly LITER_100LL_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter 100ll', UnitType.LITER.convertTo(UnitType.POUND.convertTo(6, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one gallon of 100LL fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly GALLON_100LL_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon 100ll', UnitType.POUND.convertTo(6, UnitType.KILOGRAM));
+  /** Weight equivalent of one imperial gallon of 100LL fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly IMP_GALLON_100LL_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon 100ll', UnitType.IMP_GALLON.convertTo(UnitType.POUND.convertTo(6, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one liter of autogas fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly LITER_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'liter autogas', UnitType.LITER.convertTo(UnitType.POUND.convertTo(6, UnitType.KILOGRAM), UnitType.GALLON));
+  /** Weight equivalent of one gallon of autogas fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly GALLON_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'gallon autogas', UnitType.POUND.convertTo(6, UnitType.KILOGRAM));
+  /** Weight equivalent of one imperial gallon of autogas fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly IMP_GALLON_AUTOGAS_FUEL = new SimpleUnit(UnitFamily.Weight, 'imperial gallon autogas', UnitType.IMP_GALLON.convertTo(UnitType.POUND.convertTo(6, UnitType.KILOGRAM), UnitType.GALLON));
+
+  /** Weight equivalent of one liter of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly LPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly GPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one imperial gallon of fuel per hour, using the generic conversion 1 gallon = 6.7 pounds. */
+  public static readonly IGPH_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one liter of Jet-A fuel per hour, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly LPH_JET_A_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_JET_A_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one gallon of Jet-A fuel per hour, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly GPH_JET_A_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_JET_A_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one imperial gallon of Jet-A fuel per hour, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly IGPH_JET_A_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_JET_A_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one liter of 100LL fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly LPH_100LL_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_100LL_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one gallon of 100LL fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly GPH_100LL_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_100LL_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one imperial gallon of 100LL fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly IGPH_100LL_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_100LL_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one liter of autogas fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly LPH_AUTOGAS_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.LITER_AUTOGAS_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one gallon of autogas fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly GPH_AUTOGAS_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.GALLON_AUTOGAS_FUEL], [UnitType.HOUR]);
+  /** Weight equivalent of one imperial gallon of autogas fuel per hour, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly IGPH_AUTOGAS_FUEL = new CompoundUnit(UnitFamily.WeightFlux, [UnitType.IMP_GALLON_AUTOGAS_FUEL], [UnitType.HOUR]);
+
   /** One statute mile per weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly MILE_PER_GALLON_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.MILE], [UnitType.GALLON_FUEL]);
   /** One nautical mile per weight equivalent of one gallon of fuel, using the generic conversion 1 gallon = 6.7 pounds. */
   public static readonly NMILE_PER_GALLON_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.NMILE], [UnitType.GALLON_FUEL]);
+  /** One statute mile per weight equivalent of one gallon of Jet-A fuel, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly MILE_PER_GALLON_JET_A_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.MILE], [UnitType.GALLON_JET_A_FUEL]);
+  /** One nautical mile per weight equivalent of one gallon of Jet-A fuel, using the standard conversion 1 gallon = 6.7 pounds. */
+  public static readonly NMILE_PER_GALLON_JET_A_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.NMILE], [UnitType.GALLON_JET_A_FUEL]);
+  /** One statute mile per weight equivalent of one gallon of 100LL fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly MILE_PER_GALLON_100LL_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.MILE], [UnitType.GALLON_100LL_FUEL]);
+  /** One nautical mile per weight equivalent of one gallon of 100LL fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly NMILE_PER_GALLON_100LL_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.NMILE], [UnitType.GALLON_100LL_FUEL]);
+  /** One statute mile per weight equivalent of one gallon of autogas fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly MILE_PER_GALLON_AUTOGAS_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.MILE], [UnitType.GALLON_AUTOGAS_FUEL]);
+  /** One nautical mile per weight equivalent of one gallon of autogas fuel, using the standard conversion 1 gallon = 6.0 pounds. */
+  public static readonly NMILE_PER_GALLON_AUTOGAS_FUEL = new CompoundUnit(UnitFamily.DistancePerWeight, [UnitType.NMILE], [UnitType.GALLON_AUTOGAS_FUEL]);
 
-  /** One foot per nautical mile. */
-  public static readonly FOOT_PER_NMILE = new CompoundUnit(UnitFamily.DistanceRatio, [UnitType.FOOT], [UnitType.NMILE]);
+  /**
+   * Creates one or more units of weight that are each equivalent to one volume unit of fuel with a given density.
+   * @param density The fuel density to use, in pounds per gallon.
+   * @param defs Definitions for creating the weight units.
+   * @returns An array of weight units that are each equivalent to the specified volume unit of fuel with the specified
+   * density. The units are returned in the same order as the definitions from which they were created.
+   */
+  public static createFuelWeightUnit(
+    density: number,
+    ...defs: {
+      /** The volume unit for which to create the weight unit equivalent. */
+      volumeUnit: Unit<UnitFamily.Volume>;
+
+      /**
+       * The name to assign the new weight unit. If not defined, then the name will default to
+       * ``` `${volumeUnit.name} fuel (${density} pounds per gallon)` ```.
+       */
+      name?: string;
+    }[]
+  ): CompoundableUnit<UnitFamily.Weight>[] {
+    const kgPerGallon = UnitType.KILOGRAM.convertFrom(density, UnitType.POUND);
+
+    return defs.map(({ volumeUnit, name }) => {
+      return new SimpleUnit(
+        UnitFamily.Weight,
+        name ?? `${volumeUnit.name} fuel (${density} pounds per gallon)`,
+        UnitType.GALLON.convertFrom(kgPerGallon, volumeUnit)
+      );
+    });
+  }
 }

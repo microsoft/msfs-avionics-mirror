@@ -10,6 +10,9 @@ interface MfdUprMenuProps extends GuiDialogProps {
 
   /** The mfd setting manager */
   mfdSettingManager: UserSettingManager<MFDSettingsAliased>;
+
+  /** Whether the electronic checklist is available. */
+  isChecklistAvailable: boolean;
 }
 
 /** The MfdUprMenu component. */
@@ -38,7 +41,7 @@ export class MfdUprMenu extends GuiDialog<MfdUprMenuProps> {
             <RadioList dataRef={this.formatOption}>
               <RadioBox name="upr-format" label='OFF'></RadioBox>
               <RadioBox name="upr-format" label='FMS TEXT'></RadioBox>
-              <RadioBox name="upr-format" label='CHECKLIST' enabled={false}></RadioBox>
+              <RadioBox name="upr-format" label='CHECKLIST' enabled={this.props.isChecklistAvailable}></RadioBox>
               <RadioBox name="upr-format" label='PASS BRIEF' enabled={false}></RadioBox>
               <RadioBox name="upr-format" label='SYSTEMS 1/2'></RadioBox>
             </RadioList>

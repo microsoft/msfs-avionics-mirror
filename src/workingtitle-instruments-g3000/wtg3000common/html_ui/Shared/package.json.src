@@ -1,6 +1,6 @@
 {
   "name": "wtg3000common",
-  "version": "2.0.6",
+  "version": "2.1.2",
   "description": "Working Title MSFS G3000 Common Library",
   "main": "wtg3000common.js",
   "files": ["wtg3000common.js", "wtg3000common.d.ts", "wtg3000common.css"],

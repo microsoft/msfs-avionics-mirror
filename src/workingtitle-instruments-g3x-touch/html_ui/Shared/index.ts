@@ -22,6 +22,7 @@ export * from './Settings';
 export * from './Traffic';
 export * from './Transponder';
 export * from './UiSystem';
+export * from './Units';
 export * from './Views';
 export * from './VSpeed';
 

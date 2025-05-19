@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { FSComponent, MappedSubject, PerformancePlanRepository, SetSubject, Subject, VNode } from '@microsoft/msfs-sdk';
+import { FSComponent, MappedSubject, PerformancePlanRepository, SetSubject, Subject, SubscribableMapFunctions, VNode } from '@microsoft/msfs-sdk';
 
 import {
   AirspeedCasInputFormat, AltitudeFeetInputFormat, Epic2Fms, Epic2PerformancePlan, Epic2VSpeedController, Epic2VSpeedEvents, FlightPlanStore, InputField,
@@ -17,12 +17,14 @@ interface SidTakeoffTabProps extends TabContentProps {
   readonly fms: Epic2Fms;
   /** The modal service. */
   readonly modalService: ModalService;
-  /** The flight plan store.  */
+  /** The active flight plan store.  */
   readonly activeFlightPlanStore: FlightPlanStore;
+  /** The pending flight plan store.  */
+  readonly pendingFlightPlanStore: FlightPlanStore;
   /** The performance plan repository. */
   readonly perfPlanRepository: PerformancePlanRepository<Epic2PerformancePlan>;
   /** The vspeed controller */
-  readonly vSpeedController: Epic2VSpeedController
+  readonly vSpeedController: Epic2VSpeedController;
 }
 /** The SidTakeoffTab component. */
 export class SidTakeoffTab extends TabContent<SidTakeoffTabProps> {
@@ -30,6 +32,12 @@ export class SidTakeoffTab extends TabContent<SidTakeoffTabProps> {
   private readonly origin = Subject.create('');
   private readonly runway = Subject.create('');
   private readonly sid = Subject.create('');
+
+  private readonly sidInsertAvailable = MappedSubject.create(
+    SubscribableMapFunctions.or(),
+    this.props.activeFlightPlanStore.originFacility.map((v) => v !== undefined),
+    this.props.pendingFlightPlanStore.originFacility.map((v) => v !== undefined),
+  );
 
   private readonly vSpeedDefinitions = [] as VSpeedInputTabDefinition[];
 
@@ -141,7 +149,7 @@ export class SidTakeoffTab extends TabContent<SidTakeoffTabProps> {
               class="sid-takeoff-tab-orig-button"
               variant={'small'}
               onPressed={() => this.props.modalService.open<DepartureArrivalModal>(ModalKey.DepartureArrival)!.modal.setActiveTab('departure')}
-              isEnabled={this.props.activeFlightPlanStore.originFacility.map((v) => v !== undefined)}
+              isEnabled={this.sidInsertAvailable}
             />
           </div>
           <div>

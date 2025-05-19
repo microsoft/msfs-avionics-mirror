@@ -2,8 +2,8 @@ import {
   CompiledMapSystem, DebounceTimer, FSComponent, FacilitySearchType, FacilityType, FacilityWaypoint, FlightPlan,
   FlightPlanner, ICAO, LegDefinition, MapIndexedRangeModule, MapSystemBuilder, MapSystemGenericController,
   MappedSubject, NumberFormatter, NumberUnitSubject, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator,
-  Subject, SubscribableMapFunctions, Subscription, UnitType, UserSetting, UserSettingManager, VNode, Vec2Math,
-  Vec2Subject, VecNMath
+  Subject, SubscribableMapFunctions, Subscription, Unit, UnitFamily, UnitType, UserSetting, UserSettingManager, VNode,
+  Vec2Math, Vec2Subject, VecNMath
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -12,6 +12,7 @@ import {
 } from '@microsoft/msfs-garminsdk';
 
 import { FmsFlightPlanningConfig } from '../../../../Shared/AvionicsConfig/FmsConfig';
+import { G3XUnitsFuelType, UnitsConfig } from '../../../../Shared/AvionicsConfig/UnitsConfig';
 import { EisLayouts } from '../../../../Shared/CommonTypes';
 import { G3XNumberUnitDisplay } from '../../../../Shared/Components/Common/G3XNumberUnitDisplay';
 import { UiFlightPlanList } from '../../../../Shared/Components/FlightPlan/UiFlightPlanList';
@@ -37,6 +38,7 @@ import { G3XFms } from '../../../../Shared/FlightPlan/G3XFms';
 import { G3XFplSourceDataProvider } from '../../../../Shared/FlightPlan/G3XFplSourceDataProvider';
 import { G3XExternalFplSourceIndex, G3XFplSource } from '../../../../Shared/FlightPlan/G3XFplSourceTypes';
 import { G3XTouchFilePaths } from '../../../../Shared/G3XTouchFilePaths';
+import { G3XUnitType } from '../../../../Shared/Math/G3XUnitType';
 import { FplCalculationUserSettings } from '../../../../Shared/Settings/FplCalculationUserSettings';
 import { FplDisplayUserSettings } from '../../../../Shared/Settings/FplDisplayUserSettings';
 import { FplSourceUserSettings, G3XFplSourceSettingMode } from '../../../../Shared/Settings/FplSourceUserSettings';
@@ -94,6 +96,9 @@ export interface MfdFplPageProps extends MfdPageProps {
 
   /** A configuration object defining options for the map. */
   mapConfig: MapConfig;
+
+  /** A configuration object defining options for measurement units. */
+  unitsConfig: UnitsConfig;
 }
 
 /**
@@ -226,6 +231,8 @@ export class MfdFplPage extends AbstractMfdPage<MfdFplPageProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNavMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.fms.facLoader,
 
       bingId: `g3x-${this.props.uiService.instrumentIndex}-map-1`,
 
@@ -1402,11 +1409,28 @@ export class MfdFplPage extends AbstractMfdPage<MfdFplPageProps> {
    * @param setting The user setting that controls the flight plan fuel flow.
    */
   private async onPlanFuelButtonPressed(button: UiValueTouchButton<UserSetting<number>>, setting: UserSetting<number>): Promise<void> {
+    let settingUnit: Unit<UnitFamily.WeightFlux>;
+
+    switch (this.props.unitsConfig.fuelType) {
+      case G3XUnitsFuelType.JetA:
+        settingUnit = UnitType.GPH_JET_A_FUEL;
+        break;
+      case G3XUnitsFuelType.OneHundredLL:
+        settingUnit = UnitType.GPH_100LL_FUEL;
+        break;
+      case G3XUnitsFuelType.Autogas:
+        settingUnit = UnitType.GPH_AUTOGAS_FUEL;
+        break;
+      case G3XUnitsFuelType.Sim:
+      default:
+        settingUnit = G3XUnitType.GPH_SIM_FUEL;
+    }
+
     const result = await this.props.uiService
       .openMfdPopup<UiGenericNumberUnitDialog>(UiViewStackLayer.Overlay, UiViewKeys.GenericNumberUnitDialog1)
       .ref.request({
         initialValue: setting.value,
-        initialUnit: UnitType.GPH_FUEL,
+        initialUnit: settingUnit,
         unitType: this.unitsSettingManager.fuelFlowUnits.get(),
         digitCount: 3,
         decimalCount: 1,
@@ -1418,7 +1442,7 @@ export class MfdFplPage extends AbstractMfdPage<MfdFplPageProps> {
       });
 
     if (!result.wasCancelled) {
-      setting.value = UnitType.GPH_FUEL.convertFrom(result.payload.value, result.payload.unit);
+      setting.value = settingUnit.convertFrom(result.payload.value, result.payload.unit);
     }
   }
 
@@ -1581,7 +1605,7 @@ export class MfdFplPage extends AbstractMfdPage<MfdFplPageProps> {
             renderItem={this.renderListItem.bind(this)}
             listItemLengthPx={this.listItemLengthPx}
             listItemSpacingPx={this.listItemSpacingPx}
-            maxRenderedItemCount={30}
+            maxRenderedItemCount={24}
             itemsPerPage={this.listItemsPerPage}
             gduFormat={this.props.uiService.gduFormat}
             class='mfd-fpl-page-list'

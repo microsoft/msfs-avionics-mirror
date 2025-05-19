@@ -1,6 +1,10 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject, SetSubject, Subscribable, VNode } from '@microsoft/msfs-sdk';
+import {
+  ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject, SetSubject, Subscribable, VNode
+} from '@microsoft/msfs-sdk';
+
 import { UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
-import { G3000NavIndicators } from '@microsoft/msfs-wtg3000-common';
+
+import { FmsConfig, G3000NavIndicators, RadiosConfig } from '@microsoft/msfs-wtg3000-common';
 
 import { BearingInfo } from './BearingInfo';
 
@@ -13,8 +17,11 @@ export interface BearingInfoBannerProps extends ComponentProps {
   /** The event bus. */
   bus: EventBus;
 
-  /** The number of supported ADF radios. */
-  adfRadioCount: 0 | 1 | 2;
+  /** The radios configuration object. */
+  radiosConfig: RadiosConfig;
+
+  /** The FMS configuration object. */
+  fmsConfig: FmsConfig;
 
   /** The nav indicator collection for the PFD to which the display belongs. */
   navIndicators: G3000NavIndicators;
@@ -96,7 +103,8 @@ export class BearingInfoBanner extends DisplayComponent<BearingInfoBannerProps> 
               ref={this.info1Ref}
               bus={this.props.bus}
               index={1}
-              adfRadioCount={this.props.adfRadioCount}
+              radiosConfig={this.props.radiosConfig}
+              fmsConfig={this.props.fmsConfig}
               indicator={this.props.navIndicators.get('bearingPointer1')}
               unitsSettingManager={this.props.unitsSettingManager}
               declutter={this.props.declutter}
@@ -108,7 +116,8 @@ export class BearingInfoBanner extends DisplayComponent<BearingInfoBannerProps> 
               ref={this.info2Ref}
               bus={this.props.bus}
               index={2}
-              adfRadioCount={this.props.adfRadioCount}
+              radiosConfig={this.props.radiosConfig}
+              fmsConfig={this.props.fmsConfig}
               indicator={this.props.navIndicators.get('bearingPointer2')}
               unitsSettingManager={this.props.unitsSettingManager}
               declutter={this.props.declutter}

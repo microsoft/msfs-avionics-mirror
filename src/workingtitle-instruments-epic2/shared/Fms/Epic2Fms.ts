@@ -44,7 +44,6 @@ export class Epic2Fms {
   );
 
   private readonly facRepo = FacilityRepository.getRepository(this.bus);
-  public readonly facLoader = new FacilityLoader(this.facRepo);
 
   /** Information on our origin, arrival and destination facilities to save lookups.
    * When in MOD, this will reflect the current origin and destination in the MOD plan. */
@@ -175,6 +174,7 @@ export class Epic2Fms {
   /**
    * Ctor.
    * @param bus The instrument event bus.
+   * @param facLoader The facility loader.
    * @param flightPlanner The flight planner.
    * @param verticalPathCalculator is the VNAV Path Calculator.
    * @param isPrimaryFms If this is the primary FMS instance.
@@ -185,8 +185,9 @@ export class Epic2Fms {
    */
   constructor(
     protected readonly bus: EventBus,
+    public readonly facLoader: FacilityLoader,
     protected readonly flightPlanner: FlightPlanner,
-    protected readonly verticalPathCalculator: SmoothingPathCalculator,
+    public readonly verticalPathCalculator: SmoothingPathCalculator,
     protected readonly isPrimaryFms: boolean,
     public readonly avionicsConfig: AvionicsConfig,
     public readonly inertialDataProvider: InertialDataProvider,

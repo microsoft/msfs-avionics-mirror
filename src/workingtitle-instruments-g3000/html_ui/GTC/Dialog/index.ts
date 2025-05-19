@@ -3,6 +3,7 @@ export * from './AbstractSimpleGtcNumberDialog';
 export * from './GtcAirwaySelectionDialog';
 export * from './GtcAltitudeDialog';
 export * from './GtcBaroPressureDialog';
+export * from './GtcBaroTransitionAlertAltitudeDialog';
 export * from './GtcCourseDialog';
 export * from './GtcDialogs';
 export * from './GtcDialogView';

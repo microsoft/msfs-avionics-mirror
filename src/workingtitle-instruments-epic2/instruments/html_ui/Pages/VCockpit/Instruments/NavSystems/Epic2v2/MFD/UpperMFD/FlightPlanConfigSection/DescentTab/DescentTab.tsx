@@ -17,12 +17,15 @@ interface DescentTabProps extends TabContentProps {
   readonly modalService: ModalService;
   /** The flight plan store.  */
   readonly activeFlightPlanStore: FlightPlanStore;
+  /** The pending flight plan store.  */
+  readonly pendingFlightPlanStore: FlightPlanStore;
   /** The FMS. */
   readonly fms: Epic2Fms;
   /** The performance plan repository. */
   readonly perfPlanRepository: PerformancePlanRepository<Epic2PerformancePlan>;
   /** The vspeed controller */
-  readonly vSpeedController: Epic2VSpeedController
+  readonly vSpeedController: Epic2VSpeedController;
+
 }
 
 /** The DescentTab component. */
@@ -35,6 +38,7 @@ export class DescentTab extends TabContent<DescentTabProps> {
         bus={this.props.bus}
         modalService={this.props.modalService}
         activeFlightPlanStore={this.props.activeFlightPlanStore}
+        pendingFlightPlanStore={this.props.pendingFlightPlanStore}
         fms={this.props.fms}
         perfPlanRepository={this.props.perfPlanRepository}
         inputFocusManager={this.props.inputFocusManager}

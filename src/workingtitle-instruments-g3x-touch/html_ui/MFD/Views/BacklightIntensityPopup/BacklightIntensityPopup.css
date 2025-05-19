@@ -113,10 +113,6 @@
   padding: var(--backlight-intensity-popup-slider-inset-padding);
 }
 
-.ui-slider-focused .backlight-intensity-popup-slider-inset-overlay {
-  box-shadow: inset 0 0 1px 1px var(--ui-slider-focused-border-color);
-}
-
 .backlight-intensity-popup-mode-button {
   width: var(--backlight-intensity-popup-mode-button-width);
   height: var(--backlight-intensity-popup-mode-button-height);

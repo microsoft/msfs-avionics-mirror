@@ -18,8 +18,8 @@ import {
   DefaultRadioAltimeterDataProvider, DefaultStallWarningDataProvider, Epic2Adsb, Epic2APConfig, Epic2APStateManager, Epic2APUtils, Epic2Autopilot,
   Epic2DuControlEvents, Epic2Fadec, Epic2FlightAreaComputer, Epic2FlightPlans, Epic2Fms, Epic2FsInstrument, Epic2NavDataComputer, Epic2SpeedPredictions,
   Epic2TcasAuralAlertManager, Epic2TcasII, Epic2UserSettingSaveManager, Epic2VSpeedController, FlightPlanListManager, FlightPlanStore, FmcSimVarPublisher,
-  FmsMessageManager, FuelTotalizerSimVarPublisher, Gpws, InstrumentBackplaneNames, MapDataProvider, ModalKey, ModalPosition, ModalService,
-  SpeedOverrideController, TakeoffConfigPublisher, TrafficOperatingModeManager
+  FmsMessageManager, FuelTotalizerSimVarPublisher, InstrumentBackplaneNames, MapDataProvider, ModalKey, ModalPosition, ModalService, SpeedOverrideController,
+  TakeoffConfigPublisher, TrafficOperatingModeManager
 } from '@microsoft/msfs-epic2-shared';
 
 import { Epic2Autothrottle } from './Autothrottle/Epic2Autothrottle';
@@ -72,7 +72,6 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
 
   private readonly fms: Epic2Fms;
   private readonly fplSyncManager?: Epic2FlightPlanRouteSyncManager;
-  private readonly gpws: Gpws;
   private readonly tcas: Epic2TcasII;
   private readonly trafficOperatingModeManager: TrafficOperatingModeManager;
   private readonly tcasAurals: Epic2TcasAuralAlertManager;
@@ -156,6 +155,7 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
 
     this.fms = new Epic2Fms(
       this.bus,
+      this.facLoader,
       this.flightPlanner,
       this.verticalPathCalculator,
       true,
@@ -201,7 +201,6 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
 
     this.flightAreaComputer = new Epic2FlightAreaComputer(this.bus, this.selectedFmsPosIndex, this.flightPlanStoreActive);
 
-    this.gpws = new Gpws(this.bus, 1, this.facLoader, this.autopilotDataProvider);
     this.tcas = new Epic2TcasII(this.bus, this.trafficInstrument, new Epic2Adsb(this.bus), this.config.sensors.acasDefinition);
     this.trafficOperatingModeManager = new TrafficOperatingModeManager(this.bus);
     this.tcasAurals = new Epic2TcasAuralAlertManager(this.bus);
@@ -260,7 +259,6 @@ export class Epic2UpperMfdInstrument extends Epic2FsInstrument {
       this.tcas.init();
       this.trafficOperatingModeManager.init();
       this.tcasAurals.init();
-      this.gpws.init();
       this.fmsSpeedManager.init();
 
       // Called once after rendering all input fields.

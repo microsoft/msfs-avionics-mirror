@@ -92,3 +92,20 @@
   border-color: transparent;
   background: none;
 }
+
+.waypoint-info-chart-wrapper {
+  position: absolute;
+}
+
+.gdu-460-display .waypoint-info-chart-wrapper {
+  /* 92px tabs + 3px tab container border + 4px margin */
+  right: 99px;
+  /* 3px tab container border + 4px margin */
+  bottom: 7px;
+}
+
+.waypoint-info-chart-display-expanded .waypoint-info-chart-wrapper {
+  right: calc(-1 * var(--waypoint-info-expand-margin-right)) !important;
+  bottom: calc(-1 * var(--waypoint-info-expand-margin-bottom)) !important;
+  background: url("/Pages/VCockpit/Instruments/NavSystems/G3XTouchv2/Assets/Images/generic_background_tile.png");
+}

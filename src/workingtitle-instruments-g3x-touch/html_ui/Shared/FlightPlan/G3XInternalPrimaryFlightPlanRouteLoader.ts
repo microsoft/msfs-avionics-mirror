@@ -388,7 +388,7 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
             }
           }
         } else {
-          console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: enroute fix with ICAO '${ICAO.valueToStringV1(leg.fixIcao)}' has invalid facility type`);
+          console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: enroute fix with ICAO '${ICAO.tryValueToStringV2(leg.fixIcao)}' has invalid facility type`);
         }
       }
 
@@ -406,9 +406,9 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
    */
   private async retrieveFacility(icao: IcaoValue): Promise<Facility | null> {
     try {
-      return await this.fms.facLoader.getFacility(ICAO.getFacilityTypeFromValue(icao), ICAO.valueToStringV1(icao));
+      return await this.fms.facLoader.getFacility(ICAO.getFacilityTypeFromValue(icao), icao);
     } catch {
-      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: unable to retrieve facility with ICAO '${ICAO.valueToStringV1(icao)}'`);
+      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: unable to retrieve facility with ICAO '${ICAO.tryValueToStringV2(icao)}'`);
     }
 
     return null;
@@ -487,9 +487,9 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
         case FacilityType.NDB:
         case FacilityType.Intersection:
           try {
-            return await this.fms.facLoader.getFacility(FacilityType.Intersection, ICAO.valueToStringV1(icao));
+            return await this.fms.facLoader.getFacility(FacilityType.Intersection, icao);
           } catch {
-            console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: unable to retrieve waypoint with ICAO '${ICAO.valueToStringV1(icao)}'`);
+            console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: unable to retrieve waypoint with ICAO '${ICAO.tryValueToStringV2(icao)}'`);
           }
       }
     }
@@ -504,11 +504,11 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
    * found.
    */
   private async retrieveFacilityFromIntersection(facility: IntersectionFacility): Promise<Facility | null> {
-    if (ICAO.isStringV1Facility(facility.icao, FacilityType.Intersection)) {
+    if (ICAO.isValueFacility(facility.icaoStruct, FacilityType.Intersection)) {
       return facility;
     }
 
-    return this.retrieveFacility(ICAO.stringV1ToValue(facility.icao));
+    return this.retrieveFacility(facility.icaoStruct);
   }
 
   /**
@@ -530,31 +530,31 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
       exitIndex: number;
     } | null
   > {
-    if (entryFacility.icao === exitFacility.icao) {
-      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.getIdentFromStringV1(exitFacility.icao)} - the fix is the same as the entry fix`);
+    if (ICAO.valueEquals(entryFacility.icaoStruct, exitFacility.icaoStruct)) {
+      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.tryValueToStringV2(exitFacility.icaoStruct)} - the fix is the same as the entry fix`);
       return null;
     }
 
     try {
       // Note: airway type passed to getAirway() doesn't actually matter, so we will just use an arbitrary value.
-      const airway = await this.fms.facLoader.getAirway(airwayName, AirwayType.None, exitFacility.icao);
+      const airway = await this.fms.facLoader.getAirway(airwayName, AirwayType.None, exitFacility.icaoStruct);
 
       let entryIndex = -1;
       let exitIndex = -1;
 
-      if ((exitIndex = airway.waypoints.findIndex(airwayFix => airwayFix.icao === exitFacility.icao)) < 0) {
+      if ((exitIndex = airway.waypoints.findIndex(airwayFix => ICAO.valueEquals(airwayFix.icaoStruct, exitFacility.icaoStruct))) >= 0) {
         // Find the entry waypoint in the airway
-        if ((entryIndex = airway.waypoints.findIndex(airwayFix => airwayFix.icao === exitFacility.icao)) < 0) {
+        if ((entryIndex = airway.waypoints.findIndex(airwayFix => ICAO.valueEquals(airwayFix.icaoStruct, entryFacility.icaoStruct))) >= 0) {
           return { airway, entryIndex, exitIndex };
         } else {
-          console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.getIdentFromStringV1(exitFacility.icao)} - the entry fix ${ICAO.getIdentFromStringV1(entryFacility.icao)} is not part of the specified airway`);
+          console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.tryValueToStringV2(exitFacility.icaoStruct)} - the entry fix ${ICAO.tryValueToStringV2(entryFacility.icaoStruct)} is not part of the specified airway`);
         }
       } else {
         // Should never happen.
-        console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.getIdentFromStringV1(exitFacility.icao)} - the fix is not part of the specified airway`);
+        console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.tryValueToStringV2(exitFacility.icaoStruct)} - the fix is not part of the specified airway`);
       }
     } catch {
-      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.getIdentFromStringV1(exitFacility.icao)} - the fix is not part of the specified airway`);
+      console.warn(`G3XInternalPrimaryFlightPlanRouteLoader: could not load airway '${airwayName}' to fix ${ICAO.tryValueToStringV2(exitFacility.icaoStruct)} - the fix is not part of the specified airway`);
     }
 
     return null;
@@ -589,12 +589,12 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
     for (const leg of plan.legs()) {
       // Garmin flight plans can only reference user facilities as terminator fixes, so we only need to check fixIcao.
 
-      if (!ICAO.isStringV1Facility(leg.leg.fixIcao, FacilityType.USR)) {
+      if (!ICAO.isValueFacility(leg.leg.fixIcaoStruct, FacilityType.USR)) {
         continue;
       }
 
-      if (ICAO.getAirportIdentFromStringV1(leg.leg.fixIcao) === G3XFacilityUtils.USER_FACILITY_SCOPE) {
-        const ident = ICAO.getIdentFromStringV1(leg.leg.fixIcao);
+      if (leg.leg.fixIcaoStruct.airport === G3XFacilityUtils.USER_FACILITY_SCOPE) {
+        const ident = leg.leg.fixIcaoStruct.ident;
         if (ident.startsWith(G3XInternalPrimaryFlightPlanRouteLoader.USER_FACILITY_IDENT_PREFIX)) {
           const facilityIndex = Number(ident.substring(G3XInternalPrimaryFlightPlanRouteLoader.USER_FACILITY_IDENT_PREFIX.length));
           if (Number.isInteger(facilityIndex) && facilityIndex >= 0) {
@@ -621,6 +621,6 @@ export class G3XInternalPrimaryFlightPlanRouteLoader implements GarminFlightPlan
       `${G3XInternalPrimaryFlightPlanRouteLoader.USER_FACILITY_IDENT_PREFIX}${index.toString().padStart(3, '0')}`
     );
 
-    return UserFacilityUtils.createFromLatLon(ICAO.valueToStringV1(userIcao), latLon.lat, latLon.lon, true);
+    return UserFacilityUtils.createFromLatLon(userIcao, latLon.lat, latLon.lon, true);
   }
 }

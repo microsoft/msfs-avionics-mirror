@@ -22,6 +22,7 @@ import { AbstractMfdPage } from '../../../PageNavigation/AbstractMfdPage';
 import { MfdPageProps } from '../../../PageNavigation/MfdPage';
 import { MfdPageSizeMode } from '../../../PageNavigation/MfdPageTypes';
 import { FuelCalculatorTab } from './FuelCalculator/FuelCalculatorTab';
+import { UnitsConfig } from '../../../../Shared/AvionicsConfig/UnitsConfig';
 
 import './MfdEnginePage.css';
 
@@ -34,6 +35,9 @@ export interface MfdEnginePageProps extends MfdPageProps {
 
   /** A manager for GDU user settings. */
   gduSettingManager: UserSettingManager<GduUserSettingTypes>;
+
+  /** A configuration object defining options for measurement units. */
+  unitsConfig: UnitsConfig;
 
   /**
    * The definition for rendering the engine page parsed from `panel.xml`. If not defined, then the page's contents
@@ -182,6 +186,7 @@ export class MfdEnginePage extends AbstractMfdPage<MfdEnginePageProps> {
             tabLabel={tabDef.label}
             uiService={this.props.uiService}
             gduSettingManager={this.props.gduSettingManager}
+            unitsConfig={this.props.unitsConfig}
             presetFuel1={tabDef.presetFuel1}
             presetFuel2={tabDef.presetFuel2}
           >

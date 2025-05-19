@@ -152,31 +152,46 @@
   height: var(--bottom-info-padding-height);
 }
 
-.bottom-info-cell-a-empty {
+/* ---- Empty Cell A ---- */
+
+.bottom-info-cell-a-slot-empty {
   width: var(--bottom-info-cell-a-empty-width);
 }
 
 /* ---- Speed info ---- */
 
-.bottom-info .speed-info {
-  position: relative;
+.bottom-info-cell-a-slot-speed {
   width: var(--bottom-info-speed-info-width);
+}
+
+.bottom-info-cell-a-slot .speed-info {
+  position: relative;
+  width: 100%;
   height: 100%;
 }
 
 /* ---- Temperature info ---- */
 
-.bottom-info .temperature-info {
-  position: relative;
+.bottom-info-cell-a-slot-temperature,
+.bottom-info-cell-a-slot-temperature-oat {
   width: var(--bottom-info-temperature-info-width);
+}
+
+.bottom-info-cell-a-slot .temperature-info {
+  position: relative;
+  width: 100%;
   height: 100%;
 }
 
 /* ---- Wind display ---- */
 
-.bottom-info .wind {
-  position: relative;
+.bottom-info-cell-a-slot-wind {
   width: var(--bottom-info-wind-width);
+}
+
+.bottom-info-cell-a-slot .wind {
+  position: relative;
+  width: 100%;
   height: 100%;
 
   --wind-option1-top: 0px;
@@ -184,15 +199,19 @@
 
 /* ---- Time info ---- */
 
-/* Time info in cell A. */
-.bottom-info-cell-a .time-info {
-  position: relative;
+.bottom-info-cell-a-slot-time {
   width: var(--bottom-info-cell-a-time-info-width);
+}
+
+/* Time info in cell A. */
+.bottom-info-cell-a-slot .time-info {
+  position: relative;
+  width: 100%;
   height: 100%;
 }
 
 /* Hide AM/PM suffix for time info in cell A due to space restriction. */
-.bottom-info-cell-a .time-info .time-suffix {
+.bottom-info-cell-a-slot .time-info .time-suffix {
   display: none !important;
 }
 

@@ -1,7 +1,8 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconOrientation, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys,
-  MutableSubscribable, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily,
+  FacilityLoader, FacilityRepository, FSComponent, MapDataIntegrityModule, MapOwnAirplaneIconOrientation,
+  MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, MutableSubscribable,
+  NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily,
   UserSettingManager, Vec2Math, Vec2Subject, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -21,6 +22,9 @@ import { MapFlightPlanFocusModule, MapOrientation, MapOrientationModule, MapPoin
  * Options for creating a next-generation (NXi, G3000, etc) Garmin procedure map.
  */
 export type NextGenProcMapOptions = {
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
 
@@ -202,6 +206,9 @@ export class NextGenProcMapBuilder {
     options.includeOrientationIndicator ??= false;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,
         options.nauticalRangeArray ?? MapUtils.nextGenMapRanges(UnitsDistanceSettingMode.Nautical),

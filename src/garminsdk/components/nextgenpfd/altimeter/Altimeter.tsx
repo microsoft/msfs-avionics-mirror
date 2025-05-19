@@ -40,6 +40,12 @@ export interface AltimeterProps extends ComponentProps {
   minimumsAlertState?: Subscribable<MinimumsAlertState>;
 
   /**
+   * Whether the barometric transition alert is active. If not defined, then the altimeter will not support the display
+   * of barometric transition alert indications.
+   */
+  isBaroTransitionAlertActive?: Subscribable<boolean>;
+
+  /**
    * Whether the indicator should be decluttered due to unusual attitudes. When decluttered, the following features are
    * hidden:
    * * Selected altitude display
@@ -289,6 +295,7 @@ export class Altimeter extends DisplayComponent<AltimeterProps> {
             isStdActive={this.props.dataProvider.baroIsStdActive}
             baroPreselect={this.props.supportBaroPreselect ? this.props.dataProvider.baroPreselect : undefined}
             isMetric={this.showMetricBaroSetting}
+            isBaroTransitionAlertActive={this.props.isBaroTransitionAlertActive}
           />
         </div>
 
@@ -1702,6 +1709,12 @@ interface BaroSettingDisplayProps extends ComponentProps {
 
   /** Whether to display values in metric units (hectopascals). */
   isMetric: Subscribable<boolean>;
+
+  /**
+   * Whether the barometric transition alert is active. If not defined, then the display will not support barometric
+   * transition alert indications.
+   */
+  isBaroTransitionAlertActive?: Subscribable<boolean>;
 }
 
 /**
@@ -1724,13 +1737,11 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
     display: 'none'
   });
 
-  private readonly cssClassSet = SetSubject.create(['altimeter-baro-container']);
-
   private readonly baroSetting = NumberUnitSubject.create(UnitType.IN_HG.createNumber(29.92));
   private readonly baroPreselect = NumberUnitSubject.create(UnitType.IN_HG.createNumber(29.92));
   private readonly displayUnit = this.props.isMetric.map(isMetric => isMetric ? UnitType.HPA : UnitType.IN_HG);
 
-  private readonly animationDebounceTimer = new DebounceTimer();
+  private readonly isBaroTransitionAlertActive = this.props.isBaroTransitionAlertActive?.map(SubscribableMapFunctions.identity());
 
   private showSub?: Subscription;
   private baroSettingPipe?: Subscription;
@@ -1764,8 +1775,6 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
       } else {
         this.rootStyle.set('display', 'none');
 
-        this.animationDebounceTimer.clear();
-
         baroSettingPipe.pause();
         this.baroPreselectPipe?.pause();
         isStdActiveSub.pause();
@@ -1776,7 +1785,13 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
   /** @inheritdoc */
   public render(): VNode {
     return (
-      <div class={this.cssClassSet} style={this.rootStyle}>
+      <div
+        class={{
+          'altimeter-baro-container': true,
+          'altimeter-baro-container-transition-alert': this.isBaroTransitionAlertActive ?? false
+        }}
+        style={this.rootStyle}
+      >
         <div class='altimeter-baro-setting-value' style={this.baroSettingValueStyle}>
           <NumberUnitDisplay
             value={this.baroSetting}
@@ -1813,6 +1828,8 @@ class BaroSettingDisplay extends DisplayComponent<BaroSettingDisplayProps> {
     super.destroy();
 
     this.displayUnit.destroy();
+
+    this.isBaroTransitionAlertActive?.destroy();
 
     this.showSub?.destroy();
     this.baroSettingPipe?.destroy();

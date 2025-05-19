@@ -1256,8 +1256,10 @@ export class FlightPlanStore {
       item.altitude1.set(advisoryAltitude, UnitType.METER);
       item.altitude2.set(NaN, UnitType.METER);
       item.isAltitudeEdited.set(false);
+      item.isAltitudeAdvisory.set(true);
     } else {
       item.updateLegListDataAltitudeStuffFromVerticalData();
+      item.isAltitudeAdvisory.set(false);
     }
 
     // FPA

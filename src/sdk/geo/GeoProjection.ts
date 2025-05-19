@@ -1,3 +1,4 @@
+import { MathUtils } from '../math/MathUtils';
 import { UnitType } from '../math/NumberUnit';
 import { Transform3D } from '../math/Transform3D';
 import { ReadonlyFloat64Array, Vec2Math } from '../math/VecMath';
@@ -276,25 +277,27 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
 
   /**
    * Applies a raw projection.
-   * @param vec - a [lon, lat] vector describing the geographic point to project.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the projected point.
+   * @param vec A 2D vector describing the point to project, as `[lon, lat]` in degrees. The longitude value must be
+   * in the range `[-180, 180)`, and the latitude value must be in the range `[-90, 90]`.
+   * @param out A 2D vector to which to write the result.
+   * @returns The projected point.
    */
   protected abstract projectRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array;
 
   /**
    * Inverts a raw projection.
-   * @param vec - a 2D vector describing the projected point to invert.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the inverted point.
+   * @param vec A 2D vector describing the projected point to invert.
+   * @param out A 2D vector to which to write the result.
+   * @returns The inverted point.
    */
   protected abstract invertRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array;
 
   /**
    * Applies a forward rotation to a set of lat/lon coordinates using this projection's pre-projection rotation angles.
-   * @param vec - the lat/lon coordinates to rotate, as a vector ([long, lat]).
-   * @param out - the vector to which to write the result.
-   * @returns the rotated lat/lon coordinates.
+   * @param vec The lat/lon coordinates to rotate, as `[lon, lat]` in degrees.
+   * @param out The vector to which to write the result.
+   * @returns The rotated lat/lon coordinates, as `[lon, lat]` in degrees. The longitude value is guaranteed to be in
+   * the range `[-180, 180)`, and the latitude value is guaranteed to be in the range `[-90, 90]`.
    */
   protected preRotateForward(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     const lambda = this.preRotation[0];
@@ -324,9 +327,9 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
 
   /**
    * Applies a reverse rotation to a set of lat/lon coordinates using this projection's pre-projection rotation angles.
-   * @param vec - the lat/lon coordinates to rotate, as a vector ([long, lat]).
-   * @param out - the vector to which to write the result.
-   * @returns the rotated lat/lon coordinates.
+   * @param vec The lat/lon coordinates to rotate, as `[lon, lat]` in degrees.
+   * @param out The vector to which to write the result.
+   * @returns The rotated lat/lon coordinates.
    */
   protected preRotateReverse(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     const lambda = this.preRotation[0];
@@ -435,24 +438,14 @@ abstract class AbstractGeoProjection implements MutableGeoProjection {
  * A Mercator projection.
  */
 export class MercatorProjection extends AbstractGeoProjection {
-  /**
-   * Applies a raw projection.
-   * @param vec - a [lon, lat] vector describing the geographic point to project.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the projected point.
-   */
+  /** @inheritDoc */
   protected projectRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     out[0] = vec[0] * Avionics.Utils.DEG2RAD;
     out[1] = Math.log(Math.tan((90 + vec[1]) * Avionics.Utils.DEG2RAD / 2));
     return out;
   }
 
-  /**
-   * Inverts a raw projection.
-   * @param vec - a 2D vector describing the projected point to invert.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the inverted point.
-   */
+  /** @inheritDoc */
   protected invertRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     out[0] = vec[0] * Avionics.Utils.RAD2DEG;
     out[1] = 2 * Math.atan(Math.exp(vec[1])) * Avionics.Utils.RAD2DEG - 90;
@@ -464,12 +457,7 @@ export class MercatorProjection extends AbstractGeoProjection {
  * An orthographic projection.
  */
 export class OrthographicProjection extends AbstractGeoProjection {
-  /**
-   * Applies a raw projection.
-   * @param vec - a [lon, lat] vector describing the geographic point to project.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the projected point.
-   */
+  /** @inheritDoc */
   protected projectRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     const lonRad = vec[0] * Avionics.Utils.DEG2RAD;
     const latRad = vec[1] * Avionics.Utils.DEG2RAD;
@@ -478,12 +466,7 @@ export class OrthographicProjection extends AbstractGeoProjection {
     return out;
   }
 
-  /**
-   * Inverts a raw projection.
-   * @param vec - a 2D vector describing the projected point to invert.
-   * @param out - a 2D vector to which to write the result.
-   * @returns the inverted point.
-   */
+  /** @inheritDoc */
   protected invertRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
     const x = vec[0];
     const y = vec[1];
@@ -494,6 +477,194 @@ export class OrthographicProjection extends AbstractGeoProjection {
 
     out[0] = Math.atan2(x * sinC, rho * cosC) * Avionics.Utils.RAD2DEG;
     out[1] = Math.asin(rho === 0 ? rho : y * sinC / rho) * Avionics.Utils.RAD2DEG;
+    return out;
+  }
+}
+
+/**
+ * A Lambert conformal conic projection.
+ */
+export class LambertConformalConicProjection extends AbstractGeoProjection {
+  /** The parameter parallels of this projection, as `[standard 1, standard 2]` in degrees. */
+  private readonly parallels = new Float64Array(2);
+
+  private useMercator = false;
+
+  private n = 0;
+  private f = 0;
+
+  /**
+   * Creates a new instance of LambertConformalConicProjection.
+   */
+  public constructor() {
+    super();
+
+    this.updateDerivedParameters();
+    this.updateCenterTranslation();
+  }
+
+  /**
+   * Gets the standard parallels of this projection, as `[standard 1, standard 2]` in degrees.
+   * @returns The standard parallels of this projection, as `[standard 1, standard 2]` in degrees.
+   */
+  public getStandardParallels(): ReadonlyFloat64Array {
+    return this.parallels;
+  }
+
+  /**
+   * Sets the parallels of this projection.
+   * @param lat1 The first standard parallel to set, in degrees. This value will be clamped to the range `[-90, 90]`.
+   * @param lat2 The second standard parallel to set, in degrees. This value will be clamped to the range `[-90, 90]`.
+   * Defaults to the value of `lat1`.
+   * @returns This projection, after it has been changed.
+   */
+  public setStandardParallels(lat1: number, lat2?: number): this;
+  /**
+   * Sets the parallels of this projection.
+   * @param parallels The standard parallels to set, as `[standard 1, standard 2]` in degrees. Each parallel
+   * value will be clamped to the range `[-90, 90]`.
+   * @returns This projection, after it has been changed.
+   */
+  public setStandardParallels(parallels: ReadonlyFloat64Array): this;
+  // eslint-disable-next-line jsdoc/require-jsdoc
+  public setStandardParallels(arg1: number | ReadonlyFloat64Array, arg2?: number): this {
+    let lat1: number;
+    let lat2: number;
+
+    if (typeof arg1 === 'number') {
+      lat1 = arg1;
+      lat2 = arg2 ?? lat1;
+    } else {
+      lat1 = arg1[0];
+      lat2 = arg1[1];
+    }
+
+    this.parallels[0] = MathUtils.clamp(lat1, -90, 90);
+    this.parallels[1] = MathUtils.clamp(lat2, -90, 90);
+
+    this.updateDerivedParameters();
+    this.updateCenterTranslation();
+
+    return this;
+  }
+
+  /** @inheritDoc */
+  public copyParametersFrom(other: GeoProjection): this {
+    super.copyParametersFrom(other);
+
+    if (other instanceof LambertConformalConicProjection) {
+      this.setStandardParallels(other.getStandardParallels());
+    }
+
+    return this;
+  }
+
+  /**
+   * Updates the n and f parameters of this projection.
+   */
+  private updateDerivedParameters(): void {
+    const lat1Rad = this.parallels[0] * Avionics.Utils.DEG2RAD;
+    const lat2Rad = this.parallels[1] * Avionics.Utils.DEG2RAD;
+
+    const cosLat1 = Math.cos(lat1Rad);
+    const tanFuncLat1 = Math.tan(MathUtils.QUARTER_PI + lat1Rad * 0.5);
+
+    this.n = Math.log(cosLat1 / Math.cos(lat2Rad))
+      / Math.log(Math.tan(MathUtils.QUARTER_PI + lat2Rad * 0.5) / tanFuncLat1);
+
+    // If n is not finite, then lat1 and lat2 must be equal or very close to equal. In this case we will revert to the
+    // formula for just one standard parallel.
+    if (!isFinite(this.n)) {
+      this.n = Math.sin(lat1Rad);
+    }
+
+    // If n is equal to zero, then the parameters describe a cylindrical (Mercator) projection.
+    if (this.n === 0) {
+      this.useMercator = true;
+      this.f = 0;
+    } else {
+      this.useMercator = false;
+      this.f = cosLat1 * Math.pow(tanFuncLat1, this.n) / this.n;
+    }
+  }
+
+  /** @inheritDoc */
+  protected projectRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    if (this.useMercator) {
+      return this.projectRawMercator(vec, out);
+    } else {
+      return this.projectRawLcc(vec, out);
+    }
+  }
+
+  /** @inheritDoc */
+  protected invertRaw(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    if (this.useMercator) {
+      return this.invertRawMercator(vec, out);
+    } else {
+      return this.invertRawLcc(vec, out);
+    }
+  }
+
+  /**
+   * Applies a raw Lambert conformal conic projection.
+   * @param vec A 2D vector describing the point to project, as `[lon, lat]` in degrees. The longitude value must be
+   * in the range `[-180, 180)`, and the latitude value must be in the range `[-90, 90]`.
+   * @param out A 2D vector to which to write the result.
+   * @returns The projected point.
+   */
+  private projectRawLcc(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    const theta = this.n * vec[0] * Avionics.Utils.DEG2RAD;
+    const rho = this.f * Math.pow(Math.tan(MathUtils.QUARTER_PI + vec[1] * Avionics.Utils.DEG2RAD * 0.5), -this.n);
+    out[0] = rho * Math.sin(theta);
+    out[1] = this.f - rho * Math.cos(theta); // rho_0 = f
+    return out;
+  }
+
+  /**
+   * Inverts a raw Lambert conformal conic projection.
+   * @param vec A 2D vector describing the projected point to invert.
+   * @param out A 2D vector to which to write the result.
+   * @returns The inverted point.
+   */
+  private invertRawLcc(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    const x = vec[0];
+    const y = vec[1];
+    const signN = Math.sign(this.n);
+    const rho0MinusY = this.f - y; // rho_0 = f
+    const rho = Math.sqrt(x * x + rho0MinusY * rho0MinusY) * signN;
+    const theta = Math.atan2(x * signN, rho0MinusY * signN);
+    out[0] = theta / this.n * Avionics.Utils.RAD2DEG;
+    if (rho === 0) {
+      out[1] = 90 * signN;
+    } else {
+      out[1] = 2 * Math.atan(Math.pow(this.f / rho, 1 / this.n)) * Avionics.Utils.RAD2DEG - 90;
+    }
+    return out;
+  }
+
+  /**
+   * Applies a raw Mercator projection.
+   * @param vec A 2D vector describing the point to project, as `[lon, lat]` in degrees. The longitude value must be
+   * in the range `[-180, 180)`, and the latitude value must be in the range `[-90, 90]`.
+   * @param out A 2D vector to which to write the result.
+   * @returns The projected point.
+   */
+  private projectRawMercator(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    out[0] = vec[0] * Avionics.Utils.DEG2RAD;
+    out[1] = Math.log(Math.tan((90 + vec[1]) * Avionics.Utils.DEG2RAD / 2));
+    return out;
+  }
+
+  /**
+   * Inverts a raw Mercator projection.
+   * @param vec A 2D vector describing the projected point to invert.
+   * @param out A 2D vector to which to write the result.
+   * @returns The inverted point.
+   */
+  private invertRawMercator(vec: ReadonlyFloat64Array, out: Float64Array): Float64Array {
+    out[0] = vec[0] * Avionics.Utils.RAD2DEG;
+    out[1] = 2 * Math.atan(Math.exp(vec[1])) * Avionics.Utils.RAD2DEG - 90;
     return out;
   }
 }

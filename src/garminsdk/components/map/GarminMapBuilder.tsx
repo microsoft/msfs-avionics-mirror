@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import {
-  DefaultLodBoundaryCache, EmptyRecord, FlightPlanner, FSComponent, GeoPoint, LatLonInterface, MapAltitudeArcLayer,
-  MapAltitudeArcLayerModules, MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding, MapCullableTextLabelManager,
-  MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule, MapLayerProps, MapLineLayer,
-  MapLineLayerProps, MapOwnAirplanePropsModule, MapSyncedCanvasLayer, MapSystemBuilder,
+  DefaultLodBoundaryCache, EmptyRecord, FacilityLoader, FlightPlanner, FSComponent, GeoPoint, LatLonInterface,
+  MapAltitudeArcLayer, MapAltitudeArcLayerModules, MapAltitudeArcLayerProps, MapAltitudeArcModule, MapBinding,
+  MapCullableTextLabelManager, MapFollowAirplaneModule, MapGenericLayer, MapGenericLayerProps, MapIndexedRangeModule,
+  MapLayerProps, MapLineLayer, MapLineLayerProps, MapOwnAirplanePropsModule, MapSyncedCanvasLayer, MapSystemBuilder,
   MapSystemBuilderTrafficOffScaleOobOptions, MapSystemContext, MapSystemGenericController, MapSystemKeys,
   MapTerrainColorsModule, MapTrafficIntruderIconFactory, MapTrafficModule, MapWxrModule, MutableSubscribable,
   NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, SetSubject, Subject, Subscribable,
@@ -827,6 +827,10 @@ export class GarminMapBuilder {
    * of the map's projected window. Waypoints displayed in this manner are rendered by a {@link MapWaypointRenderer}
    * under the role {@link MapWaypointRenderRole.Normal}. Optionally binds the visibility of waypoints to user
    * settings.
+   * 
+   * If a facility loader has been added to the map context under the `MapSystemKeys.FacilityLoader` key, then it will
+   * be used to retrieve facilities for the display of waypoints. Otherwise, a new default facility loader instance
+   * will be used instead.
    *
    * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
    * waypoint layer. Otherwise, a text layer will be added to the builder after the waypoint layer.
@@ -884,7 +888,14 @@ export class GarminMapBuilder {
     const layerCount = mapBuilder.layerCount;
 
     return mapBuilder
-      .withLayer<MapWaypointsLayer, MapWaypointsLayerModules, { [MapSystemKeys.WaypointRenderer]: MapWaypointRenderer }>(
+      .withLayer<
+        MapWaypointsLayer,
+        MapWaypointsLayerModules,
+        {
+          [MapSystemKeys.FacilityLoader]?: FacilityLoader;
+          [MapSystemKeys.WaypointRenderer]: MapWaypointRenderer;
+        }
+      >(
         MapSystemKeys.NearestWaypoints,
         (context): VNode => {
           return (
@@ -892,6 +903,7 @@ export class GarminMapBuilder {
               model={context.model}
               mapProjection={context.projection}
               bus={context.bus}
+              facilityLoader={context[MapSystemKeys.FacilityLoader]}
               waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
               supportRunwayOutlines={options?.supportRunwayOutlines === true}
               userFacilityScopeFilter={options?.userFacilityScopeFilter}
@@ -2196,6 +2208,10 @@ export class GarminMapBuilder {
 
   /**
    * Configures a map builder to generate a map which supports a flight plan procedure preview.
+   * 
+   * If a facility loader has been added to the map context under the `MapSystemKeys.FacilityLoader` key, then it will
+   * be used to retrieve facilities for the display of waypoints. Otherwise, a new default facility loader instance
+   * will be used instead.
    *
    * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
    * highlighted waypoint layers. Otherwise, a text layer will be added to the builder after the highlighted waypoint
@@ -2244,7 +2260,14 @@ export class GarminMapBuilder {
     const layerCount = mapBuilder.layerCount;
 
     return mapBuilder
-      .withLayer<MapProcedurePreviewLayer, MapProcedurePreviewLayerModules, { [MapSystemKeys.WaypointRenderer]: MapWaypointRenderer }>(
+      .withLayer<
+        MapProcedurePreviewLayer,
+        MapProcedurePreviewLayerModules,
+        {
+          [MapSystemKeys.FacilityLoader]?: FacilityLoader;
+          [MapSystemKeys.WaypointRenderer]: MapWaypointRenderer
+        }
+      >(
         GarminMapKeys.ProcedurePreview,
         (context): VNode => {
           return (
@@ -2252,6 +2275,7 @@ export class GarminMapBuilder {
               model={context.model}
               mapProjection={context.projection}
               bus={context.bus}
+              facilityLoader={context[MapSystemKeys.FacilityLoader]}
               waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
               pathRenderer={pathRenderer}
             />

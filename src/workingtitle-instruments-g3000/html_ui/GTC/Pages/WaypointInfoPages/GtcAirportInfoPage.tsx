@@ -1,12 +1,12 @@
 import {
-  AirportFacility, AirportFacilityDataFlags, AirportPrivateType, AirportRunway, AirportUtils, ApproachUtils,
-  ArraySubject, ArrivalProcedure, BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, ComponentProps, ComSpacing,
-  DateTimeFormatter, DepartureProcedure, DisplayComponent, ExtendedApproachType, Facility, FacilityFrequencyType,
-  FacilityLoader, FacilitySearchType, FacilityType, FacilityWaypoint, FSComponent, ICAO, IcaoValue, MagVar,
-  MappedSubject, MathUtils, Metar, MetarCloudLayer, MetarCloudLayerCoverage, MetarCloudLayerType, MetarVisibilityUnits,
-  MetarWindSpeedUnits, MutableSubscribable, NodeReference, NumberFormatter, NumberUnitInterface, NumberUnitSubject,
-  Procedure, RadioFrequencyFormatter, RadioUtils, RunwayLightingType, RunwaySurfaceCategory, RunwayUtils, Subject,
-  Subscribable, Subscription, UnitType, VNode
+  AirportFacility, AirportFacilityDataFlags, AirportPrivateType, AirportRunway, ApproachUtils, ArraySubject,
+  ArrivalProcedure, BasicNavAngleSubject, BasicNavAngleUnit, BitFlags, ComponentProps, ComSpacing, DateTimeFormatter,
+  DepartureProcedure, DisplayComponent, ExtendedApproachType, Facility, FacilityFrequencyType, FacilityLoader,
+  FacilitySearchType, FacilityType, FacilityWaypoint, FSComponent, ICAO, IcaoValue, MagVar, MappedSubject, MathUtils,
+  Metar, MetarCloudLayer, MetarCloudLayerCoverage, MetarCloudLayerType, MetarVisibilityUnits, MetarWindSpeedUnits,
+  MutableSubscribable, NodeReference, NumberFormatter, NumberUnitInterface, NumberUnitSubject, Procedure,
+  RadioFrequencyFormatter, RadioUtils, RunwayLightingType, RunwaySurfaceCategory, RunwayUtils, Subject, Subscribable,
+  Subscription, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -519,7 +519,7 @@ class GtcAirportInfoPageInfoTab extends DisplayComponent<GtcAirportInfoPageInfoT
         return NaN;
       }
 
-      return AirportUtils.getElevation(facility) ?? NaN;
+      return facility.altitude;
     });
 
     this.sidebarStateSub = this.props.sidebarState.sub(sidebarState => {

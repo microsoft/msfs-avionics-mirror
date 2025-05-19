@@ -74,6 +74,8 @@ export class NearestPaneView extends DisplayPaneView<NearestPaneViewProps, Displ
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.nearestMap, {
+      facilityLoader: this.props.facLoader,
+
       bingId: `pane_map_${this.props.index}`,
       bingDelay: BingUtils.getBindDelayForPane(this.props.index),
 

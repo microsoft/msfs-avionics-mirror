@@ -2,7 +2,6 @@ import { EventBus, UserSettingSaveManager } from '@microsoft/msfs-sdk';
 
 import { MFDNavDataBarUserSettings } from '../../MFD/Components/UI/NavDataBar/MFDNavDataBarUserSettings';
 import { PFDUserSettings } from '../../PFD/PFDUserSettings';
-import { BacklightUserSettings } from '../Backlight/BacklightUserSettings';
 import { DateTimeUserSettings } from '../DateTime/DateTimeUserSettings';
 import { MapUserSettings } from '../Map/MapUserSettings';
 import { NavComUserSettings } from '../NavCom/NavComUserSettings';
@@ -19,7 +18,6 @@ export class G1000SettingSaveManager extends UserSettingSaveManager {
    * @param bus The event bus.
    */
   constructor(bus: EventBus) {
-    const backlightSettingManager = BacklightUserSettings.getManager(bus);
     const mapSettingManager = MapUserSettings.getManager(bus);
     const pfdSettingManager = PFDUserSettings.getManager(bus);
     const trafficSettingManager = TrafficUserSettings.getManager(bus);
@@ -30,7 +28,6 @@ export class G1000SettingSaveManager extends UserSettingSaveManager {
     const nearestAirportSearchSettingManager = NearestAirportSearchSettings.getManager(bus);
 
     const settings = [
-      ...backlightSettingManager.getAllSettings(),
       ...pfdSettingManager.getAllSettings(),
       ...mapSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'mapGroundNorthUpActive'),
       ...trafficSettingManager.getAllSettings().filter(setting => setting.definition.name !== 'trafficOperatingMode'),

@@ -31,6 +31,9 @@ export interface MapAbstractNearestWaypointsLayerProps<R extends MapWaypointRend
   /** The event bus. */
   bus: EventBus;
 
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** The waypoint renderer to use. */
   waypointRenderer: R;
 
@@ -88,7 +91,7 @@ export class MapNearestWaypointsLayer
 
   private readonly searchDebounceDelay = this.props.searchDebounceDelay ?? 500;
 
-  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus), this.onFacilityLoaderInitialized.bind(this));
+  private readonly facLoader = this.props.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
 
   private facilitySearches?: {
     /** A nearest airport search session. */
@@ -118,25 +121,36 @@ export class MapNearestWaypointsLayer
   private readonly facilityRepoSubs: Subscription[] = [];
 
   /**
-   * A callback called when the facility loaded finishes initialization.
+   * Creates a new instance of MapNearestWaypointsLayer.
+   * @param props The properties of the component.
    */
-  private onFacilityLoaderInitialized(): void {
-    Promise.all([
+  public constructor(props: P) {
+    super(props);
+
+    this.initNearestSearchSessions();
+  }
+
+  /**
+   * Initializes this layer's nearest facility search sessions.
+   */
+  private async initNearestSearchSessions(): Promise<void> {
+    await this.facLoader.awaitInitialization();
+
+    const [
+      airportSession,
+      vorSession,
+      ndbSession,
+      intSession,
+      userSession
+    ] = await Promise.all([
       this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Airport),
       this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Vor),
       this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Ndb),
       this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.Intersection),
       this.facLoader.startNearestSearchSessionWithIcaoStructs(FacilitySearchType.User)
-    ]).then((value: [
-      NearestAirportSearchSession<NearestIcaoSearchSessionDataType.Struct>,
-      NearestVorSearchSession<NearestIcaoSearchSessionDataType.Struct>,
-      NearestIcaoSearchSession<NearestIcaoSearchSessionDataType.Struct>,
-      NearestIntersectionSearchSession<NearestIcaoSearchSessionDataType.Struct>,
-      NearestRepoFacilitySearchSession<FacilityType.USR, NearestIcaoSearchSessionDataType.Struct>,
-    ]) => {
-      const [airportSession, vorSession, ndbSession, intSession, userSession] = value;
-      this.onSessionsStarted(airportSession, vorSession, ndbSession, intSession, userSession);
-    });
+    ]);
+
+    this.onSessionsStarted(airportSession, vorSession, ndbSession, intSession, userSession);
   }
 
   /**

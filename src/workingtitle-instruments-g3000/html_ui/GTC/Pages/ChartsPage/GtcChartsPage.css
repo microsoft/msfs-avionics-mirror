@@ -1,0 +1,127 @@
+.charts-page {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  color: var(--g3000-color-white);
+}
+
+.gtc-horizontal .charts-page {
+  font-size: 29px;
+
+  --charts-page-header-left: 68px;
+  --charts-page-header-top: 50px;
+  --charts-page-header-width: 844px;
+  --charts-page-header-height: 120px;
+
+  --charts-page-header-button-width: 198px;
+
+  --charts-page-select-button-width: 408px;
+
+  --charts-page-tab-container-left: 88px;
+  --charts-page-tab-container-top: 196px;
+  --charts-page-tab-container-width: 824px;
+  --charts-page-tab-container-height: 568px;
+
+  --charts-page-tab-padding: 8px 13px 0px 8px;
+
+  /* 4 * 132px per item + 3 * 2px per item spacing + 2 * 2px per border (top and bottom) + 2 * 2px per margin (top and bottom) */
+  --charts-page-tab-list-box-height: 542px;
+
+  --charts-page-tab-list-margin: 2px;
+
+  --charts-page-tab-list-button-label-padding: 0px 8px;
+}
+
+.gtc-vertical .charts-page {
+  font-size: 16px;
+
+  --charts-page-header-left: 11px;
+  --charts-page-header-top: 27px;
+  --charts-page-header-width: 458px;
+  --charts-page-header-height: 70px;
+
+  --charts-page-header-button-width: 108px;
+
+  --charts-page-select-button-width: 220px;
+
+  --charts-page-tab-container-left: 25px;
+  --charts-page-tab-container-top: 108px;
+  --charts-page-tab-container-width: 445px;
+  --charts-page-tab-container-height: 306px;
+
+  --charts-page-tab-padding: 4px 5px 0px;
+
+  /* 4 * 70px per item + 3 * 0px per item spacing + 2 * 2px per border (top and bottom) + 2 * 2px per margin (top and bottom) */
+  --charts-page-tab-list-box-height: 288px;
+
+  --charts-page-tab-list-margin: 2px;
+
+  --charts-page-tab-list-button-label-padding: 0px 4px;
+}
+
+.charts-page-header {
+  position: absolute;
+  left: var(--charts-page-header-left);
+  top: var(--charts-page-header-top);
+  width: var(--charts-page-header-width);
+  height: var(--charts-page-header-height);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.charts-page-header .touch-button {
+  width: var(--charts-page-header-button-width);
+}
+
+.charts-page-header .touch-button.charts-page-select-button {
+  width: var(--charts-page-select-button-width);
+}
+
+.charts-page-tab-container {
+  position: absolute;
+  left: var(--charts-page-tab-container-left);
+  top: var(--charts-page-tab-container-top);
+  width: var(--charts-page-tab-container-width);
+  height: var(--charts-page-tab-container-height);
+}
+
+.charts-page-tab {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: var(--charts-page-tab-padding);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.charts-page-tab-list-box {
+  position: relative;
+  height: var(--charts-page-tab-list-box-height);
+}
+
+.charts-page-tab-list {
+  position: absolute;
+  left: var(--charts-page-tab-list-margin);
+  top: var(--charts-page-tab-list-margin);
+  width: calc(100% - 2 * var(--charts-page-tab-list-margin));
+}
+
+.charts-page-tab-list-button .touch-button-label {
+  padding: var(--charts-page-tab-list-button-label-padding);
+  white-space: normal;
+}
+
+.charts-page-tab-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

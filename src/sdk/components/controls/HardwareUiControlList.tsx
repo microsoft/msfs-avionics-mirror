@@ -77,7 +77,7 @@ export abstract class HardwareUiControlList<T,
     super.onAfterRender(node);
 
     if (this.props.itemSize !== undefined && this.props.numItems !== undefined) {
-      const listSizePx = (this.props.itemSize * this.props.numItems).toFixed(4);
+      const listSizePx = `${(this.props.itemSize * this.props.numItems).toFixed(4)}px`;
       this.el.instance.style.height = listSizePx;
       this.itemsContainer.instance.style.height = listSizePx;
     }
@@ -111,7 +111,7 @@ export abstract class HardwareUiControlList<T,
    * @param index The index that the data was added at.
    * @param data The data that was added.
    */
-  private onDataAdded(index: number, data: T | readonly T[] | undefined): void {
+  protected onDataAdded(index: number, data: T | readonly T[] | undefined): void {
     if (data !== undefined) {
       const currentItemElement = this.itemsContainer.instance.children.item(index);
 
@@ -207,7 +207,7 @@ export abstract class HardwareUiControlList<T,
   /**
    * An event called when the data is cleared in the subscription.
    */
-  private onDataCleared(): void {
+  protected onDataCleared(): void {
     let controls: HardwareUiControl<E>[] | undefined;
     if (this.registeredControls !== undefined) {
       controls = [...this.registeredControls];

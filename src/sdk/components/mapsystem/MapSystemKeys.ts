@@ -10,6 +10,8 @@ export class MapSystemKeys {
 
   public static readonly ClockUpdate = 'clockUpdate' as const;
 
+  public static readonly FacilityLoader = 'facilityLoader' as const;
+
   public static readonly OwnAirplaneProps = 'ownAirplaneProps' as const;
 
   public static readonly AutopilotProps = 'autopilotProps' as const;

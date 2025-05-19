@@ -544,11 +544,11 @@ export class FlightPlanLegData implements FlightPlanBaseData {
 
     // Speed constraint
     const publishedSpeedUnit = SpeedUnit.IAS;
-    const publishedSpeed = leg.leg.speedRestriction <= 0 ? NaN : leg.leg.speedRestriction;
-    const publishedSpeedDesc = FmsUtils.getPublishedSpeedDescBasedOnSegment(publishedSpeed, this.segment.segmentType);
+    const publishedSpeed = leg.leg.speedRestriction;
+    const publishedSpeedDesc = leg.leg.speedRestrictionDesc;
     const isSpeedEdited = leg.verticalData.speedUnit !== publishedSpeedUnit
       || leg.verticalData.speedDesc !== publishedSpeedDesc
-      || (leg.verticalData.speed !== publishedSpeed && !isNaN(leg.verticalData.speed) && !isNaN(publishedSpeed));
+      || leg.verticalData.speed !== publishedSpeed;
 
     this.speedDesc.set(leg.verticalData.speedDesc);
     this.speed.set(leg.verticalData.speed <= 0 ? NaN : leg.verticalData.speed);

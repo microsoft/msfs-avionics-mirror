@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
-  ClockEvents, EventBus, FacilityLoader, FacilityRepository, FacilityType, FlightPlanner, FlightPlannerEvents, FSComponent, MinimumsEvents, MinimumsMode,
+  ClockEvents, EventBus, FacilityLoader, FacilityType, FlightPlanner, FlightPlannerEvents, FSComponent, MinimumsEvents, MinimumsMode,
   MutableSubscribable, NodeReference, Subject, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
@@ -14,6 +14,9 @@ import './PfdRefsMenu.css';
 interface PfdRefsMenuProps extends GuiDialogProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** An instance of the flight planner. */
   planner: FlightPlanner;
@@ -159,9 +162,8 @@ export class PfdRefsMenu extends GuiDialog<PfdRefsMenuProps> {
    */
   private async handleDestinationElevation(): Promise<void> {
     const plan = this.props.planner.getActiveFlightPlan();
-    const facilityLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
     if (plan.destinationAirport !== undefined) {
-      const airport = await facilityLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
+      const airport = await this.props.facLoader.getFacility(FacilityType.Airport, plan.destinationAirport);
       const elevation = airport.runways[0].elevation;
       this.destElevSubject.set(elevation !== undefined ? Math.round(UnitType.METER.convertTo(elevation, UnitType.FOOT)) : '--');
       this.destElevRef.instance?.classList.toggle('magenta-text', elevation !== undefined);

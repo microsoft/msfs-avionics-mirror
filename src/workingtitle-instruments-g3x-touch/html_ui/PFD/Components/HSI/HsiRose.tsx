@@ -1,7 +1,7 @@
 import {
   BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, CssTransformBuilder, CssTransformSubject, DisplayComponent,
-  FSComponent, MappedSubject, MathUtils, NavSourceType, NumberFormatter, NumberUnitSubject, ObjectSubject, Subject,
-  Subscribable, SubscribableMapFunctions, SubscribableUtils, Subscription, UnitType, VNode
+  FSComponent, MappedSubject, MathUtils, NavSourceType, NumberFormatter, NumberUnitSubject, Subject, Subscribable,
+  SubscribableMapFunctions, SubscribableUtils, Subscription, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -114,10 +114,6 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
   private readonly airplaneIconTransform = CssTransformSubject.create(CssTransformBuilder.rotate3d('deg'));
 
-  private readonly xtkStyle = ObjectSubject.create({
-    display: 'none'
-  });
-
   private readonly headingState = MappedSubject.create(
     this.props.dataProvider.headingMag,
     this.props.dataProvider.magVar
@@ -217,16 +213,27 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
     : undefined;
   private readonly navSensitivityFlagCssClass = this.navSensitivityFlagCssClassSubscribable ?? 'hsi-rose-nav-sensitivity-flag hidden';
 
-  private readonly isXtkVisible = MappedSubject.create(
-    ([activeNavSource, lnavXtk, cdiScale]): boolean => {
-      return activeNavSource !== null && activeNavSource.getType() === NavSourceType.Gps && lnavXtk !== null && Math.abs(lnavXtk) >= (cdiScale ?? 0);
+  private readonly isXtkHidden = MappedSubject.create(
+    ([activeNavSource, isCourseHeading, lnavXtk, cdiScale]): boolean => {
+      return activeNavSource === null
+        || activeNavSource.getType() !== NavSourceType.Gps
+        || isCourseHeading
+        || lnavXtk === null
+        || Math.abs(lnavXtk) < (cdiScale ?? 0);
     },
     this.props.dataProvider.activeNavIndicator.source,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading,
     this.props.dataProvider.lnavXtk,
     this.props.dataProvider.activeNavIndicator.lateralDeviationScale
   ).pause();
   private readonly lnavXtkPrecision = this.props.unitsSettingManager.distanceUnitsLarge.map(unit => unit.convertTo(0.01, UnitType.NMILE)).pause();
   private readonly lnavXtk = NumberUnitSubject.create(UnitType.NMILE.createNumber(0));
+
+  private readonly isHdgLegHidden = MappedSubject.create(
+    ([activeNavSource, isCourseHeading]) => !activeNavSource || activeNavSource.getType() !== NavSourceType.Gps || !isCourseHeading,
+    this.props.dataProvider.activeNavIndicator.source,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading,
+  ).pause();
 
   private readonly obsSuspText = this.props.dataProvider.obsSuspMode.map(mode => {
     switch (mode) {
@@ -454,15 +461,13 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
       return xtk === null ? 0 : MathUtils.round(Math.abs(xtk), this.lnavXtkPrecision.get());
     }, true);
 
-    const isXtkVisibleSub = this.isXtkVisible.sub((isVisible) => {
-      if (isVisible) {
-        this.xtkStyle.set('display', '');
-        this.lnavXtkPrecision.resume();
-        lnavXtkPipe.resume(true);
-      } else {
-        this.xtkStyle.set('display', 'none');
+    const isXtkHiddenSub = this.isXtkHidden.sub(isHidden => {
+      if (isHidden) {
         this.lnavXtkPrecision.pause();
         lnavXtkPipe.pause();
+      } else {
+        this.lnavXtkPrecision.resume();
+        lnavXtkPipe.resume(true);
       }
     }, false, true);
 
@@ -483,8 +488,10 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
         this.obsSuspText.resume();
 
-        this.isXtkVisible.resume();
-        isXtkVisibleSub.resume(true);
+        this.isXtkHidden.resume();
+        isXtkHiddenSub.resume(true);
+
+        this.isHdgLegHidden.resume();
 
         this.showHdgFailureBox.resume();
       } else {
@@ -526,10 +533,12 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
         this.obsSuspText.pause();
 
-        this.isXtkVisible.pause();
-        isXtkVisibleSub.pause();
+        this.isXtkHidden.pause();
+        isXtkHiddenSub.pause();
         this.lnavXtkPrecision.pause();
         lnavXtkPipe.pause();
+
+        this.isHdgLegHidden.pause();
 
         this.showHdgFailureBox.pause();
       }
@@ -682,7 +691,7 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
         <div class='hsi-rose-susp'>{this.obsSuspText}</div>
 
-        <div class='hsi-rose-xtk' style={this.xtkStyle}>
+        <div class={{ 'hsi-rose-xtk': true, 'hidden': this.isXtkHidden }}>
           <span class='hsi-rose-xtk-title'>XTK </span>
           <NumberUnitDisplay
             value={this.lnavXtk}
@@ -691,6 +700,8 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
             class='hsi-rose-xtk-value'
           />
         </div>
+
+        <div class={{ 'hsi-rose-hdg-leg': true, 'hidden': this.isHdgLegHidden }}>HDG LEG</div>
 
         <div class='hsi-rose-rotating' style={rotatingStyle}>
           <HsiActiveNavNeedle
@@ -733,8 +744,9 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
     this.navSensitivityValueHidden.destroy();
     this.navSensitivityFlagCssClassSubscribable?.destroy();
     this.obsSuspText.destroy();
-    this.isXtkVisible.destroy();
+    this.isXtkHidden.destroy();
     this.lnavXtkPrecision.destroy();
+    this.isHdgLegHidden.destroy();
     this.showHdgFailureBox.destroy();
 
     this.showSub?.destroy();

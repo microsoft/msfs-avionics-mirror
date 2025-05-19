@@ -19,6 +19,9 @@ export class FmsConfig implements Config {
   private static readonly DEFAULT_MAX_BANK_ANGLE = 25;
   private static readonly DEFAULT_LOW_BANK_ANGLE = 12;
 
+  /** The text to display when labeling the FMS navigation source. */
+  public readonly navSourceLabelText: 'FMS' | 'GPS';
+
   /** Options for flight path calculations. */
   public readonly flightPathOptions: FmsFlightPathOptions;
 
@@ -31,11 +34,26 @@ export class FmsConfig implements Config {
    */
   constructor(element: Element | undefined) {
     if (element === undefined) {
+      this.navSourceLabelText = 'FMS';
       this.flightPathOptions = { maxBankAngle: FmsConfig.DEFAULT_MAX_BANK_ANGLE, lowBankAngle: FmsConfig.DEFAULT_LOW_BANK_ANGLE };
       this.approach = new FmsApproachConfig(undefined);
     } else {
       if (element.tagName !== 'Fms') {
         throw new Error(`Invalid FmsConfig definition: expected tag name 'Fms' but was '${element.tagName}'`);
+      }
+
+      const navSourceLabelText = element.getAttribute('nav-source-label');
+      switch (navSourceLabelText) {
+        case 'FMS':
+        case 'GPS':
+          this.navSourceLabelText = navSourceLabelText;
+          break;
+        case null:
+          this.navSourceLabelText = 'FMS';
+          break;
+        default:
+          console.warn('Invalid FmsConfig definition: unrecognized "nav-source-label" option (expected "FMS" or "GPS"). Defaulting to FMS.');
+          this.navSourceLabelText = 'FMS';
       }
 
       this.flightPathOptions = this.parseFlightPathOptions(element.querySelector(':scope>FlightPath'));

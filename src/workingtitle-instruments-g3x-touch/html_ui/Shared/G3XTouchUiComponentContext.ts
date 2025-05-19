@@ -1,13 +1,17 @@
-
-import { MinimumsDataProvider, NavDataBarFieldModelFactory, NavDataFieldGpsValidity, NavDataFieldRenderer, TrafficSystem, VNavDataProvider, WindDataProvider } from '@microsoft/msfs-garminsdk';
-
 import { GPSSatComputer, Subscribable } from '@microsoft/msfs-sdk';
+
+import {
+  MinimumsDataProvider, NavDataBarFieldModelFactory, NavDataFieldGpsValidity, NavDataFieldRenderer, TrafficSystem,
+  VNavDataProvider, WindDataProvider
+} from '@microsoft/msfs-garminsdk';
+
 import { PfdInsetRegistrar } from '../GduDisplay/Gdu460/PfdInstruments/Inset/PfdInsetRegistrar';
 import { MfdMainPageRegistrar } from '../MFD/MainView/MfdMainPageRegistrar';
 import { PfdPageRegistrar } from '../PFD/PfdPage/PfdPageRegistrar';
 import { G3XNavDataBarEditController } from './Components/CnsDataBar/CnsDataBarFields/G3XNavDataBarEditController';
 import { PositionHeadingDataProvider } from './Navigation/PositionHeadingDataProvider';
 import { ComRadioSpacingDataProvider } from './Radio/ComRadioSpacingDataProvider';
+import { G3XChartsSource } from './Charts/G3XChartsSource';
 
 /**
  * References to items used to create the base G3X Touch's UI views, MFD main pages, PFD pages, and PFD insets.
@@ -57,4 +61,7 @@ export type G3XTouchUiComponentContext = {
 
   /** The PFD inset registrar. */
   pfdInsetRegistrar?: PfdInsetRegistrar;
+
+  /** All available electronic charts sources. */
+  chartsSources: Iterable<G3XChartsSource>;
 };

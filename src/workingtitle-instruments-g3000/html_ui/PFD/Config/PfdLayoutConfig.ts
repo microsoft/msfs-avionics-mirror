@@ -10,10 +10,17 @@ export enum BottomInfoPanelCellAContent {
   /** Speed display (TAS, GS). */
   Speed = 'speed',
 
-  /** Temperature display (SAT, ISA). */
+  /** Temperature display (OAT, ISA). */
   Temperature = 'temperature',
+
+  /** Temperature display (OAT deg C, OAT deg F). */
+  TemperatureOat = 'temperature-oat',
+
+  /** Wind display. */
   Wind = 'wind',
-  Time = 'time'
+
+  /** Time display (TMR, UTC/LCL). */
+  Time = 'time',
 }
 
 /**
@@ -238,6 +245,7 @@ class PfdLayoutConfigData {
       case BottomInfoPanelCellAContent.Empty:
       case BottomInfoPanelCellAContent.Speed:
       case BottomInfoPanelCellAContent.Temperature:
+      case BottomInfoPanelCellAContent.TemperatureOat:
       case BottomInfoPanelCellAContent.Wind:
       case BottomInfoPanelCellAContent.Time:
         left = leftText;
@@ -245,7 +253,7 @@ class PfdLayoutConfigData {
       case undefined:
         break;
       default:
-        console.warn('Invalid PfdLayoutConfig definition: invalid cell A left content (must be \'empty\', \'speed\', \'temperature\', \'wind\', or \'time\'). Defaulting to empty.');
+        console.warn('Invalid PfdLayoutConfig definition: invalid cell A left content (must be "empty", "speed", "temperature", "temperature-oat", "wind", or "time"). Defaulting to empty.');
     }
 
     const rightText = element.getAttribute('right')?.toLowerCase();
@@ -253,6 +261,7 @@ class PfdLayoutConfigData {
       case BottomInfoPanelCellAContent.Empty:
       case BottomInfoPanelCellAContent.Speed:
       case BottomInfoPanelCellAContent.Temperature:
+      case BottomInfoPanelCellAContent.TemperatureOat:
       case BottomInfoPanelCellAContent.Wind:
       case BottomInfoPanelCellAContent.Time:
         right = rightText;
@@ -260,7 +269,7 @@ class PfdLayoutConfigData {
       case undefined:
         break;
       default:
-        console.warn('Invalid PfdLayoutConfig definition: invalid cell A right content (must be \'empty\', \'speed\', \'temperature\', \'wind\', or \'time\'). Defaulting to empty.');
+        console.warn('Invalid PfdLayoutConfig definition: invalid cell A right content (must be "empty", "speed", "temperature", "temperature-oat", "wind", or "time"). Defaulting to empty.');
     }
 
     return [left, right];

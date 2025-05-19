@@ -1,6 +1,7 @@
 /// <reference types="@microsoft/msfs-types/js/common" />
 /// <reference types="@microsoft/msfs-types/js/simplane" />
 
+import { SharedGlobal } from '../data/SharedGlobal';
 import { SimVarValueType } from '../data/SimVars';
 import { GeoPoint } from '../geo/GeoPoint';
 import { BitFlags } from '../math/BitFlags';
@@ -150,8 +151,8 @@ type FacilityRequest = {
   /** Whether the ICAO of the request has been confirmed to be valid. */
   isIcaoConfirmedValid: boolean;
 
-  /** The promise resolution function to call when the request is finished. */
-  resolve: (facility: Facility | null) => void;
+  /** An array of functions to call when the request has been resolved. */
+  resolveFuncs: ((facility: Facility | null, isIntersection: boolean) => void)[];
 
   /**
    * Bitflags describing the airport facility data to load for this request. Can be safely ignored if this request is
@@ -176,12 +177,22 @@ export interface FacilityDatabaseCycles {
 }
 
 /**
+ * Configuration options for {@link FacilityLoader}.
+ */
+export type FacilityLoaderOptions = {
+  /**
+   * The ID of the shared facility cache to use. If defined, then cached facilities retrieved from the sim will be
+   * shared among all FacilityLoader instances using the same shared facility cache ID, _even those on other
+   * instruments_. If not defined, then cached facilities retrieved from the sim will be shared only among the
+   * FacilityLoader instances on the same instrument that also do not have a defined shared facility cache ID.
+   */
+  sharedFacilityCacheId?: string;
+};
+
+/**
  * A class that handles loading facility data from the simulator.
  */
 export class FacilityLoader implements FacilityClient {
-  private static readonly MAX_FACILITY_CACHE_ITEMS = 1000;
-  private static readonly MAX_AIRWAY_CACHE_ITEMS = 1000;
-
   private static facilityListener: ViewListener.ViewListener;
 
   private static readonly coherentLoadFacilityCalls: Partial<Record<FacilityType, string>> = {
@@ -192,11 +203,8 @@ export class FacilityLoader implements FacilityClient {
   };
 
   private static readonly requestQueue = new Map<string, FacilityRequest>();
-  private static readonly mismatchRequestQueue = new Map<string, FacilityRequest>();
+  private static readonly intersectionRequestQueue = new Map<string, FacilityRequest>();
 
-  private static readonly facCache = new Map<string, Facility>();
-  private static readonly typeMismatchFacCache = new Map<string, Facility>();
-  private static readonly airwayCache = new Map<string, AirwayObject>();
   private static databaseCycleCache?: FacilityDatabaseCycles;
 
   private static readonly searchSessions = new Map<number, NearestSearchSession<any, any>>();
@@ -210,19 +218,48 @@ export class FacilityLoader implements FacilityClient {
 
   private static repoSearchSessionId = -1;
 
-  private static isInitialized = false;
-  private static readonly initPromiseResolveQueue: (() => void)[] = [];
+  private static listenerInitPromise?: Promise<void>;
+
+  private readonly facCache: FacilityCache;
+
+  private readonly initPromise: Promise<void>;
+  private isInit = false;
 
   /**
    * Creates an instance of the FacilityLoader.
    * @param facilityRepo A local facility repository.
    * @param onInitialized A callback to call when the facility loader has completed initialization.
+   * @param options Options with which to configure the loader.
    */
   constructor(
     private readonly facilityRepo: FacilityRepository,
-    public readonly onInitialized = (): void => { }
+    public readonly onInitialized = (): void => { },
+    options?: Readonly<FacilityLoaderOptions>
   ) {
-    if (FacilityLoader.facilityListener === undefined) {
+    this.facCache = options?.sharedFacilityCacheId === undefined
+      ? new LocalFacilityCache()
+      : new SharedFacilityCache(options.sharedFacilityCacheId);
+
+    this.initPromise = Promise.all([
+      FacilityLoader.initListener(),
+      this.facCache.init()
+    ]).then(() => { this.isInit = true; });
+
+    this.awaitInitialization().then(() => {
+      this.onInitialized();
+    });
+  }
+
+  /**
+   * Initializes the facility listener.
+   * @returns A Promise which will be fulfilled when the facility listener is initialized.
+   */
+  private static initListener(): Promise<void> {
+    if (FacilityLoader.listenerInitPromise) {
+      return FacilityLoader.listenerInitPromise;
+    }
+
+    return this.listenerInitPromise = new Promise(resolve => {
       FacilityLoader.facilityListener = RegisterViewListener('JS_LISTENER_FACILITY', () => {
         FacilityLoader.facilityListener.on('SendAirport', FacilityLoader.onFacilityReceived);
         FacilityLoader.facilityListener.on('SendIntersection', FacilityLoader.onFacilityReceived);
@@ -231,35 +268,14 @@ export class FacilityLoader implements FacilityClient {
         FacilityLoader.facilityListener.on('NearestSearchCompleted', FacilityLoader.onNearestSearchCompleted);
         FacilityLoader.facilityListener.on('NearestSearchCompletedWithStruct', FacilityLoader.onNearestSearchCompleted);
 
-        setTimeout(() => FacilityLoader.init(), 2000);
+        setTimeout(() => resolve(), 2000);
       }, true);
-    }
-
-    this.awaitInitialization().then(() => this.onInitialized());
-  }
-
-  /**
-   * Initializes this facility loader.
-   */
-  private static init(): void {
-    FacilityLoader.isInitialized = true;
-
-    for (const resolve of this.initPromiseResolveQueue) {
-      resolve();
-    }
-
-    this.initPromiseResolveQueue.length = 0;
+    });
   }
 
   /** @inheritDoc */
   public awaitInitialization(): Promise<void> {
-    if (FacilityLoader.isInitialized) {
-      return Promise.resolve();
-    } else {
-      return new Promise(resolve => {
-        FacilityLoader.initPromiseResolveQueue.push(resolve);
-      });
-    }
+    return this.initPromise;
   }
 
   /** @inheritDoc */
@@ -385,21 +401,23 @@ export class FacilityLoader implements FacilityClient {
    * retrieved.
    */
   private async getFacilityFromCoherent<T extends FacilityType>(type: T, icao: IcaoValue, airportDataFlags = 0): Promise<FacilityTypeMap[T] | null> {
-    const isMismatch = ICAO.getFacilityTypeFromValue(icao) !== type;
+    const isTypeMismatch = ICAO.getFacilityTypeFromValue(icao) !== type;
 
-    let queue = FacilityLoader.requestQueue;
-    let cache = FacilityLoader.facCache;
-    if (isMismatch) {
-      queue = FacilityLoader.mismatchRequestQueue;
-      cache = FacilityLoader.typeMismatchFacCache;
+    if (isTypeMismatch) {
+      // Only intersection facilities are allowed to be retrieved with an ICAO type mismatch.
+      if (type !== FacilityType.Intersection) {
+        return Promise.resolve(null);
+      }
     }
 
-    if (!FacilityLoader.isInitialized) {
+    const queue = isTypeMismatch ? FacilityLoader.intersectionRequestQueue : FacilityLoader.requestQueue;
+
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
     const uid = ICAO.getUid(icao);
-    const cachedFac = cache.get(uid);
+    const cachedFac = isTypeMismatch ? this.facCache.getIntersectionFacility(uid) : this.facCache.getFacility(uid);
     if (cachedFac !== undefined) {
       // If the requested facility is an airport and a cached facility exists, then check if it is missing any of the
       // requested loaded data. If so, then request a new facility from Coherent that includes the requested loaded
@@ -429,14 +447,16 @@ export class FacilityLoader implements FacilityClient {
     if (request === undefined || currentTime - request.timeStamp > (request.isIcaoConfirmedValid ? 60000 : 10000)) {
       if (request !== undefined) {
         console.warn(`FacilityLoader: facility request for ${ICAO.tryValueToStringV2(icao)} has timed out.`);
-        request.resolve(null);
+        for (let i = 0; i < request.resolveFuncs.length; i++) {
+          request.resolveFuncs[i](null, isTypeMismatch);
+        }
       }
 
-      return this.dispatchCoherentFacilityRequest(queue, undefined, type, icao, airportDataFlags);
+      return this.dispatchCoherentFacilityRequest(queue, undefined, type, icao, isTypeMismatch, airportDataFlags);
     } else if (type === FacilityType.Airport) {
       airportDataFlags ??= 0;
       if (!BitFlags.isAll(request.airportDataFlags, airportDataFlags)) {
-        return this.dispatchCoherentFacilityRequest(queue, request, type, icao, airportDataFlags | request.airportDataFlags);
+        return this.dispatchCoherentFacilityRequest(queue, request, type, icao, isTypeMismatch, airportDataFlags | request.airportDataFlags);
       }
     }
 
@@ -451,6 +471,7 @@ export class FacilityLoader implements FacilityClient {
    * finished.
    * @param type The type of facility to load.
    * @param icao The ICAO of the facility to load.
+   * @param isIntersection Whether the request is for a type-mismatched intersection facility.
    * @param airportDataFlags Bitflags describing the requested data to be loaded in the airport facility to retrieve.
    * The retrieved facility (if any) is guaranteed to have *at least* as much data loaded as requested. Ignored if the
    * type of facility to retrieve is not `FacilityType.Airport`. Defaults to `0`.
@@ -462,23 +483,31 @@ export class FacilityLoader implements FacilityClient {
     existingRequest: FacilityRequest | undefined,
     type: T,
     icao: IcaoValue,
+    isIntersection: boolean,
     airportDataFlags = 0
   ): Promise<FacilityTypeMap[T] | null> {
     const uid = ICAO.getUid(icao);
 
     const isAirport = type === FacilityType.Airport;
 
-    const request = { isIcaoConfirmedValid: false, timeStamp: Date.now(), airportDataFlags } as FacilityRequest;
+    const request = {
+      isIcaoConfirmedValid: false,
+      timeStamp: Date.now(),
+      resolveFuncs: existingRequest?.resolveFuncs ?? [],
+      airportDataFlags
+    } as FacilityRequest;
 
     request.promise = new Promise<FacilityTypeMap[T] | null>((resolution) => {
-      if (existingRequest) {
-        request.resolve = (facility: Facility | null) => {
-          existingRequest.resolve(facility);
-          resolution(facility as FacilityTypeMap[T]);
-        };
-      } else {
-        request.resolve = resolution as (facility: Facility | null) => void;
-      }
+      request.resolveFuncs.push((facility, isTypeMismatchVal) => {
+        if (facility !== null) {
+          if (isTypeMismatchVal) {
+            this.facCache.addIntersectionFacility(facility);
+          } else {
+            this.facCache.addFacility(facility);
+          }
+        }
+        resolution(facility as FacilityTypeMap[T] | null);
+      });
 
       const coherentCallPromise = isAirport
         ? Coherent.call(FacilityLoader.coherentLoadFacilityCalls[type], icao, airportDataFlags ?? AirportFacilityDataFlags.All)
@@ -491,8 +520,10 @@ export class FacilityLoader implements FacilityClient {
           }
         } else {
           console.warn(`FacilityLoader: facility ${ICAO.tryValueToStringV2(icao)} could not be found.`);
-          request.resolve(null);
           queue.delete(uid);
+          for (let i = 0; i < request.resolveFuncs.length; i++) {
+            request.resolveFuncs[i](null, isIntersection);
+          }
         }
       });
     });
@@ -533,11 +564,13 @@ export class FacilityLoader implements FacilityClient {
    * @returns The retrieved airway data, or `null` if data could not be retrieved.
    */
   private async _tryGetAirway(airwayName: string, airwayType: number, icao: IcaoValue): Promise<AirwayData | null> {
-    if (FacilityLoader.airwayCache.has(airwayName)) {
-      const cachedAirway = FacilityLoader.airwayCache.get(airwayName);
-      const match = cachedAirway?.waypoints.find((w) => ICAO.valueEquals(w.icaoStruct, icao));
+    const cachedAirway = this.facCache.getAirway(airwayName);
+    if (cachedAirway) {
+      // Airway names are not guaranteed to be unique, so we need to check if the provided waypoint is in the cached
+      // airway.
+      const match = cachedAirway.waypoints.find((w) => ICAO.valueEquals(w.icaoStruct, icao));
       if (match !== undefined) {
-        return cachedAirway!;
+        return cachedAirway;
       }
     }
 
@@ -551,7 +584,7 @@ export class FacilityLoader implements FacilityClient {
         if (waypoints !== null) {
           const airway = new AirwayObject(airwayName, airwayType);
           airway.waypoints = waypoints;
-          FacilityLoader.addToAirwayCache(airway);
+          this.facCache.addAirway(airway);
           return airway;
         }
       }
@@ -615,7 +648,7 @@ export class FacilityLoader implements FacilityClient {
     type: T,
     icaoDataType: IcaoDataType
   ): Promise<NearestSearchSessionTypeMap<IcaoDataType>[T]> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -688,7 +721,7 @@ export class FacilityLoader implements FacilityClient {
   public async getMetar(ident: string): Promise<Metar | undefined>;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async getMetar(arg: string | AirportFacility): Promise<Metar | undefined> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -699,7 +732,7 @@ export class FacilityLoader implements FacilityClient {
 
   /** @inheritDoc */
   public async searchMetar(lat: number, lon: number): Promise<Metar | undefined> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -740,7 +773,7 @@ export class FacilityLoader implements FacilityClient {
   public async getTaf(ident: string): Promise<Taf | undefined>;
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async getTaf(arg: string | AirportFacility): Promise<Taf | undefined> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -751,7 +784,7 @@ export class FacilityLoader implements FacilityClient {
 
   /** @inheritDoc */
   public async searchTaf(lat: number, lon: number): Promise<Taf | undefined> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -794,7 +827,7 @@ export class FacilityLoader implements FacilityClient {
 
   /** @inheritDoc */
   public async searchByIdentWithIcaoStructs(filter: FacilitySearchType, ident: string, maxItems = 40): Promise<IcaoValue[]> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -824,7 +857,7 @@ export class FacilityLoader implements FacilityClient {
 
   /** @inheritDoc */
   public async searchByIdent(filter: FacilitySearchType, ident: string, maxItems = 40): Promise<string[]> {
-    if (!FacilityLoader.isInitialized) {
+    if (!this.isInit) {
       await this.awaitInitialization();
     }
 
@@ -894,8 +927,8 @@ export class FacilityLoader implements FacilityClient {
    * @param facility The received facility.
    */
   private static onFacilityReceived(facility: Facility): void {
-    const isMismatch = (facility as any)['__Type'] === 'JS_FacilityIntersection' && facility.icaoStruct.type !== IcaoType.Waypoint;
-    const queue = isMismatch ? FacilityLoader.mismatchRequestQueue : FacilityLoader.requestQueue;
+    const isTypeMismatch = (facility as any)['__Type'] === 'JS_FacilityIntersection' && facility.icaoStruct.type !== IcaoType.Waypoint;
+    const queue = isTypeMismatch ? FacilityLoader.intersectionRequestQueue : FacilityLoader.requestQueue;
 
     const uid = ICAO.getUid(facility.icaoStruct);
     const request = queue.get(uid);
@@ -906,9 +939,11 @@ export class FacilityLoader implements FacilityClient {
         return;
       }
 
-      request.resolve(facility);
-      FacilityLoader.addToFacilityCache(facility, isMismatch);
       queue.delete(uid);
+
+      for (let i = 0; i < request.resolveFuncs.length; i++) {
+        request.resolveFuncs[i](facility, isTypeMismatch);
+      }
     }
   }
 
@@ -920,30 +955,6 @@ export class FacilityLoader implements FacilityClient {
     const session = FacilityLoader.searchSessions.get(results.sessionId);
     if (session instanceof CoherentNearestSearchSession) {
       session.onSearchCompleted(results);
-    }
-  }
-
-  /**
-   * Adds a facility to the cache.
-   * @param fac The facility to add.
-   * @param isTypeMismatch Whether to add the facility to the type mismatch cache.
-   */
-  private static addToFacilityCache(fac: Facility, isTypeMismatch: boolean): void {
-    const cache = isTypeMismatch ? FacilityLoader.typeMismatchFacCache : FacilityLoader.facCache;
-    cache.set(ICAO.getUid(fac.icaoStruct), fac);
-    if (cache.size > FacilityLoader.MAX_FACILITY_CACHE_ITEMS) {
-      cache.delete(cache.keys().next().value!);
-    }
-  }
-
-  /**
-   * Adds an airway to the airway cache.
-   * @param airway The airway to add.
-   */
-  private static addToAirwayCache(airway: AirwayObject): void {
-    FacilityLoader.airwayCache.set(airway.name, airway);
-    if (FacilityLoader.airwayCache.size > FacilityLoader.MAX_AIRWAY_CACHE_ITEMS) {
-      FacilityLoader.airwayCache.delete(FacilityLoader.airwayCache.keys().next().value!);
     }
   }
 
@@ -1431,5 +1442,231 @@ class AirwayBuilder {
         });
       }
     });
+  }
+}
+
+/**
+ * A cache of facilities.
+ */
+interface FacilityCache {
+  /**
+   * Initializes this cache.
+   * @returns A Promise which is fulfilled when this cache has been initialized.
+   */
+  init(): Promise<void>;
+
+  /**
+   * Gets an ICAO type-matched facility from this cache.
+   * @param uid The UID corresponding to the facility's ICAO.
+   * @returns The ICAO type-matched facility in this cache with the specified ICAO UID, or `undefined` if there is no
+   * such facility in this cache.
+   */
+  getFacility(uid: string): Facility | undefined;
+
+  /**
+   * Gets an ICAO type-mismatched intersection facility from this cache.
+   * @param uid The UID corresponding to the facility's ICAO.
+   * @returns The ICAO type-mismatched intersection facility in this cache with the specified ICAO UID, or `undefined`
+   * if there is no such facility in this cache.
+   */
+  getIntersectionFacility(uid: string): Facility | undefined;
+
+  /**
+   * Gets an airway object from this cache.
+   * @param name The name of the airway.
+   * @returns The airway object in this cached with the specified name, or `undefined` if there is no such airway in
+   * this cache.
+   */
+  getAirway(name: string): AirwayObject | undefined;
+
+  /**
+   * Adds an ICAO type-matched facility to this cache.
+   * @param facility The facility to add.
+   */
+  addFacility(facility: Facility): void;
+
+  /**
+   * Adds an ICAO type-mismatched intersection facility to this cache.
+   * @param facility The facility to add.
+   */
+  addIntersectionFacility(facility: Facility): void;
+
+  /**
+   * Adds an airway object to this cache.
+   * @param airway The airway object to add.
+   */
+  addAirway(airway: AirwayObject): void;
+}
+
+/**
+ * A facility cache that uses a cached pool of facilities local to the instrument (CoherentGT view) in which the cache
+ * is instantiated. All instances of the cache on the same instrument share the same cached pool.
+ */
+class LocalFacilityCache implements FacilityCache {
+  private static readonly MAX_FACILITY_ITEMS = 1000;
+  private static readonly MAX_AIRWAY_ITEMS = 100;
+
+  private static readonly facCache = new Map<string, Facility>();
+  private static readonly intersectionFacCache = new Map<string, Facility>();
+
+  private static readonly airwayCache = new Map<string, AirwayObject>();
+
+  /** @inheritDoc */
+  public init(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /** @inheritDoc */
+  public getFacility(uid: string): Facility | undefined {
+    return LocalFacilityCache.facCache.get(uid);
+  }
+
+  /** @inheritDoc */
+  public getIntersectionFacility(uid: string): Facility | undefined {
+    return LocalFacilityCache.intersectionFacCache.get(uid);
+  }
+
+  /** @inheritDoc */
+  public getAirway(name: string): AirwayObject | undefined {
+    return LocalFacilityCache.airwayCache.get(name);
+  }
+
+  /** @inheritDoc */
+  public addFacility(facility: Facility): void {
+    this.addFacilityToCache(LocalFacilityCache.facCache, facility);
+  }
+
+  /** @inheritDoc */
+  public addIntersectionFacility(facility: Facility): void {
+    this.addFacilityToCache(LocalFacilityCache.intersectionFacCache, facility);
+  }
+
+  /** @inheritDoc */
+  public addAirway(airway: AirwayObject): void {
+    LocalFacilityCache.airwayCache.set(airway.name, airway);
+    if (LocalFacilityCache.airwayCache.size > LocalFacilityCache.MAX_AIRWAY_ITEMS) {
+      LocalFacilityCache.airwayCache.delete(LocalFacilityCache.airwayCache.keys().next().value!);
+    }
+  }
+
+  /**
+   * Adds a facility to a cache.
+   * @param cache The cache to which to add the facility.
+   * @param facility The facility to add.
+   */
+  private addFacilityToCache(cache: Map<string, Facility>, facility: Facility): void {
+    cache.set(ICAO.getUid(facility.icaoStruct), facility);
+    if (cache.size > LocalFacilityCache.MAX_FACILITY_ITEMS) {
+      cache.delete(cache.keys().next().value!);
+    }
+  }
+}
+
+/**
+ * A shared global object used by {@link SharedFacilityCache} to cache facilities.
+ */
+type SharedFacilityCacheGlobal = {
+  /** A cache of ICAO type-matched facilities, keyed by ICAO UIDs. */
+  facCache: Map<string, Facility>;
+
+  /** A cache of ICAO type-mismatched intersection facilities, keyed by ICAO UIDs. */
+  intersectionFacCache: Map<string, Facility>;
+
+  /** A cache of airways, keyed by name. */
+  airwayCache: Map<string, AirwayObject>;
+};
+
+/**
+ * A facility cache that uses a cached pool of facilities shared across different instruments (CoherentGT views). All
+ * instances of the cache with the same ID across all instruments share the same cached pool.
+ */
+class SharedFacilityCache implements FacilityCache {
+  private static readonly MAX_FACILITY_ITEMS = 1000;
+  private static readonly MAX_AIRWAY_ITEMS = 100;
+
+  private readonly sharedGlobalName = `__sharedFacilityCache-${this.id}`;
+  private global?: SharedFacilityCacheGlobal;
+
+  /**
+   * Creates a new instance of SharedFacilityCache.
+   * @param id This cache's ID.
+   */
+  public constructor(public readonly id: string) {
+  }
+
+  /** @inheritDoc */
+  public init(): Promise<void> {
+    return this.initGlobal();
+  }
+
+  /**
+   * Initializes this cache's shared global object.
+   */
+  private async initGlobal(): Promise<void> {
+    const globalRef = await SharedGlobal.get<Partial<SharedFacilityCacheGlobal>>(this.sharedGlobalName);
+    globalRef.instance.facCache ??= new Map();
+    globalRef.instance.intersectionFacCache ??= new Map();
+    globalRef.instance.airwayCache ??= new Map();
+    this.global = globalRef.instance as SharedFacilityCacheGlobal;
+
+    // If the global becomes detached, then initialize the global again.
+    const detachedSub = globalRef.isDetached.sub(isDetached => {
+      if (isDetached) {
+        detachedSub.destroy();
+        this.global = undefined;
+        this.initGlobal();
+      }
+    }, true);
+  }
+
+  /** @inheritDoc */
+  public getFacility(uid: string): Facility | undefined {
+    return this.global?.facCache.get(uid);
+  }
+
+  /** @inheritDoc */
+  public getIntersectionFacility(uid: string): Facility | undefined {
+    return this.global?.intersectionFacCache.get(uid);
+  }
+
+  /** @inheritDoc */
+  public getAirway(name: string): AirwayObject | undefined {
+    return this.global?.airwayCache.get(name);
+  }
+
+  /** @inheritDoc */
+  public addFacility(facility: Facility): void {
+    if (this.global) {
+      this.addFacilityToCache(this.global.facCache, facility);
+    }
+  }
+
+  /** @inheritDoc */
+  public addIntersectionFacility(facility: Facility): void {
+    if (this.global) {
+      this.addFacilityToCache(this.global.intersectionFacCache, facility);
+    }
+  }
+
+  /** @inheritDoc */
+  public addAirway(airway: AirwayObject): void {
+    if (this.global) {
+      this.global.airwayCache.set(airway.name, airway);
+      if (this.global.airwayCache.size > SharedFacilityCache.MAX_AIRWAY_ITEMS) {
+        this.global.airwayCache.delete(this.global.airwayCache.keys().next().value!);
+      }
+    }
+  }
+
+  /**
+   * Adds a facility to a cache.
+   * @param cache The cache to which to add the facility.
+   * @param facility The facility to add.
+   */
+  private addFacilityToCache(cache: Map<string, Facility>, facility: Facility): void {
+    cache.set(ICAO.getUid(facility.icaoStruct), facility);
+    if (cache.size > SharedFacilityCache.MAX_FACILITY_ITEMS) {
+      cache.delete(cache.keys().next().value!);
+    }
   }
 }

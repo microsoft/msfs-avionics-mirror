@@ -1552,6 +1552,7 @@ export class FmsUtils {
    * @param publishedSpeedRestriction The published speed.
    * @param segmentType The segment type.
    * @returns The speed restriction type to use.
+   * @deprecated Speed restriction types should be taken directly from published flight plan procedure legs.
    */
   public static getPublishedSpeedDescBasedOnSegment(publishedSpeedRestriction: number, segmentType: FlightPlanSegmentType): SpeedRestrictionType {
     return publishedSpeedRestriction > 0 ?

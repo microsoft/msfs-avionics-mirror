@@ -70,7 +70,10 @@ export interface FlightPlanRouteEnrouteLeg {
   /** The ICAO of this leg's terminator fix. */
   fixIcao: IcaoValue;
 
-  /** The airway to follow to this leg's terminator fix, or the empty string if this leg is a DIRECT leg. */
+  /**
+   * The airway to follow to this leg's terminator fix, or the empty string if this leg is a DIRECT leg. Must not
+   * exceed seven characters in length.
+   */
   via: string;
 
   /** Whether the leg should use the airplane's present position as its terminator fix. */
@@ -111,7 +114,10 @@ export interface FlightPlanRouteAltitude {
   /** Coherent C++ object binding type. */
   __Type: 'JS_FlightAltitude';
 
-  /** The altitude, in feet. */
+  /**
+   * The altitude. If `isFlightLevel` is false, then this will be interpreted as a value in feet (e.g. 1000 = _1000 feet_).
+   * If `isFlightLevel` is true, then this will be interpreted as a flight level (e.g. 100 = _flight level 100_).
+   */
   altitude: number;
 
   /** Whether the altitude is a flight level. */

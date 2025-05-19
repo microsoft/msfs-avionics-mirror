@@ -1,10 +1,12 @@
 import {
-  BasicNavAngleSubject, BasicNavAngleUnit, CombinedSubject, ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, GNSSEvents,
-  NumberFormatter, NumberUnitSubject, ObjectSubject, Subject, Subscribable, Subscription, UnitFamily, UnitType, VNode
+  BasicNavAngleSubject, BasicNavAngleUnit, CombinedSubject, ComponentProps, ConsumerSubject, DisplayComponent,
+  EventBus, FSComponent, GNSSEvents, NumberFormatter, NumberUnitSubject, ObjectSubject, Subject, Subscribable,
+  Subscription, UnitFamily, UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
 import { UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
-import { BearingDisplay, G3000NavIndicator, NavSourceFormatter, NumberUnitDisplay } from '@microsoft/msfs-wtg3000-common';
+
+import { BearingDisplay, FmsConfig, G3000NavIndicator, NavSourceFormatter, NumberUnitDisplay, RadiosConfig } from '@microsoft/msfs-wtg3000-common';
 
 import './BearingInfo.css';
 
@@ -18,8 +20,11 @@ export interface BearingInfoProps extends ComponentProps {
   /** The index of the bearing pointer associaed with the display. */
   index: 1 | 2;
 
-  /** The number of supported ADF radios. */
-  adfRadioCount: 0 | 1 | 2;
+  /** The radios configuration object. */
+  radiosConfig: RadiosConfig;
+
+  /** The FMS configuration object. */
+  fmsConfig: FmsConfig;
 
   /** The nav indicator associated with the bearing info display. */
   indicator: G3000NavIndicator;
@@ -41,8 +46,13 @@ export interface BearingInfoProps extends ComponentProps {
  * A G3000 bearing info display.
  */
 export class BearingInfo extends DisplayComponent<BearingInfoProps> {
-  // TODO: support indexed FMS and GPS/FMS option
-  private readonly sourceFormatter = NavSourceFormatter.createForIndicator('FMS', false, false, this.props.adfRadioCount > 1, false);
+  private readonly sourceFormatter = NavSourceFormatter.createForIndicator(
+    this.props.fmsConfig.navSourceLabelText,
+    false,
+    false,
+    this.props.radiosConfig.adfCount > 1,
+    false
+  );
 
   private readonly distanceRef = FSComponent.createRef<NumberUnitDisplay<UnitFamily.Distance>>();
   private readonly bearingRef = FSComponent.createRef<BearingDisplay>();

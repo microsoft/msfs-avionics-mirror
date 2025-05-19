@@ -1,0 +1,17 @@
+html {
+  --loading-icon-rotation-duration: 1.5s;
+}
+
+.loading-icon {
+  animation: loading-icon-rotation var(--loading-icon-rotation-duration) linear infinite;
+}
+
+@keyframes loading-icon-rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}

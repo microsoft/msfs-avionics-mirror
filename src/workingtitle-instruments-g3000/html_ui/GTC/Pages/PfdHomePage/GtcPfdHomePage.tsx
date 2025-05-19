@@ -1,9 +1,10 @@
 import { ControlEvents, DisplayComponent, FSComponent, MappedSubject, Subject, UserSetting, VNode } from '@microsoft/msfs-sdk';
 
 import { ObsSuspDataProvider, ObsSuspModes } from '@microsoft/msfs-garminsdk';
+
 import {
-  CASControlEvents, G3000FilePaths, G3000NavIndicator, NavSourceFormatter, PfdBearingPointerSource, PfdUserSettings,
-  RadiosConfig
+  CASControlEvents, FmsConfig, G3000FilePaths, G3000NavIndicator, NavSourceFormatter, PfdBearingPointerSource,
+  PfdUserSettings, RadiosConfig
 } from '@microsoft/msfs-wtg3000-common';
 
 import { ImgTouchButton } from '../../Components/TouchButton/ImgTouchButton';
@@ -22,6 +23,9 @@ import './GtcPfdHomePage.css';
 export interface GtcPfdHomePageProps extends GtcViewProps {
   /** The radios configuration object. */
   radiosConfig: RadiosConfig;
+
+  /** The FMS configuration object. */
+  fmsConfig: FmsConfig;
 
   /** The indicator for the active nav source. */
   activeNavIndicator: G3000NavIndicator;
@@ -42,7 +46,7 @@ export class GtcPfdHomePage extends GtcView<GtcPfdHomePageProps> {
 
   private readonly activeNavValue = MappedSubject.create(
     NavSourceFormatter.createForIndicator(
-      'FMS',
+      this.props.fmsConfig.navSourceLabelText,
       false,
       this.props.radiosConfig.dmeCount > 1,
       this.props.radiosConfig.adfCount > 1,
@@ -79,7 +83,12 @@ export class GtcPfdHomePage extends GtcView<GtcPfdHomePageProps> {
 
   /** @inheritdoc */
   public render(): VNode {
-    const bearingPointerValueRender = NavSourceFormatter.createForBearingPointerSetting('FMS', false, this.props.radiosConfig.dmeCount > 1, this.props.radiosConfig.adfCount > 1);
+    const bearingPointerValueRender = NavSourceFormatter.createForBearingPointerSetting(
+      this.props.fmsConfig.navSourceLabelText,
+      false,
+      this.props.radiosConfig.dmeCount > 1,
+      this.props.radiosConfig.adfCount > 1
+    );
 
     const bearingPointerPressHandler = (button: ValueTouchButton<UserSetting<PfdBearingPointerSource>>, setting: UserSetting<PfdBearingPointerSource>): void => {
       switch (setting.value) {

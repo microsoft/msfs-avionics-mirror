@@ -1,15 +1,15 @@
 import {
-  AirportUtils, ArraySubject, Facility, FacilityType, FacilityUtils, FacilityWaypoint, FSComponent, ICAO, VNode
+  ArraySubject, Facility, FacilityWaypoint, FSComponent, ICAO, VNode
 } from '@microsoft/msfs-sdk';
 
 import { DynamicListData, Regions } from '@microsoft/msfs-garminsdk';
 
 import { UiList } from '../../../Shared/Components/List/UiList';
+import { UiListFocusable } from '../../../Shared/Components/List/UiListFocusable';
+import { UiListItem } from '../../../Shared/Components/List/UiListItem';
+import { UiTouchButton } from '../../../Shared/Components/TouchButton/UiTouchButton';
 import { AbstractUiView } from '../../../Shared/UiSystem/AbstractUiView';
 import { UiDialogResult, UiDialogView } from '../../../Shared/UiSystem/UiDialogView';
-import { UiTouchButton } from '../../../Shared/Components/TouchButton/UiTouchButton';
-import { UiListItem } from '../../../Shared/Components/List/UiListItem';
-import { UiListFocusable } from '../../../Shared/Components/List/UiListFocusable';
 import { UiInteractionEvent } from '../../../Shared/UiSystem/UiInteraction';
 
 import './DuplicateWaypointDialog.css';
@@ -117,13 +117,10 @@ export class DuplicateWaypointDialog extends AbstractUiView implements UiDialogV
 
     let labelText = ICAO.getIdent(facility.icao);
 
-    let regionCode: string | undefined = facility.region;
-    if (FacilityUtils.isFacilityType(facility, FacilityType.Airport)) {
-      regionCode = AirportUtils.tryGetRegionCode(facility);
-    }
+    const regionName = Regions.getName(facility.region);
 
-    if (regionCode !== undefined) {
-      labelText += ` - ${Regions.getName(regionCode)}`;
+    if (regionName !== '') {
+      labelText += ` - ${regionName}`;
     }
 
     return (

@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, DebounceTimer, FSComponent, MapIndexedRangeModule, MapSystemBuilder, ReadonlyFloat64Array, Subject,
-  Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath
+  CompiledMapSystem, DebounceTimer, FSComponent, FacilityLoader, MapIndexedRangeModule, MapSystemBuilder,
+  ReadonlyFloat64Array, Subject, Subscription, UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -40,6 +40,9 @@ import './MfdMapPage.css';
  * Component props for MfdMapPage.
  */
 export interface MfdMapPageProps extends MfdPageProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the page's map to display traffic, or `null` if there is no traffic system. */
   trafficSystem: TrafficSystem | null;
 
@@ -82,6 +85,8 @@ export class MfdMapPage extends AbstractMfdPage<MfdMapPageProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XNavMapBuilder.build, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       bingId: `g3x-${this.props.uiService.instrumentIndex}-map-1`,
 
@@ -184,6 +189,7 @@ export class MfdMapPage extends AbstractMfdPage<MfdMapPageProps> {
           <MfdMapSetupPopup
             uiService={uiService}
             containerRef={containerRef}
+            facLoader={this.props.facLoader}
             trafficSystem={this.props.trafficSystem}
             fplSourceDataProvider={this.props.fplSourceDataProvider}
             gduSettingManager={this.props.gduSettingManager}

@@ -1,10 +1,14 @@
 import {
-  BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject, MathUtils, NavSourceType,
-  NumberFormatter, NumberUnitSubject, ObjectSubject, Subject, Subscribable, Subscription, UnitType, VNode
+  BasicNavAngleSubject, BasicNavAngleUnit, ComponentProps, DisplayComponent, EventBus, FSComponent, MappedSubject,
+  MathUtils, NavSourceType, NumberFormatter, NumberUnitSubject, ObjectSubject, Subject, Subscribable, Subscription,
+  UnitType, VNode
 } from '@microsoft/msfs-sdk';
 
-import { CdiScaleFormatter, CDIScaleLabel, NumberUnitDisplay, ObsSuspModes, UnitsNavAngleSettingMode, UnitsUserSettingManager } from '@microsoft/msfs-garminsdk';
-import { BearingDisplay, NavSourceFormatter } from '@microsoft/msfs-wtg3000-common';
+import {
+  CdiScaleFormatter, CDIScaleLabel, NumberUnitDisplay, ObsSuspModes, UnitsNavAngleSettingMode, UnitsUserSettingManager
+} from '@microsoft/msfs-garminsdk';
+
+import { BearingDisplay, FmsConfig, NavSourceFormatter } from '@microsoft/msfs-wtg3000-common';
 
 import { ActiveNavNeedle } from './ActiveNavNeedle';
 import { ApproachPreviewNeedle } from './ApproachPreviewNeedle';
@@ -21,6 +25,9 @@ import './HsiRose.css';
 export interface HsiRoseProps extends ComponentProps {
   /** An instance of the event bus. */
   bus: EventBus;
+
+  /** A configuration object defining options for the FMS. */
+  fmsConfig: FmsConfig;
 
   /** A provider of HSI data. */
   dataProvider: HsiDataProvider;
@@ -68,10 +75,6 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
     display: 'none'
   });
 
-  private readonly xtkStyle = ObjectSubject.create({
-    display: 'none'
-  });
-
   private readonly headingState = MappedSubject.create(
     this.props.dataProvider.headingMag,
     this.props.dataProvider.magVar
@@ -116,7 +119,8 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
   );
 
   private readonly navSourceText = MappedSubject.create(
-    NavSourceFormatter.createForIndicator('FMS', false, false, false, true).bind(undefined, this.props.dataProvider.activeNavIndicator),
+    NavSourceFormatter.createForIndicator(this.props.fmsConfig.navSourceLabelText, false, false, false, true)
+      .bind(undefined, this.props.dataProvider.activeNavIndicator),
     this.props.dataProvider.activeNavIndicator.source,
     this.props.dataProvider.activeNavIndicator.isLocalizer
   ).pause();
@@ -126,16 +130,27 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
   }).pause();
   private readonly navSensitivityText = Subject.create('');
 
-  private readonly isXtkVisible = MappedSubject.create(
-    ([activeNavSource, lnavXtk, cdiScale]): boolean => {
-      return activeNavSource !== null && activeNavSource.getType() === NavSourceType.Gps && lnavXtk !== null && Math.abs(lnavXtk) >= (cdiScale ?? 0);
+  private readonly isXtkHidden = MappedSubject.create(
+    ([activeNavSource, isCourseHeading, lnavXtk, cdiScale]): boolean => {
+      return !activeNavSource
+        || activeNavSource.getType() !== NavSourceType.Gps
+        || isCourseHeading
+        || lnavXtk === null
+        || Math.abs(lnavXtk) < (cdiScale ?? 0);
     },
     this.props.dataProvider.activeNavIndicator.source,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading,
     this.props.dataProvider.lnavXtk,
     this.props.dataProvider.activeNavIndicator.lateralDeviationScale
   ).pause();
   private readonly lnavXtkPrecision = this.props.unitsSettingManager.distanceUnitsLarge.map(unit => unit.convertTo(0.01, UnitType.NMILE)).pause();
   private readonly lnavXtk = NumberUnitSubject.create(UnitType.NMILE.createNumber(0));
+
+  private readonly isHdgLegHidden = MappedSubject.create(
+    ([activeNavSource, isCourseHeading]) => !activeNavSource || activeNavSource.getType() !== NavSourceType.Gps || !isCourseHeading,
+    this.props.dataProvider.activeNavIndicator.source,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading,
+  ).pause();
 
   private readonly obsSuspText = this.props.dataProvider.obsSuspMode.map(mode => {
     switch (mode) {
@@ -149,7 +164,8 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
   }).pause();
 
   private readonly previewSourceText = MappedSubject.create(
-    NavSourceFormatter.createForIndicator('FMS', false, false, false, true).bind(undefined, this.props.dataProvider.approachPreviewIndicator),
+    NavSourceFormatter.createForIndicator(this.props.fmsConfig.navSourceLabelText, false, false, false, true)
+      .bind(undefined, this.props.dataProvider.approachPreviewIndicator),
     this.props.dataProvider.approachPreviewIndicator.source,
     this.props.dataProvider.approachPreviewIndicator.isLocalizer
   ).pause();
@@ -293,15 +309,13 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
       return xtk === null ? 0 : MathUtils.round(Math.abs(xtk), this.lnavXtkPrecision.get());
     }, true);
 
-    const isXtkVisibleSub = this.isXtkVisible.sub((isVisible) => {
-      if (isVisible) {
-        this.xtkStyle.set('display', '');
-        this.lnavXtkPrecision.resume();
-        lnavXtkPipe.resume(true);
-      } else {
-        this.xtkStyle.set('display', 'none');
+    const isXtkHiddenSub = this.isXtkHidden.sub(isHidden => {
+      if (isHidden) {
         this.lnavXtkPrecision.pause();
         lnavXtkPipe.pause();
+      } else {
+        this.lnavXtkPrecision.resume();
+        lnavXtkPipe.resume(true);
       }
     }, false, true);
 
@@ -324,8 +338,10 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
         this.obsSuspText.resume();
 
-        this.isXtkVisible.resume();
-        isXtkVisibleSub.resume(true);
+        this.isXtkHidden.resume();
+        isXtkHiddenSub.resume(true);
+
+        this.isHdgLegHidden.resume();
       } else {
         this.rootStyle.set('display', 'none');
 
@@ -359,10 +375,12 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
 
         this.obsSuspText.pause();
 
-        this.isXtkVisible.pause();
-        isXtkVisibleSub.pause();
+        this.isXtkHidden.pause();
+        isXtkHiddenSub.pause();
         this.lnavXtkPrecision.pause();
         lnavXtkPipe.pause();
+
+        this.isHdgLegHidden.pause();
       }
     }, true);
   }
@@ -468,7 +486,7 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
           />
         </div>
 
-        <div class="hsi-rose-xtk" style={this.xtkStyle}>
+        <div class={{ 'hsi-rose-xtk': true, 'hidden': this.isXtkHidden }}>
           <div class="hsi-rose-xtk-title">XTK</div>
           <NumberUnitDisplay
             value={this.lnavXtk}
@@ -477,6 +495,8 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
             class="hsi-rose-xtk-value"
           />
         </div>
+
+        <div class={{ 'hsi-rose-hdg-leg': true, 'hidden': this.isHdgLegHidden }}>HDG LEG</div>
 
         <div class="hsi-rose-rotating" style={this.compassRotationStyle}>
           <ActiveNavNeedle
@@ -532,8 +552,9 @@ export class HsiRose extends DisplayComponent<HsiRoseProps> {
     this.obsSuspText.destroy();
     this.previewSourceText.destroy();
     this.previewCourseText.destroy();
-    this.isXtkVisible.destroy();
+    this.isXtkHidden.destroy();
     this.lnavXtkPrecision.destroy();
+    this.isHdgLegHidden.destroy();
 
     this.showSub?.destroy();
 

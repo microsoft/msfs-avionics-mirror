@@ -1,3 +1,4 @@
+import { GpwsVisualAlertType } from './GpwsAlertController';
 import { GpwsOperatingMode } from './GpwsTypes';
 
 /**
@@ -23,5 +24,20 @@ export interface GpwsEvents {
   gpws_nearest_runway_altitude: number | null;
 
   /** Whether steep approach mode is active */
-  gpws_steep_approach_mode: boolean
+  gpws_steep_approach_mode: boolean;
+
+  /** The currently active visual alert */
+  gpws_visual_alert: GpwsVisualAlertType | null;
+}
+
+/** Events used for controlling the GPWS */
+export interface GpwsControlEvents {
+  /** Whether the terrain inhibit should be active */
+  terrain_inhibit_active: boolean;
+
+  /** Whether the glideslope inhibit should be active */
+  gs_inhibit_active: boolean;
+
+  /** Whether the flap override should be active */
+  flap_override_active: boolean;
 }

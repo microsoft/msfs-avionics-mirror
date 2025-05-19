@@ -11,14 +11,15 @@ export class MapFacilitySelectModule {
 
   public readonly userFacility = Subject.create<UserFacility | null>(null);
 
-  private readonly facLoader;
+  private readonly facLoader: FacilityLoader;
 
   /**
    * Ctor
    * @param bus The event bus.
+   * @param facLoader The facility loader. If not defined, then a default instance will be created.
    */
-  constructor(bus: EventBus) {
-    this.facLoader = new FacilityLoader(FacilityRepository.getRepository(bus));
+  constructor(bus: EventBus, facLoader?: FacilityLoader) {
+    this.facLoader = facLoader ?? new FacilityLoader(FacilityRepository.getRepository(bus));
     this.facilityIcao.sub(this.updateFacility.bind(this), false);
     this.userFacility.sub(this.updateFacility.bind(this), false);
   }

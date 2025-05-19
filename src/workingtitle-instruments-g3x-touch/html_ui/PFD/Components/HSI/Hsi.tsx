@@ -163,6 +163,11 @@ export class Hsi extends DisplayComponent<HSIProps> {
     this.props.dataProvider.obsSuspMode
   ).pause();
 
+  private readonly navCourseState = MappedSubject.create(
+    this.props.dataProvider.activeNavIndicator.course,
+    this.props.dataProvider.activeNavIndicator.isCourseHeading
+  ).pause();
+
   private readonly isCrsButtonEnabled = Subject.create(false);
 
   private readonly showUpperDeviationIndicator = MappedSubject.create(
@@ -172,6 +177,7 @@ export class Hsi extends DisplayComponent<HSIProps> {
   );
 
   private cdiSourceSub?: Subscription;
+  private crsSourceStateSub?: Subscription;
   private navCoursePipe?: Subscription;
   private obsCoursePipe?: Subscription;
   private headingDataFailedSub?: Subscription;
@@ -180,7 +186,6 @@ export class Hsi extends DisplayComponent<HSIProps> {
 
   /** @inheritDoc */
   public onAfterRender(): void {
-
     this.cdiSourceSub = this.props.dataProvider.activeNavIndicator.source.sub(source => {
       if (source?.getType() === NavSourceType.Gps) {
         this.rootCssClass.add('hsi-active-nav-gps');
@@ -201,16 +206,18 @@ export class Hsi extends DisplayComponent<HSIProps> {
       this.crsValue.set(dtkCrsMag, magVar);
     }, true);
 
-    const navCoursePipe = this.navCoursePipe = this.props.dataProvider.activeNavIndicator.course.pipe(this.crsMag, course => course ?? NaN, true);
-    const obsCoursePipe = this.obsCoursePipe = this.props.dataProvider.obsCourse.pipe(this.crsMag, true);
+    this.navCoursePipe = this.navCourseState.pipe(this.crsMag, ([course, isCourseHeading]) => course === null || isCourseHeading ? NaN : course, true);
+    this.obsCoursePipe = this.props.dataProvider.obsCourse.pipe(this.crsMag, true);
 
-    const dtkCrsSourceStateSub = this.crsSourceState.sub(([cdiSource, obsSuspMode]) => {
+    this.crsSourceStateSub = this.crsSourceState.sub(([cdiSource, obsSuspMode]) => {
       if (cdiSource?.getType() === NavSourceType.Gps && obsSuspMode === ObsSuspModes.OBS) {
-        navCoursePipe.pause();
-        obsCoursePipe.resume(true);
+        this.navCourseState.pause();
+        this.navCoursePipe!.pause();
+        this.obsCoursePipe!.resume(true);
       } else {
-        obsCoursePipe.pause();
-        navCoursePipe.resume(true);
+        this.obsCoursePipe!.pause();
+        this.navCourseState.resume();
+        this.navCoursePipe!.resume(true);
       }
     }, false, true);
 
@@ -222,38 +229,44 @@ export class Hsi extends DisplayComponent<HSIProps> {
       this.rootCssClass.toggle('gps-data-failed', isFailed);
     }, true);
 
-    this.declutterSub = this.props.declutter.sub(declutter => {
-      if (declutter) {
-        this.selectedHeadingState.pause();
+    this.declutterSub = this.props.declutter.sub(this.onDeclutterChanged.bind(this), true);
+  }
 
-        this.crsState.pause();
+  /**
+   * Responds to when whether this HSI is decluttered changes.
+   * @param declutter Whether this HSI is decluttered.
+   */
+  private onDeclutterChanged(declutter: boolean): void {
+    if (declutter) {
+      this.pauseDeclutterSubscriptions();
 
-        this.crsSourceState.pause();
-        dtkCrsSourceStateSub.pause();
-
-        navCoursePipe.pause();
-        obsCoursePipe.pause();
-
-        this.isHdgCrsVisible.set(false);
-      } else {
-        this.selectedHeadingState.resume();
-
-        this.crsSourceState.resume();
-        dtkCrsSourceStateSub.resume(true);
-
-        this.crsState.resume();
-
-        this.isHdgCrsVisible.set(false);
-      }
+      this.isHdgCrsVisible.set(false);
+    } else {
       this.selectedHeadingState.resume();
 
       this.crsSourceState.resume();
-      dtkCrsSourceStateSub.resume(true);
+      this.crsSourceStateSub!.resume(true);
 
       this.crsState.resume();
 
       this.isHdgCrsVisible.set(true);
-    }, true);
+    }
+  }
+
+  /**
+   * Pauses subscriptions that are not required when this HSI is decluttered.
+   */
+  private pauseDeclutterSubscriptions(): void {
+    this.selectedHeadingState.pause();
+
+    this.crsState.pause();
+
+    this.crsSourceState.pause();
+    this.crsSourceStateSub!.pause();
+
+    this.navCourseState.pause();
+    this.navCoursePipe!.pause();
+    this.obsCoursePipe!.pause();
   }
 
   /**
@@ -395,7 +408,7 @@ export class Hsi extends DisplayComponent<HSIProps> {
 
     this.selectedHeadingState.destroy();
     this.crsSourceState.destroy();
-    this.crsSourceState.destroy();
+    this.navCourseState.destroy();
 
     this.showUpperDeviationIndicator.destroy();
 

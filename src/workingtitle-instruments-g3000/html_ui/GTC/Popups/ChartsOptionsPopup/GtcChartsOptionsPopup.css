@@ -1,0 +1,272 @@
+.charts-options-popup {
+  position: absolute;
+  left: 50%;
+  width: var(--chart-options-popup-width);
+  transform: translate(-50%, -50%);
+  color: var(--g3000-color-white);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+  transition: filter 0.3s;
+}
+
+/*
+ * The transform style on the popup breaks inheritance of the darken filter (Coherent issue), so we need to explicitly
+ * reapply the filter on the popup.
+ */
+.gtc-view.occlude-darken .charts-options-popup {
+  filter: brightness(50%);
+}
+
+.charts-options-popup.charts-options-popup-show-sections {
+  width: var(--chart-options-popup-show-sections-width);
+}
+
+.gtc-horizontal .charts-options-popup {
+  top: calc((100% - 42px) * 0.5 + 42px);
+  padding: 6px;
+  font-size: 32px;
+
+  --chart-options-popup-width: 622px;
+  --chart-options-popup-show-sections-width: 768px;
+
+  --charts-options-popup-top-left-margin-bottom: 0px;
+
+  /* 224px button width + 2 * 10px margin (left and right) */
+  --charts-options-popup-show-sections-top-left-width: 244px;
+  --charts-options-popup-show-sections-top-left-margin-bottom: 2px;
+
+  --charts-options-popup-top-left-buttons-width: 280px;
+  --charts-options-popup-top-left-buttons-height: 150px;
+  --charts-options-popup-top-left-buttons-margin: 0px 10px 18px;
+
+  --charts-options-popup-show-sections-top-left-buttons-width: 224px;
+  --charts-options-popup-show-sections-top-left-buttons-height: 128px;
+  --charts-options-popup-show-sections-top-left-buttons-margin: 0px 10px 12px;
+
+  --charts-options-popup-fit-width-button-margin: 0px 100px 12px;
+
+  --charts-options-popup-top-sections-margin-left: 18px;
+
+  --charts-options-popup-top-sections-title-margin: 12px 0px 6px;
+
+  --charts-options-popup-top-sections-buttons-width: 224px;
+  --charts-options-popup-top-sections-buttons-height: 128px;
+
+  /* 2 * (128px per button + 10px margin) per row */
+  --charts-options-popup-top-sections-buttons-container-height: 276px;
+  --charts-options-popup-top-sections-buttons-container-margin: 7px;
+
+  --charts-options-popup-top-sections-buttons-margin: 5px;
+
+  --charts-options-popup-sources-box-height: 204px;
+  --charts-options-popup-sources-box-margin-top: 6px;
+  --charts-options-popup-sources-box-padding: 8px;
+
+  --charts-options-popup-preferred-source-button-width: 224px;
+
+  --charts-options-popup-sources-status-margin-left: 30px;
+
+  --charts-options-popup-sources-status-title-margin-bottom: 30px;
+
+  --charts-options-popup-sources-list-max-width: 372px;
+  /* 2 * 50px per item + 1 * 2px per spacing */
+  --charts-options-popup-sources-list-height: 102px;
+
+  --charts-options-popup-sources-list-item-padding: 0px 18px;
+
+  --charts-options-popup-sources-list-item-icon-size: 40px;
+}
+
+.gtc-vertical .charts-options-popup {
+  top: calc((100% - 25px) * 0.5 + 25px);
+  padding: 4px;
+  font-size: 18px;
+
+  --chart-options-popup-width: 350px;
+  --chart-options-popup-show-sections-width: 418px;
+
+  --charts-options-popup-top-left-margin-bottom: 0px;
+
+  /* 120px button width + 2 * 8px margin (left and right) */
+  --charts-options-popup-show-sections-top-left-width: 136px;
+  --charts-options-popup-show-sections-top-left-margin-bottom: 2px;
+
+  --charts-options-popup-top-left-buttons-width: 150px;
+  --charts-options-popup-top-left-buttons-height: 82px;
+  --charts-options-popup-top-left-buttons-margin: 0px 8px 6px;
+
+  --charts-options-popup-show-sections-top-left-buttons-width: 120px;
+  --charts-options-popup-show-sections-top-left-buttons-height: 70px;
+  --charts-options-popup-show-sections-top-left-buttons-margin: 0px 8px 6px;
+
+  --charts-options-popup-fit-width-button-margin: 0px 50px 6px;
+
+  --charts-options-popup-top-sections-margin-left: 7px;
+
+  --charts-options-popup-top-sections-title-margin: 6px 0px 3px;
+
+  --charts-options-popup-top-sections-buttons-width: 120px;
+  --charts-options-popup-top-sections-buttons-height: 70px;
+
+  /* 2 * (70px per button + 6px margin) per row */
+  --charts-options-popup-top-sections-buttons-container-height: 152px;
+  --charts-options-popup-top-sections-buttons-container-margin: 3px;
+
+  --charts-options-popup-top-sections-buttons-margin: 3px;
+
+  --charts-options-popup-sources-box-height: 104px;
+  --charts-options-popup-sources-box-margin-top: 4px;
+  --charts-options-popup-sources-box-padding: 4px;
+
+  --charts-options-popup-preferred-source-button-width: 120px;
+
+  --charts-options-popup-sources-status-margin-left: 15px;
+
+  --charts-options-popup-sources-status-title-margin-bottom: 10px;
+
+  --charts-options-popup-sources-list-max-width: 200px;
+  /* 2 * 30px per item + 1 * 1px per spacing */
+  --charts-options-popup-sources-list-height: 61px;
+
+  --charts-options-popup-sources-list-item-padding: 0px 9px;
+
+  --charts-options-popup-sources-list-item-icon-size: 24px;
+}
+
+.charts-options-popup-top {
+  position: relative;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.charts-options-popup-top-left {
+  position: relative;
+  width: 100%;
+  margin-bottom: var(--charts-options-popup-top-left-margin-bottom);
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-end;
+}
+
+.charts-options-popup-show-sections .charts-options-popup-top-left {
+  width: var(--charts-options-popup-show-sections-top-left-width);
+  margin-bottom: var(--charts-options-popup-show-sections-top-left-margin-bottom);
+}
+
+.charts-options-popup-top-left .touch-button {
+  width: var(--charts-options-popup-top-left-buttons-width);
+  height: var(--charts-options-popup-top-left-buttons-height);
+  margin: var(--charts-options-popup-top-left-buttons-margin);
+}
+
+.charts-options-popup-show-sections .charts-options-popup-top-left .touch-button {
+  width: var(--charts-options-popup-show-sections-top-left-buttons-width);
+  height: var(--charts-options-popup-show-sections-top-left-buttons-height);
+  margin: var(--charts-options-popup-show-sections-top-left-buttons-margin);
+}
+
+.charts-options-popup:not(.charts-options-popup-show-sections) .charts-options-popup-top-left .touch-button.charts-options-popup-fit-width-button {
+  margin: var(--charts-options-popup-fit-width-button-margin);
+}
+
+.charts-options-popup-top-sections {
+  flex-grow: 1;
+  position: relative;
+  margin-left: var(--charts-options-popup-top-sections-margin-left);
+  display: none;
+  flex-flow: column nowrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.charts-options-popup-show-sections .charts-options-popup-top-sections {
+  display: flex;
+}
+
+.charts-options-popup-top-sections-title {
+  margin: var(--charts-options-popup-top-sections-title-margin);
+}
+
+.charts-options-popup-top-sections .touch-button {
+  width: var(--charts-options-popup-top-sections-buttons-width);
+  height: var(--charts-options-popup-top-sections-buttons-height);
+
+  --touch-button-toggle-label-center-y: 52%;
+  --touch-button-toggle-bar-center-y: 85%;
+}
+
+.charts-options-popup-top-sections-buttons-container {
+  align-self: stretch;
+  position: relative;
+  height: var(--charts-options-popup-top-sections-buttons-container-height);
+  margin: var(--charts-options-popup-top-sections-buttons-container-margin);
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.charts-options-popup-top-sections-buttons-container .touch-button {
+  margin: var(--charts-options-popup-top-sections-buttons-margin);
+}
+
+.charts-options-popup-sources-box {
+  position: relative;
+  height: var(--charts-options-popup-sources-box-height);
+  margin-top: var(--charts-options-popup-sources-box-margin-top);
+  padding: var(--charts-options-popup-sources-box-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.charts-options-popup-preferred-source-button {
+  width: var(--charts-options-popup-preferred-source-button-width);
+
+  --touch-button-value-label-center-y: 30%;
+  --touch-button-value-value-center-y: 75%;
+}
+
+.charts-options-popup-sources-status {
+  flex-grow: 1;
+  position: relative;
+  margin-left: var(--charts-options-popup-sources-status-margin-left);
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.charts-options-popup-sources-status-title {
+  margin-bottom: var(--charts-options-popup-sources-status-title-margin-bottom);
+  text-align: center;
+}
+
+.charts-options-popup-sources-list {
+  max-width: var(--charts-options-popup-sources-list-max-width);
+  height: var(--charts-options-popup-sources-list-height);
+  margin: 0px auto;
+}
+
+.charts-options-popup-sources-list-item {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: var(--charts-options-popup-sources-list-item-padding);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charts-options-popup-sources-list-item-icon {
+  width: var(--charts-options-popup-sources-list-item-icon-size);
+  height: var(--charts-options-popup-sources-list-item-icon-size);
+}

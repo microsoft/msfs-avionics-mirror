@@ -1,11 +1,17 @@
 import { EventBus } from '../../../data/EventBus';
 import { LatLonInterface } from '../../../geo/GeoInterfaces';
 import { UnitType } from '../../../math';
+import { DefaultFacilityWaypointCache } from '../../../navigation/DefaultFacilityWaypointCache';
 import {
-  AirportFacility, DefaultFacilityWaypointCache, FacilitySearchType, FacilityType, FacilityWaypoint, FacilityWaypointCache, FacilityWaypointUtils, IntersectionFacility,
-  NdbFacility, NearestAirportSearchSession, NearestIcaoSearchSession, NearestIcaoSearchSessionDataType, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
-  NearestVorSearchSession, VorFacility, Waypoint, WaypointTypes
-} from '../../../navigation';
+  AirportFacility, FacilitySearchType, FacilityType, IntersectionFacility, NdbFacility, VorFacility
+} from '../../../navigation/Facilities';
+import { NearestIcaoSearchSession, NearestIcaoSearchSessionDataType } from '../../../navigation/FacilityClient';
+import {
+  FacilityLoader, NearestAirportSearchSession, NearestIntersectionSearchSession, NearestRepoFacilitySearchSession,
+  NearestVorSearchSession
+} from '../../../navigation/FacilityLoader';
+import { FacilityWaypointCache } from '../../../navigation/FacilityWaypointCache';
+import { FacilityWaypoint, FacilityWaypointUtils, Waypoint, WaypointTypes } from '../../../navigation/Waypoint';
 import { FSComponent, VNode } from '../../FSComponent';
 import { MapLayer, MapLayerProps, MapNearestWaypointsLayer, MapProjection, MapSyncedCanvasLayer } from '../../map';
 import { MapSystemKeys } from '../MapSystemKeys';
@@ -27,6 +33,9 @@ export interface MapSystemWaypointsLayerModules {
 export interface MapSystemWaypointsLayerProps extends MapLayerProps<MapSystemWaypointsLayerModules> {
   /** The event bus. */
   bus: EventBus;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The waypoint renderer to use. */
   waypointRenderer: MapSystemWaypointsRenderer;
@@ -204,6 +213,7 @@ export class MapSystemWaypointsLayer extends MapLayer<MapSystemWaypointsLayerPro
         model={this.props.model}
         mapProjection={this.props.mapProjection}
         bus={this.props.bus}
+        facilityLoader={this.props.facilityLoader}
         waypointRenderer={this.props.waypointRenderer}
         waypointForFacility={(facility): Waypoint => this.waypointCache.get(facility)}
         initRenderer={this.initWaypointRenderer.bind(this)}

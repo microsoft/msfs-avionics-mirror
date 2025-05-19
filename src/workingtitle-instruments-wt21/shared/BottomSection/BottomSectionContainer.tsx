@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ComponentProps, DisplayComponent, EventBus, FlightPlanner, FSComponent, VNode } from '@microsoft/msfs-sdk';
+import { ComponentProps, DisplayComponent, EventBus, FacilityLoader, FlightPlanner, FSComponent, VNode } from '@microsoft/msfs-sdk';
 
 import { BottomSectionVer1 } from './BottomSectionVer1';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -25,6 +25,9 @@ interface BottomSectionContainerProps extends ComponentProps {
   /** The version of the bottom section to display. */
   version: BottomSectionVersion;
 
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** An instance of the flight planner. */
   planner?: FlightPlanner;
 }
@@ -48,9 +51,13 @@ export class BottomSectionContainer extends DisplayComponent<BottomSectionContai
   public render(): VNode {
     return (
       <div>
-        {this.props.version === BottomSectionVersion.ver1 ? <BottomSectionVer1 bus={this.props.bus} /> :
-          (this.props.version === BottomSectionVersion.ver2) ? <BottomSectionVer2 bus={this.props.bus}
-            planner={this.props.planner!} /> : <BottomSectionVer3 bus={this.props.bus} />}
+        {
+          this.props.version === BottomSectionVersion.ver1
+            ? <BottomSectionVer1 bus={this.props.bus} />
+            : (this.props.version === BottomSectionVersion.ver2)
+              ? <BottomSectionVer2 bus={this.props.bus} facLoader={this.props.facLoader} planner={this.props.planner!} />
+              : <BottomSectionVer3 bus={this.props.bus} />
+        }
       </div>
     );
   }

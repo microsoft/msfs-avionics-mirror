@@ -9,8 +9,9 @@ import {
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  AvionicsConfig, AvionicsStatus, ChecklistPaneView, ConnextWeatherPaneView, DisplayOverlayLayer, DisplayPaneContainer,
-  DisplayPaneIndex, DisplayPaneViewFactory, DisplayPaneViewKeys, FlightPlanListManager, FlightPlanStore,
+  AvionicsConfig, AvionicsStatus, ChartsPaneView, ChecklistPaneView, ConnextWeatherPaneView,
+  DefaultChartsPaneViewDataProvider, DisplayOverlayLayer, DisplayPaneContainer, DisplayPaneIndex,
+  DisplayPaneViewFactory, DisplayPaneViewKeys, FlightPlanListManager, FlightPlanStore,
   G3000ApproachPreviewDataProvider, G3000ApproachPreviewNavIndicator, G3000BearingPointerNavIndicator,
   G3000DmeInfoNavIndicator, G3000FilePaths, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators,
   G3000NavInfoNavIndicator, G3000NavSource, G3000NavSourceName, G3000NavSources, GduInteractionEventUtils,
@@ -213,6 +214,8 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
   private async doInit(): Promise<void> {
     await this.initPlugins();
 
+    this.initChartSources(this.pluginSystem);
+
     await this.initChecklist(this.pluginSystem);
 
     this.backplane.init();
@@ -350,6 +353,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
         <TrafficMapPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           trafficSystem={this.trafficSystem}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -362,6 +366,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
         <ConnextWeatherPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           flightPlanner={this.flightPlanner}
           windDataProvider={this.windDataProvider}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -374,6 +379,7 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
         <ProcedurePreviewPaneView
           index={index}
           bus={this.bus}
+          facLoader={this.facLoader}
           fms={this.fms}
           flightPathCalculator={this.flightPathCalculator}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
@@ -403,6 +409,25 @@ export class WTG3000PfdInstrument extends WTG3000FsInstrument {
           windDataProvider={this.windDataProvider}
           pfdSensorsSettingManager={this.pfdSensorsSettingManager}
           config={this.config.map}
+        />
+      );
+    });
+
+    this.displayPaneViewFactory.registerView(DisplayPaneViewKeys.Charts, index => {
+      return (
+        <ChartsPaneView
+          index={index}
+          dataProviderFactory={() => new DefaultChartsPaneViewDataProvider(this.bus, this.chartsSources, index, this.pfdSensorsSettingManager, false)}
+          chartsConfig={this.config.charts}
+        />
+      );
+    });
+    this.displayPaneViewFactory.registerView(DisplayPaneViewKeys.ProcedurePreviewCharts, index => {
+      return (
+        <ChartsPaneView
+          index={index}
+          dataProviderFactory={() => new DefaultChartsPaneViewDataProvider(this.bus, this.chartsSources, index, this.pfdSensorsSettingManager, true)}
+          chartsConfig={this.config.charts}
         />
       );
     });

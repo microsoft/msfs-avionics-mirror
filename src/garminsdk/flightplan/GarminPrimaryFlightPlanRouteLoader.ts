@@ -38,6 +38,9 @@ export type GarminPrimaryFlightPlanRouteLoaderOptions = {
    * to the prefix to form the full ident. Must be three characters or less. Defaults to `'FPL'`.
    */
   userFacilityIdentPrefix?: string;
+
+  /** Whether RNP AR approaches are allowed to be loaded. Defaults to `true`. */
+  allowRnpArApproaches?: boolean;
 };
 
 /**
@@ -48,6 +51,7 @@ export class GarminPrimaryFlightPlanRouteLoader implements GarminFlightPlanRoute
   private readonly flattenAirways: boolean;
   private readonly userFacilityScope: string;
   private readonly userFacilityIdentPrefix: string;
+  private readonly allowRnpArApproaches: boolean;
 
   private loadOpId = 0;
   private activeLoadPromise?: Promise<boolean>;
@@ -62,6 +66,7 @@ export class GarminPrimaryFlightPlanRouteLoader implements GarminFlightPlanRoute
     this.flattenAirways = options?.flattenAirways ?? false;
     this.userFacilityScope = options?.userFacilityScope ?? '';
     this.userFacilityIdentPrefix = options?.userFacilityIdentPrefix ?? 'FPL';
+    this.allowRnpArApproaches = options?.allowRnpArApproaches ?? true;
 
     if (this.userFacilityScope.length > 4) {
       throw new Error(`GarminPrimaryFlightPlanRouteLoader: invalid user facility scope "${this.userFacilityScope}" (exceeds maximum length of 4 characters)`);
@@ -232,7 +237,13 @@ export class GarminPrimaryFlightPlanRouteLoader implements GarminFlightPlanRoute
             route.approachTransition
           );
 
-          if (approachIndexes.approachIndex >= 0) {
+          if (
+            approachIndexes.approachIndex >= 0
+            && (
+              this.allowRnpArApproaches
+              || !destination.airport.approaches[approachIndexes.approachIndex].rnpAr
+            )
+          ) {
             await this.fms.insertApproach(
               destination.airport,
               approachIndexes.approachIndex,

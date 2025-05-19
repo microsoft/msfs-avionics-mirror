@@ -1,17 +1,19 @@
 import {
-  AdcEvents, AirportFacility, AirportUtils, APEvents, APVerticalModes, BitFlags, ClockEvents, ConsumerSubject, ControlSurfacesEvents, EventBus, ExpSmoother,
-  FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlanSegment, FlightPlanSegmentType, GeoPoint, ICAO, KeyEventManager,
-  KeyEvents, LegDefinitionFlags, LNavEvents, MathUtils, OriginDestChangeType, SpeedConstraint, SpeedRestrictionType, SpeedUnit, Subscribable,
-  SubscribableMapFunctions, SubscribableUtils, Subscription, UnitType, UserSetting, VerticalFlightPhase, VNavEvents, VNavState
+  AdcEvents, AirportFacility, APEvents, APVerticalModes, BitFlags, ClockEvents, ConsumerSubject, ControlSurfacesEvents,
+  EventBus, ExpSmoother, FacilityLoader, FacilityType, FlightPlan, FlightPlanner, FlightPlanSegment,
+  FlightPlanSegmentType, GeoPoint, ICAO, KeyEventManager, KeyEvents, LegDefinitionFlags, LNavEvents, MathUtils,
+  OriginDestChangeType, SpeedConstraint, SpeedRestrictionType, SpeedUnit, Subscribable, SubscribableMapFunctions,
+  SubscribableUtils, Subscription, UnitType, UserSetting, VerticalFlightPhase, VNavEvents, VNavState
 } from '@microsoft/msfs-sdk';
 
 import {
-  AdcSystemEvents, FmaData, FmaDataEvents, Fms, FmsPositionSystemEvents, GarminSpeedConstraintStore, GarminVNavFlightPhase,
-  SpeedConstraintListItem, VNavDataEvents
+  AdcSystemEvents, FmaData, FmaDataEvents, Fms, FmsPositionSystemEvents, GarminSpeedConstraintStore,
+  GarminVNavFlightPhase, SpeedConstraintListItem, VNavDataEvents
 } from '@microsoft/msfs-garminsdk';
 
 import {
-  FmsAirframeSpeedLimitContext, FmsSpeedEvents, FmsSpeedsConfig, FmsSpeedTargetSource, FmsSpeedUserSettingManager, G3000FlightPlannerId
+  FmsAirframeSpeedLimitContext, FmsSpeedEvents, FmsSpeedsConfig, FmsSpeedTargetSource, FmsSpeedUserSettingManager,
+  G3000FlightPlannerId
 } from '@microsoft/msfs-wtg3000-common';
 
 /**
@@ -501,7 +503,7 @@ export class FmsSpeedManager {
       }
 
       this.departureFacility = facility;
-      this.departureElevation = UnitType.METER.convertTo(AirportUtils.getElevation(facility) ?? 0, UnitType.FOOT);
+      this.departureElevation = UnitType.METER.convertTo(facility.altitude, UnitType.FOOT);
     } catch (e) {
       console.warn(`FmsSpeedManager: could not retrieve airport for icao ${icao}`);
       this.departureIcao = '';
@@ -535,7 +537,7 @@ export class FmsSpeedManager {
       }
 
       this.arrivalFacility = facility;
-      this.arrivalElevation = UnitType.METER.convertTo(AirportUtils.getElevation(facility) ?? 0, UnitType.FOOT);
+      this.arrivalElevation = UnitType.METER.convertTo(facility.altitude, UnitType.FOOT);
     } catch (e) {
       console.warn(`FmsSpeedManager: could not retrieve airport for icao ${icao}`);
       this.arrivalIcao = '';

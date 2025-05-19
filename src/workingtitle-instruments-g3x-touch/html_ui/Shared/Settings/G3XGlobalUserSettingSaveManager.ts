@@ -1,11 +1,20 @@
-import { EventBus, UserSetting, UserSettingManager, UserSettingSaveManager } from '@microsoft/msfs-sdk';
+import {
+  ArrayUtils, EventBus, UserSetting, UserSettingManager, UserSettingSaveManager, UserSettingSaveManagerSettingDef,
+  UserSettingValue
+} from '@microsoft/msfs-sdk';
 
-import { DateTimeUserSettingTypes, TrafficUserSettingTypes } from '@microsoft/msfs-garminsdk';
+import {
+  DateTimeUserSettingTypes, TrafficUserSettingTypes, UnitsTemperatureSettingMode, UnitsWeightSettingMode
+} from '@microsoft/msfs-garminsdk';
 
+import { AvionicsConfig } from '../AvionicsConfig/AvionicsConfig';
+import { UnitsConfig } from '../AvionicsConfig/UnitsConfig';
+import { G3XUnitsUtils } from '../Units/G3XUnitsUtils';
 import { DisplayAllUserSettingTypes } from './DisplayUserSettings';
 import { FplCalculationUserSettingTypes } from './FplCalculationUserSettings';
+import { G3XChartsAllUserSettingTypes, G3XChartsColorModeSettingMode } from './G3XChartsUserSettings';
+import { G3XUnitsBaroPressureSettingMode, G3XUnitsUserSettingTypes } from './G3XUnitsUserSettings';
 import { PfdAllUserSettingTypes, PfdUserSettingTypes } from './PfdUserSettings';
-import { G3XUnitsUserSettingTypes } from './G3XUnitsUserSettings';
 
 /**
  * Sources of settings to be managed by {@link G3XGlobalUserSettingSaveManager}.
@@ -25,6 +34,9 @@ export type G3XGlobalUserSettingSaveManagerSources = {
 
   /** A manager for flight plan calculation user settings. */
   fplCalcSettingManager: UserSettingManager<FplCalculationUserSettingTypes>;
+
+  /** A manager for electronic charts user settings. */
+  chartsSettingManager: UserSettingManager<G3XChartsAllUserSettingTypes>;
 
   /** A manager for display units user settings. */
   unitsSettingManager: UserSettingManager<G3XUnitsUserSettingTypes>;
@@ -59,10 +71,12 @@ export class G3XGlobalUserSettingSaveManager extends UserSettingSaveManager {
    * Creates a new instance of G3XGlobalUserSettingSaveManager.
    * @param bus The event bus.
    * @param inputs Sources of settings to be managed.
+   * @param config The avionics configuration object.
    */
   public constructor(
     bus: EventBus,
-    inputs: Readonly<G3XGlobalUserSettingSaveManagerSources>
+    inputs: Readonly<G3XGlobalUserSettingSaveManagerSources>,
+    config: AvionicsConfig
   ) {
     super(
       [
@@ -75,10 +89,109 @@ export class G3XGlobalUserSettingSaveManager extends UserSettingSaveManager {
           return G3XGlobalUserSettingSaveManager.TRAFFIC_SETTINGS.some(value => setting.definition.name.startsWith(value));
         }),
         ...inputs.fplCalcSettingManager.getAllSettings(),
-        ...inputs.unitsSettingManager.getAllSettings(),
+        ...G3XGlobalUserSettingSaveManager.getChartsSettingDefs(inputs.chartsSettingManager),
+        ...G3XGlobalUserSettingSaveManager.getUnitsSettingDefs(inputs.unitsSettingManager, config.units),
         ...inputs.pluginSettings
       ],
       bus
     );
+  }
+
+  /**
+   * Gets an array of definitions for electronic charts user settings to save.
+   * @param manager A manager for electronic charts user settings.
+   * @returns An array of definitions for electronic charts user settings to save.
+   */
+  private static getChartsSettingDefs(
+    manager: UserSettingManager<G3XChartsAllUserSettingTypes>
+  ): UserSettingSaveManagerSettingDef<UserSettingValue>[] {
+    return manager.getAllSettings().map<UserSettingSaveManagerSettingDef<UserSettingValue> | undefined>(setting => {
+      if (setting.definition.name.startsWith('chartsColorMode')) {
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => {
+            switch (loadValue) {
+              case G3XChartsColorModeSettingMode.Day:
+              case G3XChartsColorModeSettingMode.Night:
+              case G3XChartsColorModeSettingMode.Auto:
+                return loadValue;
+              default:
+                return loadSetting.get();
+            }
+          },
+        };
+      } else {
+        return { setting };
+      }
+    }).filter(def => !!def) as UserSettingSaveManagerSettingDef<UserSettingValue>[];
+  }
+
+  /**
+   * Gets an array of definitions for units user settings to save.
+   * @param manager A manager for units user settings.
+   * @param unitsConfig A configuration object defining options for measurement units.
+   * @returns An array of definitions for units user settings to save.
+   */
+  private static getUnitsSettingDefs(
+    manager: UserSettingManager<G3XUnitsUserSettingTypes>,
+    unitsConfig: UnitsConfig
+  ): UserSettingSaveManagerSettingDef<UserSettingValue>[] {
+    return manager.getAllSettings().map<UserSettingSaveManagerSettingDef<UserSettingValue> | undefined>(setting => {
+      if (setting.definition.name.startsWith('unitsFuelEconomy')) {
+        const fuelEconomySettingValues = G3XUnitsUtils.getFuelEconomyUnitsSettingModes(unitsConfig.fuelType);
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => ArrayUtils.includes(fuelEconomySettingValues, loadValue) ? loadValue : loadSetting.get(),
+        };
+      } else if (setting.definition.name.startsWith('unitsFuel')) {
+        const fuelSettingValues = G3XUnitsUtils.getFuelUnitsSettingModes(unitsConfig.fuelType);
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => ArrayUtils.includes(fuelSettingValues, loadValue) ? loadValue : loadSetting.get(),
+        };
+      } else if (setting.definition.name.startsWith('unitsTemperature')) {
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => {
+            switch (loadValue) {
+              case UnitsTemperatureSettingMode.Fahrenheit:
+              case UnitsTemperatureSettingMode.Celsius:
+                return loadValue;
+              default:
+                return loadSetting.get();
+            }
+          },
+        };
+      } else if (setting.definition.name.startsWith('unitsBaroPressure')) {
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => {
+            switch (loadValue) {
+              case G3XUnitsBaroPressureSettingMode.InHg:
+              case G3XUnitsBaroPressureSettingMode.Millibars:
+              case G3XUnitsBaroPressureSettingMode.Hectopascals:
+                return loadValue;
+              default:
+                return loadSetting.get();
+            }
+          },
+        };
+      } else if (setting.definition.name.startsWith('unitsWeight')) {
+        return {
+          setting,
+          loadValidator: (loadValue, loadSetting) => {
+            switch (loadValue) {
+              case UnitsWeightSettingMode.Pounds:
+              case UnitsWeightSettingMode.Kilograms:
+                return loadValue;
+              default:
+                return loadSetting.get();
+            }
+          },
+        };
+      } else {
+        return undefined;
+      }
+    }).filter(def => !!def) as UserSettingSaveManagerSettingDef<UserSettingValue>[];
   }
 }

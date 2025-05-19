@@ -277,6 +277,10 @@
   top: 480px;
 }
 
+.display-pane-half .pfd-instrument-container .full-cas-display-2 {
+  top: 480px;
+}
+
 .display-pane-half .pfd-instrument-container.pfd-use-nav-status-banner .full-cas-display-2 {
   top: 532px;
 }

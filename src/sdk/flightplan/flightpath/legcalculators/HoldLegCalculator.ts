@@ -6,9 +6,10 @@ import { BitFlags } from '../../../math/BitFlags';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility, LegTurnDirection, LegType } from '../../../navigation/Facilities';
+import { LegTurnDirection, LegType } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -37,7 +38,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of HoldLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, true);
   }
 
@@ -47,7 +48,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcao);
+    const terminatorPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcaoStruct);
     leg.calculated!.courseMagVar = terminatorPos === undefined ? 0 : this.getLegMagVar(leg.leg, terminatorPos);
   }
 
@@ -64,7 +65,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     const vectors = calcs.flightPath;
     const ingress = calcs.ingress;
 
-    const holdPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcao);
+    const holdPos = this.getTerminatorPosition(leg.leg, this.geoPointCache[0], leg.leg.fixIcaoStruct);
 
     if (!holdPos) {
       vectors.length = 0;
@@ -80,6 +81,8 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
     const oppositeCourse = MathUtils.normalizeAngleDeg(course + 180);
 
     const inboundPath = this.geoCircleCache[0].setAsGreatCircle(holdPos, course);
+
+    const desiredTurnRadius = state.getDesiredHoldTurnRadius(calculateIndex);
 
     if (
       state.isDiscontinuity
@@ -98,7 +101,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
           ingress, ingressVectorIndex,
           state.currentPosition, startPath,
           holdPos, inboundPath,
-          state.desiredHoldTurnRadius.asUnit(UnitType.METER),
+          desiredTurnRadius,
           undefined,
           FlightPathVectorFlags.Discontinuity, true
         );
@@ -144,7 +147,7 @@ export class HoldLegCalculator extends AbstractFlightPathLegCalculator {
 
     const turnDirection = leg.leg.turnDirection === LegTurnDirection.Right ? 'right' : 'left';
     const turnDirectionSign = turnDirection === 'left' ? -1 : 1;
-    const turnRadiusMeters = Math.max(state.desiredHoldTurnRadius.asUnit(UnitType.METER), 100); // Enforce an arbitrary minimum turn radius.
+    const turnRadiusMeters = Math.max(desiredTurnRadius, 100); // Enforce an arbitrary minimum turn radius.
     const turnRadiusRad = UnitType.METER.convertTo(turnRadiusMeters, UnitType.GA_RADIAN);
 
     // Position the turn from the inbound leg to the outbound leg such that it is tangent to the inbound path at the

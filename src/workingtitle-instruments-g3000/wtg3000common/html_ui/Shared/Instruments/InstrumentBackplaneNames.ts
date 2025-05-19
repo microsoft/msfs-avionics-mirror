@@ -8,6 +8,7 @@ export enum InstrumentBackplaneNames {
   Ambient = 'Ambient',
   Autopilot = 'Autopilot',
   AutopilotRadioNav = 'AutopilotRadioNav',
+  Backlight = 'Backlight',
   Base = 'Base',
   Clock = 'Clock',
   ControlSurfaces = 'ControlSurfaces',

@@ -177,6 +177,15 @@
   font-size: 0.8em;
 }
 
+.hsi-rose-hdg-leg {
+  position: absolute;
+  left: 50%;
+  bottom: 95px;
+  transform: translateX(-50%);
+  color: var(--g3000-color-magenta);
+  white-space: nowrap;
+}
+
 /* Fail States */
 
 .heading-data-failed .hsi-rose .hsi-compass-labels {

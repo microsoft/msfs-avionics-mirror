@@ -19,6 +19,7 @@ import { CnsXpdrButtonGroup } from '../../../Shared/Components/CnsDataBar/CnsDat
 import { UserTimerValueDisplay } from '../../../Shared/Components/Timer/UserTimerValueDisplay';
 import { G3XFms } from '../../../Shared/FlightPlan/G3XFms';
 import { G3XTouchFilePaths } from '../../../Shared/G3XTouchFilePaths';
+import { G3XRadiosDataProvider } from '../../../Shared/Radio/G3XRadiosDataProvider';
 import { CnsDataBarUserSettingTypes } from '../../../Shared/Settings/CnsDataBarUserSettings';
 import { DisplayUserSettingTypes } from '../../../Shared/Settings/DisplayUserSettings';
 import { UiService } from '../../../Shared/UiSystem/UiService';
@@ -52,6 +53,9 @@ export interface Gdu460CnsDataBarProps extends ComponentProps {
 
   /** The general avionics configuration object. */
   config: AvionicsConfig;
+
+  /** A provider of radio data. */
+  radiosDataProvider: G3XRadiosDataProvider;
 
   /** A manager for the CNS data bar user settings. */
   displaySettingManager: UserSettingManager<DisplayUserSettingTypes>;
@@ -207,45 +211,37 @@ export class Gdu460CnsDataBar extends DisplayComponent<Gdu460CnsDataBarProps> {
           />
         );
       case CnsDataBarItemType.Nav:
-        return (
-          <CnsNavButtonGroup
-            uiService={this.props.uiService}
-            radioIndex={data.index}
-            radiosConfig={this.props.config.radios}
-            isMinimized={false}
-            useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
-          />
-        );
-      case CnsDataBarItemType.NavMinimized:
-        return (
-          <CnsNavButtonGroup
-            uiService={this.props.uiService}
-            radioIndex={data.index}
-            radiosConfig={this.props.config.radios}
-            isMinimized={true}
-            useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
-          />
-        );
+      case CnsDataBarItemType.NavMinimized: {
+        const radioDataProvider = this.props.radiosDataProvider.navRadioDataProviders[data.index];
+        if (radioDataProvider) {
+          return (
+            <CnsNavButtonGroup
+              uiService={this.props.uiService}
+              radioDataProvider={radioDataProvider}
+              isMinimized={data.type === CnsDataBarItemType.NavMinimized}
+              useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
+            />
+          );
+        } else {
+          return null;
+        }
+      }
       case CnsDataBarItemType.Com:
-        return (
-          <CnsComButtonGroup
-            uiService={this.props.uiService}
-            radioIndex={data.index}
-            radiosConfig={this.props.config.radios}
-            isMinimized={false}
-            useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
-          />
-        );
-      case CnsDataBarItemType.ComMinimized:
-        return (
-          <CnsComButtonGroup
-            uiService={this.props.uiService}
-            radioIndex={data.index}
-            radiosConfig={this.props.config.radios}
-            isMinimized={true}
-            useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
-          />
-        );
+      case CnsDataBarItemType.ComMinimized: {
+        const radioDataProvider = this.props.radiosDataProvider.comRadioDataProviders[data.index];
+        if (radioDataProvider) {
+          return (
+            <CnsComButtonGroup
+              uiService={this.props.uiService}
+              radioDataProvider={radioDataProvider}
+              isMinimized={data.type === CnsDataBarItemType.ComMinimized}
+              useVolumeIndicator={this.props.dataBarSettingManager.getSetting('cnsDataBarRadioVolumeShow')}
+            />
+          );
+        } else {
+          return null;
+        }
+      }
       case CnsDataBarItemType.Xpdr:
         return (
           <CnsXpdrButtonGroup

@@ -1,0 +1,72 @@
+.charts-pan-zoom-control {
+  position: absolute;
+  box-sizing: border-box;
+  border: solid 1px #747474;
+  border-radius: 5px;
+  background: var(--g3000-color-black);
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gtc-horizontal .charts-pan-zoom-control {
+  left: calc(50% - 890px / 2);
+  top: 0px;
+  width: 890px;
+  height: 100%;
+  padding: 47px 0px 15px 0px;
+  font-size: 29px;
+
+  --charts-pan-zoom-control-header-button-width: 165px;
+  --charts-pan-zoom-control-header-button-height: 120px;
+
+  --charts-pan-zoom-control-rotate-button-img-scale: 1.8;
+
+  --charts-pan-zoom-control-touchpad-width: 855px;
+  --charts-pan-zoom-control-touchpad-height: 565px;
+}
+
+.gtc-vertical .charts-pan-zoom-control {
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  padding: 25px 0px 7px 0px;
+  font-size: 16px;
+
+  --charts-pan-zoom-control-header-button-width: 90px;
+  --charts-pan-zoom-control-header-button-height: 68px;
+
+  --charts-pan-zoom-control-rotate-button-img-scale: 1;
+
+  --charts-pan-zoom-control-touchpad-width: 460px;
+  --charts-pan-zoom-control-touchpad-height: 304px;
+}
+
+.charts-pan-zoom-control-header {
+  width: var(--charts-pan-zoom-control-touchpad-width);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charts-pan-zoom-control-header .touch-button {
+  width: var(--charts-pan-zoom-control-header-button-width);
+  height: var(--charts-pan-zoom-control-header-button-height);
+  margin: 0px 0px;
+  white-space: pre;
+}
+
+.charts-pan-zoom-control-header .touch-button-img-img {
+  transform: translate(-50%, -50%) scale(var(--charts-pan-zoom-control-rotate-button-img-scale));
+}
+
+.charts-pan-zoom-control-touchpad {
+  width: var(--charts-pan-zoom-control-touchpad-width);
+  height: var(--charts-pan-zoom-control-touchpad-height);
+  background: url("coui://html_ui/Pages/VCockpit/Instruments/NavSystems/WTG3000v2/Assets/Images/GTC/touchpad.png");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}

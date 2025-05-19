@@ -1089,7 +1089,13 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
 
       constraint.isPathEnd = false;
       constraint.isTarget = false;
-      constraint.fpa = 0;
+
+      // Do not reset the FPAs of direct and manual constraints. FPAs for these constraints are written at the time of
+      // constraint creation and should never be changed.
+      if (constraint.type !== 'direct' && constraint.type !== 'manual') {
+        constraint.fpa = 0;
+      }
+
       constraint.targetAltitude = 0;
 
       constraint.legs.length = 0;
@@ -1192,7 +1198,9 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
       if (currentTargetConstraintIsFirstDescentConstraint) {
 
         if (currentTargetConstraint.type === 'descent') {
-          // If this is the first descent constraint and it is not a direct or manual, set the FPA to the default value.
+          // If this is the first descent constraint and it is not a direct or manual, set the FPA to the default
+          // value. We don't set the FPA of direct or manual constraints because FPAs on those constraints will have
+          // already been set when the constraints were created.
           currentTargetConstraint.fpa = this.flightPathAngle;
         }
 
@@ -1229,7 +1237,8 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
           if (currentConstraintIndex - 1 > targetConstraintIndex) {
             // There is at least one constraint between the existing target constraint and the current climb
             // constraint. Attempt to extend the constant-FPA path through the constraint immediately following the
-            // current climb constraint (which is guaranteed to be a descent constraint).
+            // current climb constraint (which is guaranteed to be a descent constraint). Note that the target
+            // constraint cannot be a direct constraint (since direct constraints cannot follow another constraint).
 
             currentTargetConstraint.fpa = MathUtils.clamp(this.flightPathAngle, currentPathSegmentMinFpa, currentPathSegmentMaxFpa);
 
@@ -1251,10 +1260,13 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             }
           } else {
             // The existing target constraint immediately follows the current climb constraint. Treat the target
-            // constraint as if it were the first descent constraint and apply the default FPA. Note that we are
-            // guaranteed the target constraint is not a direct constraint.
+            // constraint as if it were the first descent constraint and apply the default FPA if it is not a manual
+            // constraint. Note that we are guaranteed the target constraint is not a direct constraint (since direct
+            // constraints cannot follow another constraint).
 
-            currentTargetConstraint.fpa = this.flightPathAngle;
+            if (currentTargetConstraint.type !== 'manual') {
+              currentTargetConstraint.fpa = this.flightPathAngle;
+            }
           }
 
           // Do not designate a new target constraint in order to allow the outer loop to find the new one.
@@ -1409,18 +1421,29 @@ export class SmoothingPathCalculator implements VNavPathCalculator {
             currentTargetConstraint.fpa = MathUtils.clamp(this.flightPathAngle, currentPathSegmentMinFpa, currentPathSegmentMaxFpa);
           }
 
-          // Set the maximum altitude of the path from the current constraint to the current target constraint to the
-          // prior (in flight plan order) maximum altitude constraint. This ensures we don't have to descend when
-          // traveling to the current constraint.
-          const priorMaxAltitude = SmoothingPathCalculator.findPriorMaxAltitude(verticalPlan, currentConstraintIndex, firstDescentConstraintIndex);
+          // Designate a terminating constraint to which to attempt to extend a constant-FPA path from the current
+          // target constraint. If the minimum FPA required to meet the current constraint is greater than the chosen
+          // FPA (meaning that the constant-FPA path would cross the current constraint *below* its minimum altitude)
+          // and the current target constraint does not immediately follow the current constraint, then designate the
+          // constraint after the current constraint (in flight plan order) as the terminating constraint. This is done
+          // so that we don't find ourselves above the path after sequencing the terminating constraint. Otherwise,
+          // designate the current constraint as the terminating constraint.
+          const terminatingConstraintIndex = minFpa > currentTargetConstraint.fpa && currentConstraintIndex - 1 > targetConstraintIndex
+            ? currentConstraintIndex - 1
+            : currentConstraintIndex;
 
-          // Attempt to extend a constant-FPA path from the existing target constraint to the current constraint and
-          // make the current constraint the new target constraint.
+          // Set the maximum altitude of the path from the terminating constraint to the current target constraint to
+          // the prior (in flight plan order) maximum altitude constraint. This ensures we don't have to descend when
+          // traveling to the terminating constraint.
+          const priorMaxAltitude = SmoothingPathCalculator.findPriorMaxAltitude(verticalPlan, terminatingConstraintIndex, firstDescentConstraintIndex);
+
+          // Attempt to extend a constant-FPA path from the existing target constraint to the terminating constraint
+          // and make the terminating constraint the new target constraint.
 
           const terminatedIndex = this.terminateSmoothedPath(
             verticalPlan,
             targetConstraintIndex,
-            currentConstraintIndex,
+            terminatingConstraintIndex,
             priorMaxAltitude,
             true
           );

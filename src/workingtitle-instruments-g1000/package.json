@@ -1,6 +1,6 @@
 {
   "name": "workingtitle-instruments-g1000",
-  "version": "2.0.9",
+  "version": "2.0.12",
   "description": "Working Title Garmin G1000 NXi",
   "main": "index.ts",
   "scripts": {
@@ -19,9 +19,9 @@
   "author": "Working Title Simulations, LLC",
   "license": "Modified MIT",
   "devDependencies": {
-    "@microsoft/msfs-sdk": "2.0.7",
+    "@microsoft/msfs-sdk": "2.1.1",
     "@microsoft/msfs-types": "1.14.6",
-    "@microsoft/msfs-garminsdk": "2.0.7",
+    "@microsoft/msfs-garminsdk": "2.1.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/node": "^18.11.18",
     "rollup": "^4.27.3",

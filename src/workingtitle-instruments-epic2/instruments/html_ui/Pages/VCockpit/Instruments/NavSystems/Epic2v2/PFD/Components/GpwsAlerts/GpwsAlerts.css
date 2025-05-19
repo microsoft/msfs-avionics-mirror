@@ -1,0 +1,79 @@
+@keyframes gpws-flash-amber {
+
+  0%,
+  20%,
+  40%,
+  60%,
+  80%,
+  100% {
+    background: var(--epic2-color-amber);
+    color: var(--epic2-color-black);
+    border: solid 3px black;
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    background: var(--epic2-color-black);
+    color: var(--epic2-color-amber);
+    border: solid 3px amber;
+  }
+}
+
+@keyframes gpws-flash-red {
+
+  0%,
+  20%,
+  40%,
+  60%,
+  80%,
+  100% {
+    background: var(--epic2-color-red);
+    color: var(--epic2-color-white);
+    border: solid 3px white;
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    background: var(--epic2-color-white);
+    color: var(--epic2-color-red);
+    border: solid 3px red;
+  }
+}
+
+.gpws-alert {
+  position: absolute;
+  right: 232px;
+  top: 177px;
+  padding: 5px 0px 0 3px;
+  line-height: 0.9em;
+  letter-spacing: 3px;
+  font-size: 30px;
+  width: 80px;
+  text-align: center;
+}
+
+.ground-prox-alert {
+  background: var(--epic2-color-amber);
+  color: var(--epic2-color-black);
+  border: solid 3px black;
+}
+
+.pull-up-alert {
+  background: var(--epic2-color-red);
+  color: var(--epic2-color-white);
+  border: solid 3px white;
+}
+
+.pull-up-alert:not(.hidden) {
+  animation: gpws-flash-red 5s steps(10) forwards;
+}
+
+.ground-prox-alert:not(.hidden) {
+  animation: gpws-flash-amber 5s steps(10) forwards;
+}

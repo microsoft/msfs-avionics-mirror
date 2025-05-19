@@ -1,16 +1,13 @@
 import {
-  AirportFacility, AirportUtils, AirwayData, AirwayType, ApproachIdentifier, ArrayUtils, Facility,
-  FacilityType,
-  FacilityUtils, FlightPlan, FlightPlanSegmentType, FlightPlanUtils, ICAO, IcaoValue, IntersectionFacility,
-  LegDefinition, LegType, MagVar, OneWayRunway, Procedure, ReadonlyFlightPlanRoute, RunwayIdentifier, RunwayUtils,
-  UserFacility,
-  UserFacilityUtils
+  AirportFacility, AirportUtils, AirwayData, AirwayType, ApproachIdentifier, ArrayUtils, Facility, FacilityType, FacilityUtils, FlightPlan,
+  FlightPlanSegmentType, FlightPlanUtils, ICAO, IcaoValue, IntersectionFacility, LegDefinition, LegType, MagVar, OneWayRunway, Procedure,
+  ReadonlyFlightPlanRoute, RunwayIdentifier, RunwayUtils, UserFacility, UserFacilityUtils
 } from '@microsoft/msfs-sdk';
 
 import { WT21FlightPlanRouteUtils, WT21FmsUtils } from '@microsoft/msfs-wt21-shared';
 
-import { WT21Fms } from './WT21Fms';
 import { WT21PilotWaypointUtils } from '../Navigation/WT21PilotWaypointUtils';
+import { WT21Fms } from './WT21Fms';
 
 /**
  * A loader of flight plan routes into an instance of {@link WT21Fms}.
@@ -130,7 +127,7 @@ export class WT21FlightPlanRouteLoader {
 
       batchUuid = plan.openBatch(WT21FlightPlanRouteUtils.DEFAULT_LOAD_ROUTE_BATCH_NAME);
 
-      this.fms.emptyModFlightPlan();
+      this.fms.emptyModFlightPlan(true);
 
       if (ICAO.isValueFacility(route.departureAirport, FacilityType.Airport)) {
         const origin = await this.retrieveOriginDest(route.departureAirport, route.departureRunway);
@@ -239,7 +236,11 @@ export class WT21FlightPlanRouteLoader {
       }
 
       if (route.cruiseAltitude !== null) {
-        this.fms.performancePlanProxy.cruiseAltitude.set(route.cruiseAltitude.altitude);
+        this.fms.performancePlanProxy.cruiseAltitude.set(
+          route.cruiseAltitude.isFlightLevel
+            ? route.cruiseAltitude.altitude * 100
+            : route.cruiseAltitude.altitude
+        );
       }
 
       plan.closeBatch(batchUuid);

@@ -1,10 +1,13 @@
 import {
-  FacilityType, FacilityWaypoint, FSComponent, ICAO, NodeReference, ReadonlyFloat64Array, Subject, UserSettingManager, Vec2Math, VNode
+  FacilityType, FacilityWaypoint, FSComponent, ICAO, NodeReference, ReadonlyFloat64Array, Subject, UserSettingManager,
+  Vec2Math, VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import { GarminFacilityWaypointCache } from '@microsoft/msfs-garminsdk';
 
 import { RadiosConfig } from '../../../../Shared/AvionicsConfig/RadiosConfig';
+import { G3XChartsConfig } from '../../../../Shared/Charts/G3XChartsConfig';
+import { G3XChartsSource } from '../../../../Shared/Charts/G3XChartsSource';
 import { MapConfig } from '../../../../Shared/Components/Map/MapConfig';
 import { UiTouchButton } from '../../../../Shared/Components/TouchButton/UiTouchButton';
 import { G3XFms } from '../../../../Shared/FlightPlan/G3XFms';
@@ -12,7 +15,9 @@ import { G3XFplSourceDataProvider } from '../../../../Shared/FlightPlan/G3XFplSo
 import { G3XTouchFilePaths } from '../../../../Shared/G3XTouchFilePaths';
 import { PositionHeadingDataProvider } from '../../../../Shared/Navigation/PositionHeadingDataProvider';
 import { ComRadioSpacingDataProvider } from '../../../../Shared/Radio/ComRadioSpacingDataProvider';
+import { G3XRadiosDataProvider } from '../../../../Shared/Radio/G3XRadiosDataProvider';
 import { DisplayUserSettingTypes } from '../../../../Shared/Settings/DisplayUserSettings';
+import { G3XChartsUserSettingTypes } from '../../../../Shared/Settings/G3XChartsUserSettings';
 import { G3XDateTimeUserSettings } from '../../../../Shared/Settings/G3XDateTimeUserSettings';
 import { G3XUnitsUserSettings } from '../../../../Shared/Settings/G3XUnitsUserSettings';
 import { GduUserSettingTypes } from '../../../../Shared/Settings/GduUserSettings';
@@ -47,6 +52,9 @@ export interface MfdWaypointPageProps extends MfdPageProps {
   /** A provider of flight plan source data. */
   fplSourceDataProvider: G3XFplSourceDataProvider;
 
+  /** A provider of radios data. */
+  radiosDataProvider: G3XRadiosDataProvider;
+
   /** A provider of COM radio spacing mode data. */
   comRadioSpacingDataProvider: ComRadioSpacingDataProvider;
 
@@ -56,11 +64,20 @@ export interface MfdWaypointPageProps extends MfdPageProps {
   /** A manager for display user settings. */
   displaySettingManager: UserSettingManager<DisplayUserSettingTypes>;
 
+  /** A manager for electronic charts user settings. */
+  chartsSettingManager: UserSettingManager<G3XChartsUserSettingTypes>;
+
   /** A configuration object defining options for the map. */
   mapConfig: MapConfig;
 
+  /** A configuration object defining options for electronic charts. */
+  chartsConfig: G3XChartsConfig;
+
   /** A configuration object defining options for radios. */
   radiosConfig: RadiosConfig;
+
+  /** All available electronic charts sources. */
+  chartsSources: Iterable<G3XChartsSource>;
 }
 
 /**
@@ -85,6 +102,7 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
   private readonly waypointInfoRef = FSComponent.createRef<WaypointInfo>();
 
   private readonly waypointInfoSize = Vec2Math.create();
+  private readonly waypointInfoExpandMargins = VecNMath.create(4);
 
   private readonly selectedWaypoint = Subject.create<FacilityWaypoint | null>(null);
 
@@ -104,6 +122,7 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
         return (
           <MfdWaypointMapPopup
             uiService={uiService} containerRef={containerRef}
+            facLoader={this.props.fms.facLoader}
             fplSourceDataProvider={this.props.fplSourceDataProvider}
             gduSettingManager={this.props.gduSettingManager}
             displaySettingManager={this.props.displaySettingManager}
@@ -119,7 +138,11 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
   /** @inheritDoc */
   public onOpen(sizeMode: MfdPageSizeMode, dimensions: ReadonlyFloat64Array): void {
     this.updateWaypointInfoSize(dimensions);
-    this.waypointInfoRef.instance.onOpen(MfdWaypointPage.SIZE_MODE_MAP[sizeMode], this.waypointInfoSize);
+    this.waypointInfoRef.instance.onOpen(
+      MfdWaypointPage.SIZE_MODE_MAP[sizeMode],
+      this.waypointInfoSize,
+      this.waypointInfoExpandMargins
+    );
   }
 
   /** @inheritDoc */
@@ -130,7 +153,11 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
   /** @inheritDoc */
   public onResize(sizeMode: MfdPageSizeMode, dimensions: ReadonlyFloat64Array): void {
     this.updateWaypointInfoSize(dimensions);
-    this.waypointInfoRef.instance.onResize(MfdWaypointPage.SIZE_MODE_MAP[sizeMode], this.waypointInfoSize);
+    this.waypointInfoRef.instance.onResize(
+      MfdWaypointPage.SIZE_MODE_MAP[sizeMode],
+      this.waypointInfoSize,
+      this.waypointInfoExpandMargins
+    );
   }
 
   /**
@@ -139,6 +166,7 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
    */
   private updateWaypointInfoSize(dimensions: ReadonlyFloat64Array): void {
     // TODO: support GDU470 (portrait)
+    VecNMath.set(this.waypointInfoExpandMargins, 7, 8, 0, 8);
     Vec2Math.set(dimensions[0] - 7, dimensions[1] - 16, this.waypointInfoSize);
   }
 
@@ -248,6 +276,7 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
           facLoader={this.props.fms.facLoader}
           fplSourceDataProvider={this.props.fplSourceDataProvider}
           posHeadingDataProvider={this.props.posHeadingDataProvider}
+          radiosDataProvider={this.props.radiosDataProvider}
           comRadioSpacingDataProvider={this.props.comRadioSpacingDataProvider}
           mapBingId={`g3x-${this.props.uiService.gduIndex}-map-1`}
           runwayTabMapBingId={`g3x-${this.props.uiService.gduIndex}-map-3`}
@@ -255,9 +284,12 @@ export class MfdWaypointPage extends AbstractMfdPage<MfdWaypointPageProps> {
           displaySettingManager={this.props.displaySettingManager}
           dateTimeSettingManager={G3XDateTimeUserSettings.getManager(this.props.uiService.bus)}
           mapSettingManager={MapUserSettings.getStandardManager(this.props.uiService.bus)}
+          chartsSettingManager={this.props.chartsSettingManager}
           unitsSettingManager={G3XUnitsUserSettings.getManager(this.props.uiService.bus)}
           mapConfig={this.props.mapConfig}
+          chartsConfig={this.props.chartsConfig}
           radiosConfig={this.props.radiosConfig}
+          chartsSources={this.props.chartsSources}
           selectedWaypoint={this.selectedWaypoint}
           allowSelection={true}
         />

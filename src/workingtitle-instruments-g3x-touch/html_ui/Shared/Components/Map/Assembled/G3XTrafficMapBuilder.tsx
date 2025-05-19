@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */
 
 import {
-  FSComponent, FacilityLoader, FacilityRepository, MapDataIntegrityModule, MapSystemBuilder, MapSystemContext,
-  MapSystemKeys, MappedSubscribable, NumberFormatter, NumberUnitInterface, Subject, Subscribable, TcasOperatingMode,
-  Unit, UnitFamily, UserSettingManager, VNode, Vec2Math
+  FSComponent, FacilityLoader, MapDataIntegrityModule, MapSystemBuilder, MapSystemContext, MapSystemKeys,
+  MappedSubscribable, NumberFormatter, NumberUnitInterface, Subject, Subscribable, TcasOperatingMode, Unit, UnitFamily,
+  UserSettingManager, VNode, Vec2Math
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -42,6 +42,9 @@ type G3XTrafficMapBaseOptions = Pick<
 > & {
   /** The format of the map's parent GDU. */
   gduFormat: GduFormat;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The index of the GDU from which the map sources data. */
   gduIndex: number;
@@ -166,7 +169,7 @@ export class G3XTrafficMapBuilder {
     if (optionsToUse.flightPlanner && optionsToUse.lnavIndex !== undefined && optionsToUse.vnavIndex !== undefined) {
       optionsToUse.flightPlanWaypointRecordManagerFactory = (context, renderer) => {
         return new MapDefaultFlightPlanWaypointRecordManager(
-          new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+          context[MapSystemKeys.FacilityLoader],
           GarminFacilityWaypointCache.getCache(context.bus),
           renderer,
           MapWaypointRenderRole.FlightPlanInactive,

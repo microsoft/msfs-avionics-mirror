@@ -1,9 +1,11 @@
-import { ComponentProps, DisplayComponent, EventBus, FSComponent, Subscription, VNode } from '@microsoft/msfs-sdk';
+import {
+  ComponentProps, ConsumerSubject, DisplayComponent, EventBus, FSComponent, MappedSubject, SubscribableMapFunctions, Subscription, VNode
+} from '@microsoft/msfs-sdk';
 
-import { Epic2CockpitEvents } from '@microsoft/msfs-epic2-shared';
+import { Epic2CockpitEvents, GpwsControlEvents } from '@microsoft/msfs-epic2-shared';
 
 import { TscButton, TscButtonStyles } from '../Shared';
-import { TSC_ICONS } from '../Shared/Icons';
+import { TscIcons } from '../Shared/Icons';
 import { TscService } from '../TscService';
 
 import './HomeTabContent.css';
@@ -31,19 +33,25 @@ export class HomeTabContent extends DisplayComponent<HomeTabContentProps> {
   private readonly subscriber = this.props.bus.getSubscriber<Epic2CockpitEvents>();
   private readonly publisher = this.props.bus.getPublisher<Epic2CockpitEvents>();
 
+  private readonly gpwsControlSub = this.props.bus.getSubscriber<GpwsControlEvents>();
+  private readonly terrInhibitActive = ConsumerSubject.create(this.gpwsControlSub.on('terrain_inhibit_active'), false);
+  private readonly gsInhibitActive = ConsumerSubject.create(this.gpwsControlSub.on('gs_inhibit_active'), false);
+  private readonly flapOverrideActive = ConsumerSubject.create(this.gpwsControlSub.on('flap_override_active'), false);
+  private readonly areInhibitsActive = MappedSubject.create(SubscribableMapFunctions.or(), this.terrInhibitActive, this.gsInhibitActive, this.flapOverrideActive);
+
   private subs: Subscription[] = [];
 
   /** Home Button Info */
   private homeButtonInfo = [
-    { label: 'Direct-To', icon: TSC_ICONS.directTo, isDisabled: false },
-    { label: 'Inhibits', icon: TSC_ICONS.inhibits, isDisabled: true },
-    { label: 'MFD Format', icon: TSC_ICONS.mfdFormat, isDisabled: true },
-    { label: 'Show Info', icon: TSC_ICONS.showInfo, isDisabled: true },
-    { label: 'Timers', icon: TSC_ICONS.timers, isDisabled: true },
+    { label: 'Direct-To', icon: TscIcons.getDirectToIcon(), isDisabled: false },
+    { label: 'Inhibits', icon: TscIcons.getInhibitIcon(this.areInhibitsActive.map((v) => v ? 'cyan' : 'white')), isDisabled: false },
+    { label: 'MFD Format', icon: TscIcons.getMfdFormatIcon(), isDisabled: true },
+    { label: 'Show Info', icon: TscIcons.getShowInfoIcon(), isDisabled: true },
+    { label: 'Timers', icon: TscIcons.getTimerIcon(), isDisabled: true },
     { label: 'Settings', name: 'settings', isDisabled: true },
     { label: 'WX LX TAWS', name: 'wxLxTaws', isDisabled: false },
-    { label: 'Datalink', icon: TSC_ICONS.dataLink, isDisabled: true },
-    { label: 'Checklist', icon: TSC_ICONS.checklist, isDisabled: true }
+    { label: 'Datalink', icon: TscIcons.getDatalinkIcon(), isDisabled: true },
+    { label: 'Checklist', icon: TscIcons.getChecklistIcon(), isDisabled: true }
   ];
 
 
@@ -58,6 +66,9 @@ export class HomeTabContent extends DisplayComponent<HomeTabContentProps> {
         break;
       case 'WX LX TAWS':
         this.props.tscService.activeTab.set(this.props.tscService.tabs.tawsPage);
+        break;
+      case 'Inhibits':
+        this.props.tscService.activeTab.set(this.props.tscService.tabs.gpwsInhibitPage);
         break;
     }
   }
@@ -84,7 +95,6 @@ export class HomeTabContent extends DisplayComponent<HomeTabContentProps> {
         })}
       </div>
       {/* Temporary Dark Grey Masks that can be removed one-by-one as functionality is implemented */}
-      <div class='temp-dark-grey-mask temp-dark-grey-mask-2'></div>
       <div class='temp-dark-grey-mask temp-dark-grey-mask-3'></div>
       <div class='temp-dark-grey-mask temp-dark-grey-mask-4'></div>
       <div class='temp-dark-grey-mask temp-dark-grey-mask-5'></div>

@@ -1,6 +1,6 @@
 import {
-  CompiledMapSystem, EventBus, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Vec2Math, Vec2Subject, VecNMath,
-  VecNSubject, VNode
+  CompiledMapSystem, EventBus, FacilityLoader, FlightPlanner, MapIndexedRangeModule, MapSystemBuilder, Vec2Math,
+  Vec2Subject, VecNMath, VecNSubject, VNode
 } from '@microsoft/msfs-sdk';
 
 import { GarminMapKeys, TrafficMapRangeController, TrafficSystem, TrafficUserSettings, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
@@ -23,6 +23,9 @@ import './TrafficMapPaneView.css';
 export interface TrafficMapPaneViewProps extends DisplayPaneViewProps {
   /** The event bus. */
   bus: EventBus;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** The flight planner. */
   flightPlanner: FlightPlanner<G3000FlightPlannerId>;
@@ -52,6 +55,8 @@ export class TrafficMapPaneView extends DisplayPaneView<TrafficMapPaneViewProps>
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.trafficMap, {
+      facilityLoader: this.props.facLoader,
+
       trafficSystem: this.props.trafficSystem,
 
       dataUpdateFreq: TrafficMapPaneView.DATA_UPDATE_FREQ,

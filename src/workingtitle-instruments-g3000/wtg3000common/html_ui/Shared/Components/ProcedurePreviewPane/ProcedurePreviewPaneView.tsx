@@ -1,6 +1,7 @@
 import {
-  AirportFacilityDataFlags, CompiledMapSystem, EventBus, FacilityType, FlightPathCalculator, FSComponent, ICAO,
-  MapIndexedRangeModule, MapSystemBuilder, RunwayUtils, Subscription, Vec2Math, Vec2Subject, VecNMath, VNode
+  AirportFacilityDataFlags, CompiledMapSystem, EventBus, FacilityLoader, FacilityType, FlightPathCalculator,
+  FSComponent, ICAO, MapIndexedRangeModule, MapSystemBuilder, RunwayUtils, Subscription, Vec2Math, Vec2Subject,
+  VecNMath, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -31,6 +32,9 @@ import '../Map/CommonMap.css';
 export interface ProcedurePreviewPaneViewProps extends DisplayPaneViewProps {
   /** The event bus. */
   bus: EventBus;
+
+  /** A facility loader. */
+  facLoader: FacilityLoader;
 
   /** The FMS. */
   fms: Fms<G3000FlightPlannerId>;
@@ -64,6 +68,8 @@ export class ProcedurePreviewPaneView extends DisplayPaneView<ProcedurePreviewPa
 
   private readonly compiledMap = MapSystemBuilder.create(this.props.bus)
     .with(G3000MapBuilder.procMap, {
+      facilityLoader: this.props.facLoader,
+
       bingId: `pane_map_${this.props.index}`,
       bingDelay: BingUtils.getBindDelayForPane(this.props.index),
 

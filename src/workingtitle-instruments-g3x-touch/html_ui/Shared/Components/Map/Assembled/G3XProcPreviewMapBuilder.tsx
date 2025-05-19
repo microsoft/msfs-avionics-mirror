@@ -1,9 +1,10 @@
 /* eslint-disable jsdoc/require-jsdoc */
 
 import {
-  FSComponent, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsKey, MapRangeModule, MapSystemBuilder,
-  MapSystemContext, MapSystemGenericController, NumberUnitInterface, ReadonlyFloat64Array, ResourceConsumer,
-  ResourceModerator, Subject, Subscribable, UnitFamily, UnitType, UserSettingManager, Vec2Math, Vec2Subject, VNode
+  FacilityLoader, FacilityRepository, FSComponent, MapOwnAirplaneIconOrientation, MapOwnAirplanePropsKey,
+  MapRangeModule, MapSystemBuilder, MapSystemContext, MapSystemGenericController, MapSystemKeys, NumberUnitInterface,
+  ReadonlyFloat64Array, ResourceConsumer, ResourceModerator, Subject, Subscribable, UnitFamily, UnitType,
+  UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -29,6 +30,9 @@ import { MapLabelTextModule } from '../Modules';
 export type G3XProcPreviewMapOptions = {
   /** The format of the map's parent GDU. */
   gduFormat: GduFormat;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
@@ -196,6 +200,9 @@ export class G3XProcPreviewMapBuilder {
     options.showDetailIndicatorTitle ??= true;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.WaypointSelection, () => new WaypointMapSelectionModule())
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,

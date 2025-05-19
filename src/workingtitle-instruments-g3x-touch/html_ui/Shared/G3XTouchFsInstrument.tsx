@@ -1,11 +1,11 @@
 import {
   AccelerometerPublisher, AdcPublisher, AhrsPublisher, AmbientPublisher, AutopilotInstrument, AvionicsSystem,
   BaseInstrumentPublisher, CasSystem, Clock, ClockEvents, CompositeLogicXMLHost, ControlSurfacesPublisher,
-  DebounceTimer, EISPublisher, EventBus, FacilityLoader, FacilityRepository, FlightPathAirplaneSpeedMode,
-  FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightTimerPublisher, FSComponent, FsInstrument,
-  GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher, InstrumentBackplane, LNavObsSimVarPublisher,
-  MinimumsSimVarPublisher, NavComSimVarPublisher, NavSourceType, PluginSystem, SBASGroupName, SimVarValueType,
-  SmoothingPathCalculator, Subject, TrafficInstrument, UserSetting, VNavSimVarPublisher, VNode, Wait
+  DebounceTimer, EISPublisher, ElectricalPublisher, EventBus, FacilityLoader, FacilityRepository,
+  FlightPathAirplaneSpeedMode, FlightPathAirplaneWindMode, FlightPathCalculator, FlightPlanner, FlightTimerPublisher,
+  FSComponent, FsInstrument, GameStateProvider, GNSSPublisher, GPSSatComputer, HEventPublisher, InstrumentBackplane,
+  LNavObsSimVarPublisher, MinimumsSimVarPublisher, NavComSimVarPublisher, NavSourceType, PluginSystem, SBASGroupName,
+  SimVarValueType, SmoothingPathCalculator, Subject, TrafficInstrument, UserSetting, VNavSimVarPublisher, VNode, Wait
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -69,6 +69,8 @@ import { G3XAutoBacklightManager } from './Backlight/G3XAutoBacklightManager';
 import { G3XBacklightPublisher } from './Backlight/G3XBacklightEvents';
 import { G3XBacklightManager } from './Backlight/G3XBacklightManager';
 import { CasPowerStateManager } from './CAS/CasPowerStateManager';
+import { G3XBuiltInChartsSourceProvider } from './Charts/G3XBuiltInChartsSourceProvider';
+import { G3XChartsSource, G3XChartsSourceFactory } from './Charts/G3XChartsSource';
 import { G3XNavDataBarEditController } from './Components/CnsDataBar/CnsDataBarFields/G3XNavDataBarEditController';
 import { G3XNavDataBarFieldModelFactory } from './Components/CnsDataBar/CnsDataBarFields/G3XNavDataBarFieldModelFactory';
 import { G3XNavDataBarFieldRenderer } from './Components/CnsDataBar/CnsDataBarFields/G3XNavDataBarFieldRenderer';
@@ -92,12 +94,13 @@ import {
 } from './NavReference/G3XTouchNavReference';
 import { NearestAirportNavSource } from './NavReference/NearestAirportNavSource';
 import { G3XNearestContext } from './Nearest/G3XNearestContext';
-import { DefaultComRadioSpacingDataProvider } from './Radio/ComRadioSpacingDataProvider';
+import { DefaultG3XRadiosDataProvider } from './Radio/DefaultG3XRadiosDataProvider';
 import { ReversionaryModeManager } from './ReversionaryMode/ReversionaryModeManager';
 import { BacklightUserSettings } from './Settings/BacklightUserSettings';
 import { CnsDataBarUserSettings } from './Settings/CnsDataBarUserSettings';
 import { DisplayUserSettingManager } from './Settings/DisplayUserSettings';
 import { FplDisplayUserSettings } from './Settings/FplDisplayUserSettings';
+import { G3XChartsUserSettingManager } from './Settings/G3XChartsUserSettings';
 import { G3XDateTimeUserSettings } from './Settings/G3XDateTimeUserSettings';
 import { G3XLocalUserSettingSaveManager } from './Settings/G3XLocalUserSettingSaveManager';
 import { G3XUnitsUserSettings } from './Settings/G3XUnitsUserSettings';
@@ -139,7 +142,9 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
   private readonly bootTimer = new DebounceTimer();
 
   protected readonly facRepo = FacilityRepository.getRepository(this.bus);
-  protected readonly facLoader = new FacilityLoader(this.facRepo);
+  protected readonly facLoader = new FacilityLoader(this.facRepo, undefined, {
+    sharedFacilityCacheId: 'g3x',
+  });
 
   protected readonly hEventPublisher = new HEventPublisher(this.bus);
 
@@ -174,6 +179,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
     {
       lnavIndex: this.config.fms.lnavIndex,
       useSimObsState: this.config.fms.useSimObsState,
+      facLoader: this.facLoader,
       externalFplSourceOptions: this.config.fms.externalFplSources.map(this.createExternalFplSourceOptions.bind(this))
     }
   );
@@ -225,6 +231,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
   protected readonly garminAutopilotPublisher = new GarminAPSimVarPublisher(this.bus);
   protected readonly minimumsPublisher = new MinimumsSimVarPublisher(this.bus);
   protected readonly navEventsPublisher = new NavEventsPublisher(this.bus);
+  protected readonly electricalPublisher = new ElectricalPublisher(this.bus);
   protected readonly eisPublisher = new EISPublisher(this.bus);
   protected readonly controlSurfacesPublisher = new ControlSurfacesPublisher(this.bus, 3);
   protected readonly timerPublisher = new FlightTimerPublisher(this.bus, { id: 'g3x' });
@@ -246,10 +253,13 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
   protected readonly displaySettingManager = new DisplayUserSettingManager(this.bus, this.config.gduDefs.count);
   protected readonly pfdSettingManager = new PfdUserSettingManager(this.bus, this.config.gduDefs.count);
   protected readonly vSpeedSettingManager = new VSpeedUserSettingManager(this.bus, this.instrumentConfig.vSpeeds);
+  protected readonly chartsSettingManager = new G3XChartsUserSettingManager(this.bus, this.config.gduDefs.count);
 
   protected readonly gduAliasedSettingManager = this.gduSettingManager.getAliasedManager(this.gduIndex);
   protected readonly displayAliasedSettingManager = this.displaySettingManager.getAliasedManager(this.gduIndex);
   protected readonly pfdAliasedSettingManager = this.pfdSettingManager.getAliasedManager(this.gduIndex);
+  protected readonly chartsAliasedSettingManager = this.chartsSettingManager.getAliasedManager(this.gduIndex);
+
   protected readonly savedFrequenciesSettingManager = new SavedFrequenciesUserSettingsManager(this.bus);
 
   protected readonly gpsIntegrityDataProvider = new DefaultGpsIntegrityDataProvider(this.bus, this.gduIndex);
@@ -282,7 +292,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
     30
   );
 
-  protected readonly comRadioSpacingDataProvider = new DefaultComRadioSpacingDataProvider(this.bus, this.config.radios);
+  protected readonly radiosDataProvider = new DefaultG3XRadiosDataProvider(this.bus, this.config.radios);
 
   protected readonly navComSavedFrequenciesProvider = new DefaultRadioSavedFrequenciesDataProvider(this.bus);
 
@@ -350,6 +360,8 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
 
   protected localSettingSaveManager?: G3XLocalUserSettingSaveManager;
 
+  protected readonly chartsSources: G3XChartsSource[] = [];
+
   /** Whether this instrument has started updating. */
   protected haveUpdatesStarted = false;
 
@@ -384,6 +396,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
     this.backplane.addPublisher(InstrumentBackplaneNames.GarminAutopilot, this.garminAutopilotPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Minimums, this.minimumsPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.NavEvents, this.navEventsPublisher);
+    this.backplane.addPublisher(InstrumentBackplaneNames.Electrical, this.electricalPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Eis, this.eisPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.ControlSurfaces, this.controlSurfacesPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Timer, this.timerPublisher);
@@ -637,6 +650,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
       uiService: this.uiService,
       navIndicators: this.navIndicators,
       casSystem: this.casSystem,
+      radiosDataProvider: this.radiosDataProvider,
       fplSourceDataProvider: this.fplSourceDataProvider,
       gduSettingManager: this.gduSettingManager,
       displaySettingManager: this.displaySettingManager,
@@ -648,6 +662,48 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
     this.pluginSystem.callPlugins((plugin: G3XTouchPlugin) => {
       plugin.onInit();
     });
+  }
+
+  /**
+   * Initializes this instrument's electronic charts sources.
+   * @param pluginSystem This instrument's plugin system.
+   * @throws Error if a charts source factory produces a source with an improper ID.
+   */
+  protected initChartSources(pluginSystem: PluginSystem<G3XTouchPlugin, G3XTouchPluginBinder>): void {
+    const sourceFactories = new G3XBuiltInChartsSourceProvider().getSources();
+
+    const pluginSourceFactories = [] as G3XChartsSourceFactory[];
+
+    pluginSystem.callPlugins(plugin => {
+      const factories = plugin.getChartsSources?.();
+      if (factories) {
+        pluginSourceFactories.push(...factories);
+      }
+    });
+
+    for (const pluginSourceFactory of pluginSourceFactories) {
+      if (pluginSourceFactory.uid === '') {
+        console.warn('G3XTouchFsInstrument: electronic charts source factory with ID equal to the empty string was found and will be ignored');
+        continue;
+      }
+
+      const existingSourceIndex = sourceFactories.findIndex(factory => factory.uid === pluginSourceFactory.uid);
+      if (existingSourceIndex < 0) {
+        sourceFactories.push(pluginSourceFactory);
+      } else {
+        sourceFactories[existingSourceIndex] = pluginSourceFactory;
+      }
+    }
+
+    for (const factory of sourceFactories) {
+      const source = factory.createSource();
+
+      if (source.uid !== factory.uid) {
+        throw new Error(`G3XTouchFsInstrument: electronic charts source factory with ID "${factory.uid}" produced a source with a different ID "${source.uid}"!`);
+      }
+
+      this.chartsSources.push(source);
+    }
   }
 
   /**
@@ -762,7 +818,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
       minimumsDataProvider: this.minimumsDataProvider,
       windDataProvider: this.windDataProvider,
       vnavDataProvider: this.vnavDataProvider,
-      comRadioSpacingDataProvider: this.comRadioSpacingDataProvider,
+      comRadioSpacingDataProvider: this.radiosDataProvider.comRadioSpacingDataProvider,
       gpsSatComputers: this.gpsSatComputers,
       trafficSystem: this.trafficSystem,
       navDataFieldGpsValidity: this.navDataFieldGpsValidity,
@@ -772,6 +828,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
       mfdMainPageRegistrar: this.mfdMainPageRegistrar,
       pfdPageRegistrar: this.pfdPageRegistrar,
       pfdInsetRegistrar: this.uiService.gduFormat === '460' ? this.pfdInsetRegistrar : undefined,
+      chartsSources: this.chartsSources
     };
 
     this.registerViews(context);
@@ -793,15 +850,18 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
       );
     });
 
-    this.uiService.registerPfdView(UiViewStackLayer.Overlay, UiViewLifecyclePolicy.Transient, UiViewKeys.RadioVolumeShortcutPopup, (uiService, containerRef) => {
-      return (
-        <RadioVolumeShortcutPopup
-          uiService={uiService}
-          containerRef={containerRef}
-          radiosConfig={this.config.radios}
-        />
-      );
-    });
+    if (this.uiService.gduFormat === '460') {
+      this.uiService.registerPfdView(UiViewStackLayer.Overlay, UiViewLifecyclePolicy.Transient, UiViewKeys.RadioVolumeShortcutPopup, (uiService, containerRef) => {
+        return (
+          <RadioVolumeShortcutPopup
+            uiService={uiService}
+            containerRef={containerRef}
+            radiosConfig={this.config.radios}
+            radiosDataProvider={this.radiosDataProvider}
+          />
+        );
+      });
+    }
 
     // ---- MFD Main Layer Views ----
 
@@ -821,6 +881,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
       return (
         <MfdNrstView
           uiService={uiService} containerRef={containerRef}
+          facLoader={this.facLoader}
           trafficSystem={context.trafficSystem}
           posHeadingDataProvider={context.posHeadingDataProvider}
           fplSourceDataProvider={this.fplSourceDataProvider}
@@ -838,6 +899,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
         <MainMenuView
           uiService={uiService} containerRef={containerRef}
           config={this.config}
+          radiosDataProvider={this.radiosDataProvider}
         />
       );
     });
@@ -933,16 +995,18 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           uiService={uiService}
           containerRef={containerRef}
           displaySettingManager={this.displayAliasedSettingManager}
+          chartsSettingManager={this.chartsAliasedSettingManager}
           config={this.config}
           instrumentConfig={this.instrumentConfig}
           pfdPageDefs={context.pfdPageRegistrar.getRegisteredPagesArray()}
+          chartsSources={context.chartsSources}
         />
       );
     });
 
     this.uiService.registerMfdView(UiViewStackLayer.Overlay, UiViewLifecyclePolicy.Transient, UiViewKeys.UnitsSetup, (uiService, containerRef) => {
       return (
-        <UnitsSetupView uiService={uiService} containerRef={containerRef} />
+        <UnitsSetupView uiService={uiService} containerRef={containerRef} unitsConfig={this.config.units} />
       );
     });
 
@@ -994,11 +1058,15 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           fms={this.fms}
           posHeadingDataProvider={context.posHeadingDataProvider}
           fplSourceDataProvider={this.fplSourceDataProvider}
+          radiosDataProvider={this.radiosDataProvider}
           comRadioSpacingDataProvider={context.comRadioSpacingDataProvider}
           gduSettingManager={this.gduAliasedSettingManager}
           displaySettingManager={this.displayAliasedSettingManager}
+          chartsSettingManager={this.chartsAliasedSettingManager}
           mapConfig={this.config.map}
+          chartsConfig={this.config.charts}
           radiosConfig={this.config.radios}
+          chartsSources={context.chartsSources}
         />
       );
     });
@@ -1009,6 +1077,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           uiService={uiService}
           containerRef={containerRef}
           radiosConfig={this.config.radios}
+          radiosDataProvider={this.radiosDataProvider}
         />
       );
     });
@@ -1034,6 +1103,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           uiService={uiService}
           containerRef={containerRef}
           radiosConfig={this.config.radios}
+          radiosDataProvider={this.radiosDataProvider}
           useRadioVolumeShortcut={CnsDataBarUserSettings.getManager(this.uiService.bus).getSetting('cnsDataBarRadioVolumeShortcutShow')}
         />
       );
@@ -1084,6 +1154,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           uiService={uiService}
           containerRef={containerRef}
           radiosConfig={this.config.radios}
+          radiosDataProvider={this.radiosDataProvider}
           useRadioVolumeShortcut={CnsDataBarUserSettings.getManager(this.uiService.bus).getSetting('cnsDataBarRadioVolumeShortcutShow')}
         />
       );
@@ -1136,7 +1207,10 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
 
     this.uiService.registerMfdView(UiViewStackLayer.Overlay, UiViewLifecyclePolicy.Transient, UiViewKeys.SelectRadioDialog, (uiService, containerRef) => {
       return (
-        <SelectRadioDialog uiService={uiService} containerRef={containerRef} />
+        <SelectRadioDialog
+          uiService={uiService} containerRef={containerRef}
+          radiosDataProvider={this.radiosDataProvider}
+        />
       );
     });
 
@@ -1242,6 +1316,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
         return (
           <MfdMapPage
             uiService={uiService} containerRef={containerRef}
+            facLoader={this.facLoader}
             trafficSystem={context.trafficSystem}
             fplSourceDataProvider={this.fplSourceDataProvider}
             gduSettingManager={this.gduAliasedSettingManager}
@@ -1273,11 +1348,15 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
             fms={this.fms}
             posHeadingDataProvider={context.posHeadingDataProvider}
             fplSourceDataProvider={this.fplSourceDataProvider}
+            radiosDataProvider={this.radiosDataProvider}
             comRadioSpacingDataProvider={context.comRadioSpacingDataProvider}
             gduSettingManager={this.gduAliasedSettingManager}
             displaySettingManager={this.displayAliasedSettingManager}
+            chartsSettingManager={this.chartsAliasedSettingManager}
             mapConfig={this.config.map}
+            chartsConfig={this.config.charts}
             radiosConfig={this.config.radios}
+            chartsSources={context.chartsSources}
           />
         );
       },
@@ -1300,6 +1379,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
             gduSettingManager={this.gduAliasedSettingManager}
             flightPlanningConfig={this.config.fms.flightPlanning}
             mapConfig={this.config.map}
+            unitsConfig={this.config.units}
           />
         );
       }
@@ -1332,6 +1412,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           return (
             <MfdTrafficPage
               uiService={uiService} containerRef={containerRef}
+              facLoader={this.facLoader}
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               trafficSystem={context.trafficSystem!}
               trafficSource={this.config.traffic.source}
@@ -1381,6 +1462,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
                 uiService={uiService} containerRef={containerRef}
                 xmlLogicHost={this.xmlLogicHost}
                 gduSettingManager={this.gduAliasedSettingManager}
+                unitsConfig={this.config.units}
                 enginePageDefinition={this.config.engine.parseEnginePage(this.bus)}
               />
             );
@@ -1416,6 +1498,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
               <PfdMapView
                 uiService={uiService}
                 containerRef={containerRef}
+                facLoader={this.facLoader}
                 trafficSystem={context.trafficSystem}
                 fplSourceDataProvider={this.fplSourceDataProvider}
                 gduSettingManager={this.gduAliasedSettingManager}
@@ -1507,6 +1590,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
             <PfdMapInset
               side={side}
               uiService={uiService}
+              facLoader={this.facLoader}
               trafficSystem={context.trafficSystem}
               fplSourceDataProvider={this.fplSourceDataProvider}
               gduSettingManager={this.gduAliasedSettingManager}
@@ -1527,6 +1611,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
             <PfdTrafficInset
               side={side}
               uiService={uiService}
+              facLoader={this.facLoader}
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               trafficSystem={context.trafficSystem!}
               trafficSource={this.config.traffic.source}
@@ -1616,6 +1701,7 @@ export abstract class G3XTouchFsInstrument implements FsInstrument {
           fms={this.fms}
           uiService={this.uiService}
           gpsIntegrityDataProvider={this.gpsIntegrityDataProvider}
+          radiosDataProvider={this.radiosDataProvider}
           navDataBarFieldModelFactory={this.navDataBarFieldModelFactory}
           navDataBarFieldRenderer={this.navDataBarFieldRenderer}
           navDataFieldGpsValidity={this.navDataFieldGpsValidity}

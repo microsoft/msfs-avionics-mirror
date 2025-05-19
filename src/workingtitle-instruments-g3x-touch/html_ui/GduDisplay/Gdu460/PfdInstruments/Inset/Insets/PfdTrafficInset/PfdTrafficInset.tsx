@@ -1,5 +1,5 @@
 import {
-  CompiledMapSystem, FSComponent, MapSystemBuilder, ReadonlyFloat64Array, Subscription,
+  CompiledMapSystem, FSComponent, FacilityLoader, MapSystemBuilder, ReadonlyFloat64Array, Subscription,
   UserSettingManager, VNode, Vec2Math, Vec2Subject, VecNMath
 } from '@microsoft/msfs-sdk';
 
@@ -28,6 +28,9 @@ import './PfdTrafficInset.css';
  * Component props for PfdTrafficInset.
  */
 export interface PfdTrafficInsetProps extends PfdInsetProps {
+  /** A facility loader. */
+  facLoader: FacilityLoader;
+
   /** The traffic system used by the map. */
   trafficSystem: TrafficSystem;
 
@@ -62,6 +65,8 @@ export class PfdTrafficInset extends AbstractPfdInset<PfdTrafficInsetProps> {
   private readonly compiledMap = MapSystemBuilder.create(this.props.uiService.bus)
     .with(G3XTrafficMapBuilder.buildInset, {
       gduFormat: this.props.uiService.gduFormat,
+
+      facilityLoader: this.props.facLoader,
 
       trafficSystem: this.props.trafficSystem,
       trafficSource: this.props.trafficSource,

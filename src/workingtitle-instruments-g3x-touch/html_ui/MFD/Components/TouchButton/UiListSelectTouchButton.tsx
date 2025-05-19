@@ -83,7 +83,8 @@ export interface UiListSelectTouchButtonProps<S extends MutableSubscribable<any,
    * Parameters to pass to the selection list dialog, or a function which will return the parameters when called each
    * time the list is opened.
    */
-  listParams: UiListDialogParams<MutableSubscribableInputType<S>> | ((state: S) => UiListDialogParams<MutableSubscribableInputType<S>>);
+  listParams: UiListDialogParams<MutableSubscribableInputType<S>>
+  | (<B extends UiListSelectTouchButton<S> = UiListSelectTouchButton<S>>(state: S, button: B) => UiListDialogParams<MutableSubscribableInputType<S>>);
 
   /**
    * A callback function which will be called each time a value is selected from a list dialog opened by the button. If
@@ -152,7 +153,7 @@ export class UiListSelectTouchButton<S extends MutableSubscribable<any>> extends
       this.props.listDialogKey,
       false,
       this.getDialogOpenOptions()
-    ).ref.request(this.listParamsFunc(state));
+    ).ref.request(this.listParamsFunc(state, this));
 
     this.isListOpen.set(false);
 

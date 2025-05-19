@@ -255,6 +255,10 @@ export class FlightPathLegToLegCalculator {
    * through the point where the FROM and TO vectors meet and the center of the anticipated turn. If there is no
    * previous transition, the previous transition is not an anticipated turn, or the previous transition's FROM and
    * TO vectors are not both great-circle paths, then this value should be left undefined.
+   * @param previousDesiredD The desired along-track distance of the previous transition's anticipated turn, in
+   * great-arc radians. If there is no previous transition, the previous transition is not an anticipated turn, or the
+   * previous transition's FROM and TO vectors are not both great-circle paths, then this value should be left
+   * undefined.
    * @returns The number of consecutive leg-to-leg transitions calculated by this method.
    */
   private calculateTrackTrackTransition(
@@ -267,6 +271,7 @@ export class FlightPathLegToLegCalculator {
     toVector: FlightPathVector,
     isRestrictedByPrevTransition: boolean,
     previousTanTheta?: number,
+    previousDesiredD?: number
   ): number {
     const fromLegCalc = legs[fromIndex].calculated!;
     const toLegCalc = legs[toIndex].calculated!;
@@ -307,7 +312,7 @@ export class FlightPathLegToLegCalculator {
       state,
       fromVector, toVector,
       isRestrictedByPrevTransition,
-      previousTanTheta
+      previousTanTheta, previousDesiredD
     );
   }
 
@@ -436,7 +441,7 @@ export class FlightPathLegToLegCalculator {
       fromVectorEndVec, fromVectorPath,
       courseReversalEndVec, toVectorPath,
       fromVectorCourse + (turnDirection === 'left' ? -45 : 45),
-      state.desiredCourseReversalTurnRadius.asUnit(UnitType.METER), turnDirection,
+      state.getDesiredCourseReversalTurnRadius(fromIndex), turnDirection,
       fromVectorCourse, toVectorCourse,
       FlightPathVectorFlags.LegToLegTurn | FlightPathVectorFlags.CourseReversal, true,
       toLegCalc.flightPath[0].heading, toLegCalc.flightPath[0].isHeadingTrue
@@ -471,6 +476,10 @@ export class FlightPathLegToLegCalculator {
    * If this value is defined, `isRestrictedByPrevTransition` is true, and the current anticipated turn would infringe
    * on the previous anticipated turn, then the anticipated distance of the current turn will be adjusted to maximize
    * the radius of the smaller of the two turns assuming the current turn starts exactly where the previous turn ends.
+   * @param previousDesiredD The desired along-track distance of the previous transition's anticipated turn, in
+   * great-arc radians. If there is no previous transition, the previous transition is not an anticipated turn, or the
+   * previous transition's FROM and TO vectors are not both great-circle paths, then this value should be left
+   * undefined.
    * @returns The number of consecutive leg-to-leg transitions calculated by this method.
    */
   private calculateTrackTrackAnticipatedTurn(
@@ -482,7 +491,8 @@ export class FlightPathLegToLegCalculator {
     fromVector: FlightPathVector,
     toVector: FlightPathVector,
     isRestrictedByPrevTransition: boolean,
-    previousTanTheta?: number
+    previousTanTheta?: number,
+    previousDesiredD?: number
   ): number {
     let calculatedCount = 1;
 
@@ -516,16 +526,17 @@ export class FlightPathLegToLegCalculator {
       return calculatedCount;
     }
 
+    const desiredTurnRadiusRad = UnitType.METER.convertTo(state.getDesiredTurnAnticipationTurnRadius(fromIndex), UnitType.GA_RADIAN);
     const theta = (180 - courseAngleDiff) / 2;
     const tanTheta = Math.tan(theta * Avionics.Utils.DEG2RAD);
     // D is defined as the distance along the FROM or TO vectors from the start or end of the anticipated turn to the
     // turn vertex (where the FROM and TO vectors meet). In other words, D is the along-track anticipated turn
     // distance.
-    const desiredD = Math.asin(MathUtils.clamp(Math.tan(state.desiredTurnAnticipationTurnRadius.asUnit(UnitType.GA_RADIAN)) / tanTheta, -1, 1));
+    const desiredD = Math.asin(MathUtils.clamp(Math.tan(desiredTurnRadiusRad) / tanTheta, -1, 1));
 
     let restrictedD = Infinity;
     if (isRestrictedByPrevTransition) {
-      if (previousTanTheta === undefined) {
+      if (previousTanTheta === undefined || previousDesiredD === undefined) {
         // D is not restricted by a previous anticipated turn. Now we need to check if there is an ingress transition
         // on the FROM leg and if it shares a common flight path vector with the one involved in the anticipated turn
         // currently being calculated.
@@ -546,7 +557,10 @@ export class FlightPathLegToLegCalculator {
         // that their sum cannot exceed the total length of their shared vector (the current FROM vector). Therefore,
         // we set the maximum value of D_current such that at D_current(max), the radius of the current anticipated
         // turn equals the radius of the previous turn. This will maximize the radius of the smaller of the current
-        // anticipated turn and the previous anticipated turn.
+        // anticipated turn and the previous anticipated turn. We will also compare the calculated value of
+        // D_current(max) to the total distance available assuming the previous anticipated turn uses its desired
+        // radius, D_current(avail). If D_current(max) is less than D_current(avail), then we will increase
+        // D_current(max) to be equal to D_current(avail).
 
         const tanThetaRatio = previousTanTheta / tanTheta;
         const totalD = UnitType.METER.convertTo(fromVector.distance, UnitType.GA_RADIAN);
@@ -557,7 +571,7 @@ export class FlightPathLegToLegCalculator {
         if (prevTurnRestrictedD > totalD) {
           prevTurnRestrictedD = Math.PI - prevTurnRestrictedD;
         }
-        restrictedD = prevTurnRestrictedD;
+        restrictedD = Math.max(prevTurnRestrictedD, totalD - previousDesiredD);
       }
     }
 
@@ -581,7 +595,7 @@ export class FlightPathLegToLegCalculator {
               state,
               toVector, nextVector,
               true,
-              tanTheta
+              tanTheta, desiredD
             );
           } else {
             // If the TO vector of the next leg-to-leg transition to share a vector with the current leg-to-leg
@@ -623,7 +637,7 @@ export class FlightPathLegToLegCalculator {
     // The distance from the turn vertex to the center of the turn.
     const H = Math.atan(Math.tan(D) / Math.cos(theta * Avionics.Utils.DEG2RAD));
     const turnRadiusRad = desiredD === D
-      ? state.desiredTurnAnticipationTurnRadius.asUnit(UnitType.GA_RADIAN)
+      ? desiredTurnRadiusRad
       : Math.atan(Math.sin(D) * tanTheta);
 
     if (D <= GeoMath.ANGULAR_TOLERANCE || turnRadiusRad <= GeoMath.ANGULAR_TOLERANCE) {
@@ -810,7 +824,7 @@ export class FlightPathLegToLegCalculator {
 
         isReversal = true;
         isTransitionInsideTurn = false;
-        transitionTurnRadiusRad = state.desiredTurnAnticipationTurnRadius.asUnit(UnitType.GA_RADIAN);
+        transitionTurnRadiusRad = UnitType.METER.convertTo(state.getDesiredTurnAnticipationTurnRadius(fromIndex), UnitType.GA_RADIAN);
         turnCircleOffsetSign = 1;
         trackPathOffsetSign = trackPath.encircles(turnCircle.center) ? -1 : 1;
       }
@@ -894,7 +908,7 @@ export class FlightPathLegToLegCalculator {
       const turnStartRadialNormal = GeoCircle.getGreatCircleNormal(turnCircle.center, turnStartVec, this.trackTurnCache.vec3[5]);
       const turnEndRadialNormal = GeoCircle.getGreatCircleNormal(turnCircle.center, turnEndVec, this.trackTurnCache.vec3[6]);
 
-      const desiredTransitionTurnRadiusRad = state.desiredTurnAnticipationTurnRadius.asUnit(UnitType.GA_RADIAN);
+      const desiredTransitionTurnRadiusRad = UnitType.METER.convertTo(state.getDesiredTurnAnticipationTurnRadius(fromIndex), UnitType.GA_RADIAN);
 
       // The cosine of the angle between the track path and the great-circle path from the center of the turn to the
       // intersection point.

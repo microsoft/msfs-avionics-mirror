@@ -8,9 +8,9 @@ import { BitFlags } from '../../../math/BitFlags';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { ReadonlyFloat64Array, Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -36,7 +36,7 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
    * Creates a new instance of AltitudeLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -102,6 +102,7 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
    * path to intercept's initial course.
    * @param vectors The flight path vector array to which to add the vectors.
    * @param index The index in the array at which to add the vectors.
+   * @param legIndex The leg index to calculate
    * @param isActiveLeg Whether the vectors are to be built for the active flight plan leg.
    * @param state The current flight path state. If an intercept is successfully calculated, then the state's fallback
    * flag will be set to false. If an intercept could not be calculated, then the fallback flag will not be changed.
@@ -111,21 +112,27 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
    * @param origin The origin point of the path to intercept. The point will be changed, if necessary, to the point at
    * which the built vectors actually intercept the path if the vectors intercept the path past the original origin
    * point (as measured along the path to intercept).
+   * @param requireJoinCourse Whether the path to build must join (i.e. end parallel to) the desired great-circle path
+   * to intercept.
    * @returns The number of vectors that were built and added to the array.
    */
   protected buildFallbackVectorsToInterceptPath(
     vectors: FlightPathVector[],
     index: number,
+    legIndex: number,
     isActiveLeg: boolean,
     state: FlightPathState,
     pathToInterceptCourse: number,
     path: GeoCircle,
-    origin: Float64Array
+    origin: Float64Array,
+    requireJoinCourse: boolean
   ): number {
     let vectorIndex = index;
 
     const flags = (state.isDiscontinuity ? FlightPathVectorFlags.Discontinuity : FlightPathVectorFlags.None)
       | (state.isFallback && state.currentCourse !== undefined ? FlightPathVectorFlags.Fallback : FlightPathVectorFlags.None);
+
+    const desiredTurnRadius = state.getDesiredTurnRadius(legIndex);
 
     if (isActiveLeg && vectors.length > 0 && BitFlags.isAll(vectors[0].flags, FlightPathVectorFlags.Fallback)) {
       // If this is the active leg and fallback vectors have already been calculated, then preserve the previously
@@ -154,7 +161,20 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
         }
       }
 
+      const initialVec = state.currentPosition.toCartesian(this.__vec3Cache[0]);
       const initialPath = this.__geoCircleCache[0].setAsGreatCircle(state.currentPosition, state.currentCourse);
+
+      // If we are not required to build a path that turns to join the desired course, we are not calculating
+      // discontinuity vectors, and the current position lies on the desired course from the origin, then we are done.
+      if (
+        !requireJoinCourse
+        && !state.isDiscontinuity
+        && path.includes(initialVec)
+        && path.distanceAlong(origin, initialVec, Math.PI, GeoMath.ANGULAR_TOLERANCE) < Math.PI
+      ) {
+        origin.set(initialVec);
+        return 0;
+      }
 
       const initialFinalPathAngle = Vec3Math.unitAngle(initialPath.center, path.center);
       if (initialFinalPathAngle >= Math.PI - GeoMath.ANGULAR_TOLERANCE) {
@@ -162,10 +182,10 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
 
         vectorIndex += this.procTurnVectorBuilder.build(
           vectors, vectorIndex,
-          state.currentPosition, initialPath,
+          initialVec, initialPath,
           origin, path,
           state.currentCourse + 45,
-          state.desiredCourseReversalTurnRadius.asUnit(UnitType.METER), undefined,
+          state.getDesiredCourseReversalTurnRadius(legIndex), undefined,
           state.currentCourse, pathToInterceptCourse,
           flags | FlightPathVectorFlags.CourseReversal, true
         );
@@ -175,11 +195,11 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
 
         vectorIndex += this.interceptGreatCircleToPointVectorBuilder.build(
           vectors, vectorIndex,
-          state.currentPosition, initialPath,
-          state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+          initialVec, initialPath,
+          desiredTurnRadius, undefined,
           45,
-          path.offsetAngleAlong(origin, MathUtils.HALF_PI, this.__vec3Cache[0], Math.PI), path,
-          state.desiredTurnRadius.asUnit(UnitType.METER),
+          path.offsetAngleAlong(origin, MathUtils.HALF_PI, this.__vec3Cache[1], Math.PI), path,
+          desiredTurnRadius,
           turnFlags, interceptFlags, turnFlags
         );
       }
@@ -244,7 +264,7 @@ export abstract class AltitudeLegCalculator extends AbstractFlightPathLegCalcula
           vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
             vectors, vectorIndex,
             state.currentPosition,
-            state.desiredTurnRadius.asUnit(UnitType.METER),
+            desiredTurnRadius,
             FlightPathUtils.getShortestTurnDirection(state.currentCourse, pathToInterceptCourse) ?? 'right',
             state.currentCourse, pathToInterceptCourse,
             FlightPathVectorFlags.Fallback | FlightPathVectorFlags.TurnToCourse
@@ -279,7 +299,7 @@ export class CourseToAltitudeLegCalculator extends AltitudeLegCalculator {
    * Creates a new instance of CourseToAltitudeLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache);
   }
 
@@ -292,7 +312,7 @@ export class CourseToAltitudeLegCalculator extends AltitudeLegCalculator {
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
     if (magVar === undefined && !state.isDiscontinuity && state.currentPosition.isValid()) {
       magVar = MagVar.get(state.currentPosition);
     }
@@ -341,10 +361,13 @@ export class CourseToAltitudeLegCalculator extends AltitudeLegCalculator {
 
         vectorIndex += this.buildFallbackVectorsToInterceptPath(
           vectors, vectorIndex,
+          calculateIndex,
           isActiveLeg,
           state,
           course,
-          finalPath, originVec
+          finalPath,
+          originVec,
+          true
         );
 
         didCalculateFallback = true;
@@ -363,7 +386,7 @@ export class CourseToAltitudeLegCalculator extends AltitudeLegCalculator {
         vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
           vectors, vectorIndex,
           state.currentPosition,
-          state.desiredTurnRadius.asUnit(UnitType.METER), turnDirection,
+          state.getDesiredTurnRadius(calculateIndex), turnDirection,
           state.currentCourse, course,
           FlightPathVectorFlags.TurnToCourse
         );
@@ -411,7 +434,7 @@ export class FixToAltitudeLegCalculator extends AltitudeLegCalculator {
    * Creates a new instance of FixToAltitudeLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache);
   }
 
@@ -421,7 +444,7 @@ export class FixToAltitudeLegCalculator extends AltitudeLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
     leg.calculated!.courseMagVar = originPos === undefined ? 0 : this.getLegMagVar(leg.leg, originPos);
   }
 
@@ -436,7 +459,7 @@ export class FixToAltitudeLegCalculator extends AltitudeLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
 
     if (!originPos) {
       vectors.length = 0;
@@ -453,20 +476,27 @@ export class FixToAltitudeLegCalculator extends AltitudeLegCalculator {
     const finalPath = this.geoCircleCache[0].setAsGreatCircle(originPos, course);
     const originVec = originPos.toCartesian(this.vec3Cache[0]);
 
-    // If the leg begins in a discontinuity and we are configured to calculate discontinuity vectors or if the leg
-    // begins in a fallback state, then build a path to intercept the desired course. Otherwise, start the leg from the
-    // defined origin.
+    // If the leg begins in a discontinuity and we are configured to calculate discontinuity vectors, or if the leg
+    // begins in a fallback state, or if the current position is not equal to the origin fix, then build a path to
+    // intercept the desired course. Otherwise, start the leg from the defined origin.
     if (
       state.currentPosition.isValid()
       && (!state.isDiscontinuity || options.calculateDiscontinuityVectors)
-      && (state.isDiscontinuity || (state.isFallback && state.currentCourse !== undefined))
+      && (
+        state.isDiscontinuity
+        || (state.isFallback && state.currentCourse !== undefined)
+        || !state.currentPosition.equals(originPos)
+      )
     ) {
       vectorIndex += this.buildFallbackVectorsToInterceptPath(
         vectors, vectorIndex,
+        calculateIndex,
         isActiveLeg,
         state,
         course,
-        finalPath, originVec
+        finalPath,
+        originVec,
+        false
       );
     } else {
       state.currentPosition.set(originPos);
@@ -505,7 +535,7 @@ export class HeadingToAltitudeLegCalculator extends AltitudeLegCalculator {
    * Creates a new instance of HeadingToAltitudeLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache);
   }
 
@@ -518,7 +548,7 @@ export class HeadingToAltitudeLegCalculator extends AltitudeLegCalculator {
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
     if (magVar === undefined) {
       let position: LatLonInterface | undefined;
       if (calculateIndex === activeLegIndex && state.planePosition.isValid()) {
@@ -545,19 +575,19 @@ export class HeadingToAltitudeLegCalculator extends AltitudeLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = leg.calculated!.flightPath;
 
-    const heading = leg.leg.trueDegrees ? leg.leg.course : MagVar.magneticToTrue(leg.leg.course, leg.calculated!.courseMagVar);
-    const isHeadingTrue = leg.leg.trueDegrees;
+    const headingTrue = leg.leg.trueDegrees ? leg.leg.course : MagVar.magneticToTrue(leg.leg.course, leg.calculated!.courseMagVar);
 
-    let course = heading;
-    if (state.planeWindSpeed.number > 0) {
+    let course = headingTrue;
+    const windSpeed = state.getWindSpeed(calculateIndex);
+    if (windSpeed > 0) {
       course = NavMath.headingToGroundTrack(
-        heading,
-        state.planeTrueAirspeed.asUnit(UnitType.KNOT),
-        state.planeWindDirection,
-        state.planeWindSpeed.asUnit(UnitType.KNOT)
+        headingTrue,
+        state.getPlaneTrueAirspeed(calculateIndex),
+        state.getWindDirection(calculateIndex),
+        windSpeed
       );
       if (isNaN(course)) {
-        course = heading;
+        course = headingTrue;
       }
     }
 
@@ -631,10 +661,10 @@ export class HeadingToAltitudeLegCalculator extends AltitudeLegCalculator {
         vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
           vectors, vectorIndex,
           state.currentPosition,
-          state.desiredTurnRadius.asUnit(UnitType.METER), turnDirection,
+          state.getDesiredTurnRadius(calculateIndex), turnDirection,
           state.currentCourse, course,
           FlightPathVectorFlags.TurnToCourse,
-          heading, isHeadingTrue
+          leg.leg.course, leg.leg.trueDegrees
         );
 
         if (vectorIndex > 0) {
@@ -654,7 +684,7 @@ export class HeadingToAltitudeLegCalculator extends AltitudeLegCalculator {
       state,
       finalPath, originVec,
       FlightPathVectorFlags.ConstantHeading,
-      heading, isHeadingTrue
+      leg.leg.course, leg.leg.trueDegrees
     );
 
     vectors.length = vectorIndex;

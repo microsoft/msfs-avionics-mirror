@@ -6,9 +6,9 @@ import { NavMath } from '../../../geo/NavMath';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
 import { FlightPathVectorFlags } from '../FlightPathVector';
@@ -29,7 +29,7 @@ export class HeadingToManualLegCalculator extends AbstractFlightPathLegCalculato
    * Creates a new instance of HeadingToManualLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -42,7 +42,7 @@ export class HeadingToManualLegCalculator extends AbstractFlightPathLegCalculato
   ): void {
     const leg = legs[calculateIndex];
 
-    let magVar = this.getMagVarFromIcao(leg.leg.originIcao);
+    let magVar = this.getMagVarFromIcao(leg.leg.originIcaoStruct);
     if (magVar === undefined) {
       let position: LatLonInterface | undefined;
       if (calculateIndex === activeLegIndex && state.planePosition.isValid()) {
@@ -69,20 +69,20 @@ export class HeadingToManualLegCalculator extends AbstractFlightPathLegCalculato
     const leg = legs[calculateIndex];
     const vectors = legs[calculateIndex].calculated!.flightPath;
 
-    const heading = leg.leg.trueDegrees ? leg.leg.course : MagVar.magneticToTrue(leg.leg.course, leg.calculated!.courseMagVar);
-    const isHeadingTrue = leg.leg.trueDegrees;
+    const headingTrue = leg.leg.trueDegrees ? leg.leg.course : MagVar.magneticToTrue(leg.leg.course, leg.calculated!.courseMagVar);
     const distance = UnitType.NMILE.convertTo(1, UnitType.GA_RADIAN);
 
-    let course = heading;
-    if (state.planeWindSpeed.number > 0) {
+    let course = headingTrue;
+    const windSpeed = state.getWindSpeed(calculateIndex);
+    if (windSpeed > 0) {
       course = NavMath.headingToGroundTrack(
-        heading,
-        state.planeTrueAirspeed.asUnit(UnitType.KNOT),
-        state.planeWindDirection,
-        state.planeWindSpeed.asUnit(UnitType.KNOT)
+        headingTrue,
+        state.getPlaneTrueAirspeed(calculateIndex),
+        state.getWindDirection(calculateIndex),
+        windSpeed
       );
       if (isNaN(course)) {
-        course = heading;
+        course = headingTrue;
       }
     }
 
@@ -159,10 +159,10 @@ export class HeadingToManualLegCalculator extends AbstractFlightPathLegCalculato
         vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
           vectors, vectorIndex,
           state.currentPosition,
-          state.desiredTurnRadius.asUnit(UnitType.METER), turnDirection,
+          state.getDesiredTurnRadius(calculateIndex), turnDirection,
           state.currentCourse, course,
           FlightPathVectorFlags.TurnToCourse,
-          heading, isHeadingTrue
+          leg.leg.course, leg.leg.trueDegrees
         );
 
         if (vectorIndex > 0) {
@@ -177,7 +177,7 @@ export class HeadingToManualLegCalculator extends AbstractFlightPathLegCalculato
       state.currentPosition, course,
       distance,
       FlightPathVectorFlags.ConstantHeading,
-      heading, isHeadingTrue
+      leg.leg.course, leg.leg.trueDegrees
     );
 
     vectors.length = vectorIndex;

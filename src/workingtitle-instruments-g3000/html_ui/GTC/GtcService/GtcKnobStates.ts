@@ -41,6 +41,7 @@ export enum GtcDualKnobState {
   NAVCOM1 = 'NAVCOM1',
   NAVCOM2 = 'NAVCOM2',
   MapPointerControl = 'MapPointerControl',
+  ChartsPanZoomControl = 'ChartsPanZoomControl',
   Checklist = 'Checklist'
 }
 
@@ -52,9 +53,11 @@ export enum GtcMapKnobState {
   MapNoPointer = 'MapNoPointer',
   MapWithPointer = 'MapWithPointer',
   WeatherRadar = 'WeatherRadar',
+  Charts = 'Charts',
   NAVCOM1 = 'NAVCOM1',
   NAVCOM2 = 'NAVCOM2',
   MapPointerControl = 'MapPointerControl',
+  ChartsPanZoomControl = 'ChartsPanZoomControl',
   Checklist = 'Checklist'
 }
 
@@ -318,6 +321,8 @@ export class GtcKnobStatesManager implements GtcKnobStates {
       case DisplayPaneViewKeys.WaypointInfo: return GtcMapKnobState.MapWithPointer;
       case DisplayPaneViewKeys.Nearest: return GtcMapKnobState.MapWithPointer;
       case DisplayPaneViewKeys.Checklist: return this.gtcService.isHorizontal ? GtcMapKnobState.Checklist : GtcMapKnobState.Blank;
+      case DisplayPaneViewKeys.Charts: return GtcMapKnobState.Charts;
+      case DisplayPaneViewKeys.ProcedurePreviewCharts: return GtcMapKnobState.Charts;
       default: return GtcMapKnobState.Blank;
     }
   }

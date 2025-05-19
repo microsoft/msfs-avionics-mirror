@@ -27,6 +27,9 @@ export interface MapProcedurePreviewLayerProps extends MapLayerProps<MapProcedur
   /** The event bus. */
   bus: EventBus;
 
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
+
   /** The waypoint renderer to use. */
   waypointRenderer: MapWaypointRenderer;
 
@@ -46,7 +49,7 @@ export class MapProcedurePreviewLayer extends MapLayer<MapProcedurePreviewLayerP
   private readonly procPreviewModule = this.props.model.getModule(GarminMapKeys.ProcedurePreview);
 
   private readonly resampler = new GeoCircleResampler(Math.PI / 12, 0.25, 8);
-  private readonly facLoader = new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
+  private readonly facLoader = this.props.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(this.props.bus));
   private readonly waypointCache = GarminFacilityWaypointCache.getCache(this.props.bus);
 
   private readonly clipBoundsSub = VecNSubject.createFromVector(new Float64Array(4));

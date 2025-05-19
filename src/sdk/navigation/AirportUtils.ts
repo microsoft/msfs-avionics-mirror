@@ -32,6 +32,7 @@ export class AirportUtils {
    * Attempts to get the region code of an airport.
    * @param facility The facility record for the airport.
    * @returns The region code of an airport, or `undefined` if one could not be found.
+   * @deprecated Please use the `region` property on `AirportFacility` instead to retrieve the airport's region code.
    */
   public static tryGetRegionCode(facility: AirportFacility): string | undefined {
     // Airports don't have region codes in their ICAO strings, so we will try a series of increasingly ugly hacks to
@@ -195,6 +196,7 @@ export class AirportUtils {
    * @param facility The facility record for the airport.
    * @returns The elevation of the specified airport, in meters, or `undefined` if the elevation could not be
    * determined.
+   * @deprecated Please use the `altitude` property on `AirportFacility` instead to retrieve the airport's elevation.
    */
   public static getElevation(facility: AirportFacility): number | undefined {
     if (facility.runways.length === 0) {

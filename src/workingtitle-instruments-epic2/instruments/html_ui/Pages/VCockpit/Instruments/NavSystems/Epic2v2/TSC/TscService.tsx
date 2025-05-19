@@ -5,9 +5,10 @@ import { NavComUserSettingManager, Tab, TabContent } from '@microsoft/msfs-epic2
 import { MenuTab } from './Components';
 import { TscWindowTabs } from './Components/TscWindowTabs';
 import { ComTabContent, DuAndCcdTabContent, HomeTabContent, NavTabContent, XpdrTabContent } from './Pages';
+import { GpwsInhibitsContainer } from './Pages/GpwsInhibits';
 import { TawsWxLightningContainer } from './Pages/TawsWxLightning';
-import { TscSvgs } from './Shared/TscSvgs';
 import { DuAndCcdIcon } from './Shared';
+import { TscSvgs } from './Shared/TscSvgs';
 
 /** Info Populated Into Each Menu Tab*/
 interface MenuTabInfo extends ComponentProps {
@@ -152,6 +153,10 @@ export class TscService {
     'tawsPage': {
       renderLabel: () => <></>,
       renderContent: () => <TawsWxLightningContainer bus={this.bus} />
+    },
+    'gpwsInhibitPage': {
+      renderLabel: () => <></>,
+      renderContent: () => <GpwsInhibitsContainer bus={this.bus} />
     }
   };
 

@@ -1,6 +1,9 @@
 import { FSComponent, VNode, DisplayComponent, ComponentProps } from '@microsoft/msfs-sdk';
+
 import { Fms, UnitsUserSettings } from '@microsoft/msfs-garminsdk';
-import { FmsSpeedUserSettingManager, FlightPlanStore } from '@microsoft/msfs-wtg3000-common';
+
+import { FmsSpeedUserSettingManager, FlightPlanStore, BaroTransitionAlertUserSettings } from '@microsoft/msfs-wtg3000-common';
+
 import { GtcDialogChainStep, GtcDialogs } from '../../Dialog/GtcDialogs';
 import { GtcDialogResult, GtcDialogResultSubmitted } from '../../Dialog/GtcDialogView';
 import { GtcFmsSpeedDialog, GtcFmsSpeedDialogOutput } from '../../Dialog/GtcFmsSpeedDialog';
@@ -166,8 +169,9 @@ export class GtcAdvancedVnavDescentTab extends DisplayComponent<GtcAdvancedVnavD
         />
         <GtcAdvancedVnavTransitionButton
           gtcService={this.props.gtcService}
+          baroTransitionAlertSettingManager={BaroTransitionAlertUserSettings.getManager(this.props.gtcService.bus)}
           unitSettingManager={this.unitsSettingManager}
-          isEnabled={false}
+          isTransitionLevel={true}
         />
         <GtcAdvancedVnavAltitudeLimitButton
           gtcService={this.props.gtcService}

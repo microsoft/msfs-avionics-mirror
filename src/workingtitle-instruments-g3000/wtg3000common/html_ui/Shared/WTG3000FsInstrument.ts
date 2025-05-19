@@ -23,12 +23,15 @@ import { AvionicsStatusChangeEvent, AvionicsStatusEvents } from './AvionicsStatu
 import { AvionicsStatusClient, AvionicsStatusEventClient } from './AvionicsStatus/AvionicsStatusManager';
 import { AvionicsStatus } from './AvionicsStatus/AvionicsStatusTypes';
 import { CasPowerStateManager } from './CAS/CasPowerStateManager';
+import { G3000BuiltInChartsSourceProvider } from './Charts/G3000BuiltInChartsSourceProvider';
+import { G3000ChartsSource, G3000ChartsSourceFactory } from './Charts/G3000ChartsSource';
 import { G3000ChecklistGroupMetadata, G3000ChecklistMetadata, G3000ChecklistSetDef } from './Checklist/G3000ChecklistDefinition';
 import { InstrumentType, PfdIndex } from './CommonTypes';
 import { DefaultDisplayOverlayController } from './DisplayOverlay/DefaultDisplayOverlayController';
 import { FuelTotalizerSimVarPublisher } from './Fuel';
 import { G3000FilePaths } from './G3000FilePaths';
 import { G3000Plugin, G3000PluginBinder } from './G3000Plugin';
+import { G3000BacklightPublisher } from './Instruments/G3000Backlight';
 import { InstrumentBackplaneNames } from './Instruments/InstrumentBackplaneNames';
 import {
   G3000ActiveSourceNavIndicator, G3000NavIndicator, G3000NavIndicatorName, G3000NavIndicators, G3000NavSource,
@@ -57,7 +60,9 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
 
   protected readonly bus = new EventBus();
   protected readonly facRepo = FacilityRepository.getRepository(this.bus);
-  protected readonly facLoader = new FacilityLoader(this.facRepo);
+  protected readonly facLoader = new FacilityLoader(this.facRepo, undefined, {
+    sharedFacilityCacheId: 'g3000'
+  });
 
   protected readonly hEventPublisher = new HEventPublisher(this.bus);
 
@@ -97,6 +102,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     this.verticalPathCalculator,
     {
       lnavIndex: 0,
+      facLoader: this.facLoader,
       isAdvancedVnav: this.config.vnav.advanced,
       visualApproachOptions: this.config.fms.approach.visualApproachOptions
     }
@@ -127,6 +133,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly controlSurfacesPublisher = new ControlSurfacesPublisher(this.bus, 3);
   protected readonly timerPublisher = new FlightTimerPublisher(this.bus, 2);
   protected readonly fuelTotalizerPublisher = new FuelTotalizerSimVarPublisher(this.bus);
+  protected readonly backlightPublisher = new G3000BacklightPublisher(this.bus);
 
   protected readonly apInstrument = new AutopilotInstrument(this.bus);
 
@@ -135,7 +142,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected abstract readonly navSources: G3000NavSources;
   protected abstract readonly navIndicators: G3000NavIndicators;
 
-  protected readonly fmsPositionSystemSelector = new FmsPositionSystemSelector(this.bus, ArrayUtils.range(this.config.iauDefs.count, 1), 1);
+  protected readonly fmsPositionSystemSelector = new FmsPositionSystemSelector(this.bus, ArrayUtils.range(this.config.gduDefs.pfdCount, 1), 1);
 
   protected readonly minimumsDataProvider = new DefaultMinimumsDataProvider(this.bus, this.config.sensors.hasRadarAltimeter);
   protected readonly terrainSystemStateDataProvider = new DefaultTerrainSystemStateDataProvider(this.bus, '');
@@ -146,6 +153,8 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
   protected readonly weightBalanceSettingManager?: WeightBalanceUserSettingManager;
 
   protected readonly casPowerStateManager = new CasPowerStateManager(this.bus);
+
+  protected readonly chartsSources: G3000ChartsSource[] = [];
 
   protected checkListDef?: G3000ChecklistSetDef;
   protected checklistStateProvider?: DefaultChecklistStateProvider<GarminChecklistItemTypeDefMap, G3000ChecklistMetadata, G3000ChecklistGroupMetadata, void, void>;
@@ -184,6 +193,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
     this.backplane.addPublisher(InstrumentBackplaneNames.ControlSurfaces, this.controlSurfacesPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.Timer, this.timerPublisher);
     this.backplane.addPublisher(InstrumentBackplaneNames.FuelTotalizer, this.fuelTotalizerPublisher);
+    this.backplane.addPublisher(InstrumentBackplaneNames.Backlight, this.backlightPublisher);
 
     this.pfdSensorsSettingManager = this.createPfdSensorsUserSettingManager(config);
     this.vSpeedSettingManager = this.createVSpeedUserSettingManager(config);
@@ -274,7 +284,7 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
       gpsReceiverSelector.init();
 
       fmsPosSystems.push(new FmsPositionSystem(
-        1,
+        pfdIndex,
         this.bus,
         gpsReceiverSelector.selectedIndex,
         this.pfdSensorsSettingManager.getAliasedManager(pfdIndex as PfdIndex).getSetting('pfdAdcIndex'),
@@ -412,6 +422,48 @@ export abstract class WTG3000FsInstrument implements FsInstrument {
    */
   private createWeightBalanceUserSettingManager(config: AvionicsConfig): WeightBalanceUserSettingManager | undefined {
     return config.performance.weightBalanceConfig === undefined ? undefined : new WeightBalanceUserSettingManager(this.bus, config.performance.weightBalanceConfig);
+  }
+
+  /**
+   * Initializes this instrument's electronic charts sources.
+   * @param pluginSystem This instrument's plugin system.
+   * @throws Error if a charts source factory produces a source with an improper ID.
+   */
+  protected initChartSources(pluginSystem: PluginSystem<G3000Plugin, G3000PluginBinder>): void {
+    const sourceFactories = new G3000BuiltInChartsSourceProvider().getSources();
+
+    const pluginSourceFactories = [] as G3000ChartsSourceFactory[];
+
+    pluginSystem.callPlugins(plugin => {
+      const factories = plugin.getChartsSources?.();
+      if (factories) {
+        pluginSourceFactories.push(...factories);
+      }
+    });
+
+    for (const pluginSourceFactory of pluginSourceFactories) {
+      if (pluginSourceFactory.uid === '') {
+        console.warn('WTG3000FsInstrument: electronic charts source factory with ID equal to the empty string was found and will be ignored');
+        continue;
+      }
+
+      const existingSourceIndex = sourceFactories.findIndex(factory => factory.uid === pluginSourceFactory.uid);
+      if (existingSourceIndex < 0) {
+        sourceFactories.push(pluginSourceFactory);
+      } else {
+        sourceFactories[existingSourceIndex] = pluginSourceFactory;
+      }
+    }
+
+    for (const factory of sourceFactories) {
+      const source = factory.createSource();
+
+      if (source.uid !== factory.uid) {
+        throw new Error(`WTG3000FsInstrument: electronic charts source factory with ID "${factory.uid}" produced a source with a different ID "${source.uid}"!`);
+      }
+
+      this.chartsSources.push(source);
+    }
   }
 
   /**

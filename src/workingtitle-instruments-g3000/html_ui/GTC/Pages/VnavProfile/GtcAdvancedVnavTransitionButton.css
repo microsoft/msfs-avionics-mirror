@@ -3,6 +3,10 @@
 
   --advanced-vnav-speed-button-label-margin-bottom: 10px;
   --advanced-vnav-altitude-limit-button-ceiling-label-margin-left: 40px;
+
+  --advanced-vnav-transition-button-edit-icon-right: 12px;
+  --advanced-vnav-transition-button-edit-icon-bottom: 5px;
+  --advanced-vnav-transition-button-edit-icon-scale: 1.8;
 }
 
 .gtc-vertical .advanced-vnav-transition-button {
@@ -10,4 +14,16 @@
 
   --advanced-vnav-speed-button-label-margin-bottom: 5px;
   --advanced-vnav-altitude-limit-button-ceiling-label-margin-left: 20px;
+
+  --advanced-vnav-transition-button-edit-icon-right: 6px;
+  --advanced-vnav-transition-button-edit-icon-bottom: -2px;
+  --advanced-vnav-transition-button-edit-icon-scale: 1;
+}
+
+.advanced-vnav-transition-button-edit-icon {
+  position: absolute;
+  right: var(--advanced-vnav-transition-button-edit-icon-right);
+  bottom: var(--advanced-vnav-transition-button-edit-icon-bottom);
+  transform: translateY(-50%) scale(var(--advanced-vnav-transition-button-edit-icon-scale));
+  transform-origin: 100% 100%;
 }

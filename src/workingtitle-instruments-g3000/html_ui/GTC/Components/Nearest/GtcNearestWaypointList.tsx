@@ -32,14 +32,15 @@ export class GtcNearestWaypointList<
 
   private readonly noResultsCssClass = SetSubject.create(['nearest-wpt-list-no-results']);
 
-  private cssClassSub?: Subscription;
-  private noResultsSub?: Subscription;
+  private readonly subscriptions: Subscription[] = [];
 
   /** @inheritdoc */
   public onAfterRender(): void {
-    this.noResultsSub = this.props.data.sub(() => {
-      this.noResultsCssClass.toggle('hidden', this.props.data.length > 0);
-    }, true);
+    this.subscriptions.push(
+      this.props.data.sub(() => {
+        this.noResultsCssClass.toggle('hidden', this.props.data.length > 0);
+      }, true)
+    );
   }
 
   /**
@@ -87,7 +88,12 @@ export class GtcNearestWaypointList<
 
     if (typeof this.props.class === 'object') {
       cssClass = SetSubject.create(['nearest-wpt-list']);
-      this.cssClassSub = FSComponent.bindCssClassSet(cssClass, this.props.class, GtcNearestWaypointList.RESERVED_CSS_CLASSES);
+      const sub = FSComponent.bindCssClassSet(cssClass, this.props.class, GtcNearestWaypointList.RESERVED_CSS_CLASSES);
+      if (Array.isArray(sub)) {
+        this.subscriptions.push(...sub);
+      } else {
+        this.subscriptions.push(sub);
+      }
     } else {
       cssClass = 'nearest-wpt-list';
 
@@ -121,8 +127,9 @@ export class GtcNearestWaypointList<
   public destroy(): void {
     this.listRef.getOrDefault()?.destroy();
 
-    this.cssClassSub?.destroy();
-    this.noResultsSub?.destroy();
+    for (const sub of this.subscriptions) {
+      sub.destroy();
+    }
 
     super.destroy();
   }

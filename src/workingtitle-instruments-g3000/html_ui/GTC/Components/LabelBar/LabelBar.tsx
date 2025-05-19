@@ -91,6 +91,7 @@ export class LabelBar extends DisplayComponent<LabelBarProps> {
       case GtcDualKnobState.NAVCOM2:
         return this.isHoz ? 'COM2\nFreq\nPush:\n1–2\nHold:↕' : 'COM2 Freq\nPush:1–2 Hold:↕';
       case GtcDualKnobState.MapPointerControl:
+      case GtcDualKnobState.ChartsPanZoomControl:
         return this.isHoz ? 'Pan/\nPoint\nPush:\nPan Off' : '';
       case GtcDualKnobState.Checklist:
         return this.isHoz ? '' : 'Select Item\nPush: Check';
@@ -137,7 +138,9 @@ export class LabelBar extends DisplayComponent<LabelBarProps> {
       case GtcMapKnobState.Blank: return '';
       case GtcMapKnobState.NAVCOM1: return 'Pilot\nCOM1\nVolume';
       case GtcMapKnobState.NAVCOM2: return 'Pilot\nCOM2\nVolume';
-      case GtcMapKnobState.MapWithPointer: return this.isHoz ? '−Range+\nPush:\nPan' : '− Range +\nPush:Pan';
+      case GtcMapKnobState.MapWithPointer:
+      case GtcMapKnobState.Charts:
+        return this.isHoz ? '−Range+\nPush:\nPan' : '− Range +\nPush:Pan';
       case GtcMapKnobState.MapNoPointer: return this.isHoz ? '−Range+' : '− Range +';
       case GtcMapKnobState.WeatherRadar: return this.isHoz ? '−Range+' : '− Range +'; // return this.isHoz ? 'Push:\nRadar\nControl' : '\nPush:BRG/Tilt';
       case GtcMapKnobState.MapPointerControl: return this.isHoz ? '−Range+\nPush:\nPan Off' : '− Range +\nPush:Pan';

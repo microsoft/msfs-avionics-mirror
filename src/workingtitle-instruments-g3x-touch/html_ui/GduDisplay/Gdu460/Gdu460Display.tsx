@@ -4,7 +4,7 @@ import { G3XTouchVersion } from '../../G3XTouchVersion';
 import { AvionicsStatusChangeEvent } from '../../Shared/AvionicsStatus/AvionicsStatusEvents';
 import { AvionicsStatus } from '../../Shared/AvionicsStatus/AvionicsStatusTypes';
 import { EisLayouts, EisSizes, PfdPaneSide } from '../../Shared/CommonTypes';
-import { Gdu460CnsDataBar } from './CnsDataBar/Gdu460CnsDataBar';
+import { G3XLoadingIcon } from '../../Shared/Components/Common/G3XLoadingIcon';
 import { StatusBar } from '../../Shared/Components/StatusBar/StatusBar';
 import { DefaultTemperatureInfoDataProvider } from '../../Shared/DataProviders';
 import { G3XTouchFilePaths } from '../../Shared/G3XTouchFilePaths';
@@ -15,6 +15,7 @@ import { G3XUnitsUserSettings } from '../../Shared/Settings/G3XUnitsUserSettings
 import { UiPaneContainer } from '../../Shared/UiSystem/UiPaneContainer';
 import { UiPaneViewStackContainer } from '../../Shared/UiSystem/UiPaneViewStackContainer';
 import { GduDisplay, GduDisplayProps } from '../GduDisplay';
+import { Gdu460CnsDataBar } from './CnsDataBar/Gdu460CnsDataBar';
 import { Gdu460Eis } from './Eis/Gdu460Eis';
 
 import './Gdu460Display.css';
@@ -152,6 +153,7 @@ export class Gdu460Display extends DisplayComponent<GduDisplayProps> implements 
             navDataBarFieldRenderer={this.props.navDataBarFieldRenderer}
             navDataFieldGpsValidity={this.props.navDataFieldGpsValidity}
             navDataBarEditController={this.props.navDataBarEditController}
+            radiosDataProvider={this.props.radiosDataProvider}
             displaySettingManager={this.props.displaySettingManager}
             dataBarSettingManager={CnsDataBarUserSettings.getManager(this.props.bus)}
             dateTimeSettingManager={G3XDateTimeUserSettings.getManager(this.props.bus)}
@@ -187,7 +189,7 @@ export class Gdu460Display extends DisplayComponent<GduDisplayProps> implements 
           <img class='gdu-460-display-boot-logo' src={`${G3XTouchFilePaths.ASSETS_PATH}/Images/garmin_logo.png`} />
           <div class={{ 'gdu-460-display-boot-splash-info': true, 'hidden': this.bootSplashInfoHidden }}>
             <div class={'gdu-460-display-boot-please-wait-text'}>Please Wait...</div>
-            <img class='gdu-460-display-boot-loading-icon' src={`${G3XTouchFilePaths.ASSETS_PATH}/Images/loading_icon.png`} />
+            <G3XLoadingIcon class='gdu-460-display-boot-loading-icon' />
             <div class={'gdu-460-display-boot-system-info-text'}>
               <div>GDU</div>
               <div>Software Version {G3XTouchVersion.VERSION}</div>

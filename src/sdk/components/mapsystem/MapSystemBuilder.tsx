@@ -4,7 +4,10 @@ import { FlightPlanner } from '../../flightplan/FlightPlanner';
 import { NumberUnitInterface, UnitFamily, UnitType } from '../../math';
 import { ReadonlyFloat64Array, Vec2Math } from '../../math/VecMath';
 import { VecNSubject } from '../../math/VectorSubject';
-import { FacilityWaypointCache, LodBoundary, LodBoundaryCache } from '../../navigation';
+import { FacilityLoader } from '../../navigation/FacilityLoader';
+import { FacilityWaypointCache } from '../../navigation/FacilityWaypointCache';
+import { LodBoundary } from '../../navigation/LodBoundary';
+import { LodBoundaryCache } from '../../navigation/LodBoundaryCache';
 import { Subject } from '../../sub/Subject';
 import { Subscribable } from '../../sub/Subscribable';
 import { MutableSubscribableSet, SubscribableSet } from '../../sub/SubscribableSet';
@@ -898,6 +901,10 @@ export class MapSystemBuilder<
   /**
    * Configures this builder to generate a map which displays waypoints near the map center or target. Waypoints
    * displayed in this manner are rendered by a {@link MapSystemWaypointsRenderer}.
+   * 
+   * If a facility loader has been added to the map context under the `MapSystemKeys.FacilityLoader` key, then it will
+   * be used to retrieve facilities for the display of nearest waypoints. Otherwise, a new default facility loader
+   * instance will be used instead.
    *
    * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
    * waypoint layer. Otherwise, a text layer will be added to the builder after the waypoint layer.
@@ -939,9 +946,9 @@ export class MapSystemBuilder<
     let facilityWaypointCache: FacilityWaypointCache | undefined = undefined;
 
     this.withContext<{
-      [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-      [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-      [MapSystemKeys.LabelFactory]: MapSystemLabelFactory
+      [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer;
+      [MapSystemKeys.IconFactory]: MapSystemIconFactory;
+      [MapSystemKeys.LabelFactory]: MapSystemLabelFactory;
     }>('useTargetAsWaypointSearchCenter', context => {
       context[MapSystemKeys.WaypointRenderer].addRenderRole(MapSystemWaypointRoles.Normal, undefined, MapSystemWaypointRoles.Normal);
 
@@ -959,18 +966,20 @@ export class MapSystemBuilder<
         MapSystemWaypointsLayer,
         MapSystemWaypointsLayerModules,
         {
-          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
-          'useTargetAsWaypointSearchCenter': boolean
+          [MapSystemKeys.FacilityLoader]?: FacilityLoader;
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer;
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory;
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory;
+          'useTargetAsWaypointSearchCenter': boolean;
         }
       >(MapSystemKeys.NearestWaypoints, context => {
         return (
           <MapSystemWaypointsLayer
-            bus={context.bus}
-            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
             model={context.model}
             mapProjection={context.projection}
+            bus={context.bus}
+            facilityLoader={context[MapSystemKeys.FacilityLoader]}
+            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
             iconFactory={context[MapSystemKeys.IconFactory]}
             labelFactory={context[MapSystemKeys.LabelFactory]}
             useMapTargetAsSearchCenter={context.useTargetAsWaypointSearchCenter}
@@ -985,6 +994,10 @@ export class MapSystemBuilder<
   /**
    * Configures this builder to generate a map which displays a flight plan. Waypoints displayed as part of the flight
    * plan are rendered by a {@link MapSystemWaypointsRenderer}.
+   * 
+   * If a facility loader has been added to the map context under the `MapSystemKeys.FacilityLoader` key, then it will
+   * be used to retrieve facilities for the display of flight pan waypoints. Otherwise, a new default facility loader
+   * instance will be used instead.
    *
    * If a text layer has already been added to the builder, its order will be changed so that it is rendered above the
    * waypoint layer. Otherwise, a text layer will be added to the builder after the waypoint layer.
@@ -1022,10 +1035,10 @@ export class MapSystemBuilder<
       { [MapSystemKeys.FlightPlan]: MapFlightPlanModule },
       any, any,
       {
-        [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-        [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-        [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
-        [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+        [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer;
+        [MapSystemKeys.IconFactory]: MapSystemIconFactory;
+        [MapSystemKeys.LabelFactory]: MapSystemLabelFactory;
+        [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer;
       }
     >) => void,
     flightPlanner: FlightPlanner,
@@ -1052,10 +1065,10 @@ export class MapSystemBuilder<
         { [MapSystemKeys.FlightPlan]: MapFlightPlanModule },
         any, any,
         {
-          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
-          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer;
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory;
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory;
+          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer;
         }
       >(`${MapSystemKeys.FlightPlan}${planIndex}`, context => {
         const builder = new FlightPlanDisplayBuilder(
@@ -1077,18 +1090,20 @@ export class MapSystemBuilder<
         MapSystemFlightPlanLayer,
         MapSystemFlightPlanLayerModules,
         {
-          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer,
-          [MapSystemKeys.IconFactory]: MapSystemIconFactory,
-          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory,
-          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer,
+          [MapSystemKeys.FacilityLoader]?: FacilityLoader;
+          [MapSystemKeys.WaypointRenderer]: MapSystemWaypointsRenderer;
+          [MapSystemKeys.IconFactory]: MapSystemIconFactory;
+          [MapSystemKeys.LabelFactory]: MapSystemLabelFactory;
+          [MapSystemKeys.FlightPathRenderer]: MapSystemPlanRenderer;
         }
       >(`${MapSystemKeys.FlightPlan}${planIndex}`, (context) => {
         return (
           <MapSystemFlightPlanLayer
-            bus={context.bus}
-            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
             model={context.model}
             mapProjection={context.projection}
+            bus={context.bus}
+            waypointRenderer={context[MapSystemKeys.WaypointRenderer]}
+            facilityLoader={context[MapSystemKeys.FacilityLoader]}
             iconFactory={context[MapSystemKeys.IconFactory]}
             labelFactory={context[MapSystemKeys.LabelFactory]}
             flightPathRenderer={context[MapSystemKeys.FlightPathRenderer]}
@@ -1102,6 +1117,9 @@ export class MapSystemBuilder<
 
   /**
    * Configures this builder to generate a map which displays airspaces.
+   * 
+   * If a facility loader has been added to the map context under the `MapSystemKeys.FacilityLoader` key, then it will
+   * be used to retrieve airspaces. Otherwise, a new default facility loader instance will be used instead.
    *
    * Adds the following...
    *
@@ -1146,7 +1164,10 @@ export class MapSystemBuilder<
       .withLayer<
         MapAirspaceLayer,
         MapAirspaceLayerModules,
-        { [MapSystemKeys.AirspaceManager]: GenericAirspaceRenderManager }
+        {
+          [MapSystemKeys.FacilityLoader]?: FacilityLoader;
+          [MapSystemKeys.AirspaceManager]: GenericAirspaceRenderManager;
+        }
       >(MapSystemKeys.Airspace, context => {
         const optionsToUse = { ...options };
 
@@ -1158,6 +1179,7 @@ export class MapSystemBuilder<
             model={context.model}
             mapProjection={context.projection}
             bus={context.bus}
+            facilityLoader={context[MapSystemKeys.FacilityLoader]}
             lodBoundaryCache={cache}
             airspaceRenderManager={context[MapSystemKeys.AirspaceManager]}
             {...(optionsToUse as any)}

@@ -1,7 +1,10 @@
 import { UserSettingManager } from '@microsoft/msfs-sdk';
+
 import { SoftKeyEnumController, SoftKeyMenu, SoftKeyMenuSystem } from '@microsoft/msfs-garminsdk';
+
 import {
-  DisplayPaneIndex, DisplayPanesUserSettings, NavSourceFormatter, PfdBearingPointerSource, PfdBearingPointerUserSettingTypes, PfdIndex, RadiosConfig
+  DisplayPaneIndex, DisplayPanesUserSettings, FmsConfig, NavSourceFormatter, PfdBearingPointerSource,
+  PfdBearingPointerUserSettingTypes, PfdIndex, RadiosConfig
 } from '@microsoft/msfs-wtg3000-common';
 
 /**
@@ -19,13 +22,15 @@ export class PfdSettingsSoftKeyMenu extends SoftKeyMenu {
    * @param pfdIndex The index of the PFD instrument to which this menu belongs.
    * @param bearingPointerSettingManager A manager for bearing pointer user settings for this menu's PFD.
    * @param radiosConfig The radios configuration object.
+   * @param fmsConfig The FMS configuration object.
    * @param isSplit Whether the menu is a split-mode menu.
    */
-  constructor(
+  public constructor(
     menuSystem: SoftKeyMenuSystem,
     pfdIndex: PfdIndex,
     bearingPointerSettingManager: UserSettingManager<PfdBearingPointerUserSettingTypes>,
     radiosConfig: RadiosConfig,
+    fmsConfig: FmsConfig,
     isSplit: boolean
   ) {
     super(menuSystem);
@@ -64,7 +69,12 @@ export class PfdSettingsSoftKeyMenu extends SoftKeyMenu {
       currentValue => !currentValue
     );
 
-    const bearingPointerSourceFormatter = NavSourceFormatter.createForBearingPointerSetting('FMS', false, radiosConfig.dmeCount > 1, radiosConfig.adfCount > 1);
+    const bearingPointerSourceFormatter = NavSourceFormatter.createForBearingPointerSetting(
+      fmsConfig.navSourceLabelText,
+      false,
+      radiosConfig.dmeCount > 1,
+      radiosConfig.adfCount > 1
+    );
 
     this.bearingPointer1Controller = new SoftKeyEnumController(
       this,

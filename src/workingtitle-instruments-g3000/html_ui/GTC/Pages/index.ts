@@ -1,4 +1,5 @@
 export * from './AvionicsSettingsPage';
+export * from './ChartsPage';
 export * from './ChecklistPage';
 export * from './ConnextWeatherSettingsPage';
 export * from './DirectToPage';

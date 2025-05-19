@@ -7,9 +7,9 @@ import { BitFlags } from '../../../math/BitFlags';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { ReadonlyFloat64Array, Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
 import { FlightPathVector, FlightPathVectorFlags } from '../FlightPathVector';
@@ -135,7 +135,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
    * @param facilityCache This calculator's cache of facilities.
    * @param isHeadingLeg Whether this calculator calculates flight plan legs flown with constant heading.
    */
-  public constructor(facilityCache: Map<string, Facility>, protected readonly isHeadingLeg: boolean) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache, protected readonly isHeadingLeg: boolean) {
     super(facilityCache, !isHeadingLeg);
   }
 
@@ -217,6 +217,8 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
       state.isFallback = leg.calculated!.endsInFallback;
       return;
     }
+
+    const desiredTurnRadius = state.getDesiredTurnRadius(calculateIndex);
 
     const pathToInterceptHasStart = Vec3Math.isFinite(pathToInterceptInfo.start);
     const pathTointerceptHasEnd = Vec3Math.isFinite(pathToInterceptInfo.end);
@@ -329,7 +331,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
 
               const turnDirectionSign = turnDirection === 'left' ? -1 : 1;
               const initialTurnStartRadial = this.__geoCircleCache[3].setAsGreatCircle(initialVec, initialPath.center);
-              const turnRadiusRad = state.desiredTurnRadius.asUnit(UnitType.GA_RADIAN);
+              const turnRadiusRad = UnitType.METER.convertTo(desiredTurnRadius, UnitType.GA_RADIAN);
               const initialTurnCenterVec = initialTurnStartRadial.offsetDistanceAlong(
                 initialVec,
                 turnRadiusRad * -turnDirectionSign,
@@ -513,7 +515,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
           const vectorCount = this.interceptGreatCircleToPointVectorBuilder.build(
             vectors, vectorIndex,
             fallbackCalcStartVec, initialPath,
-            state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+            desiredTurnRadius, undefined,
             interceptAngle,
             undefined, pathToInterceptInfo.circle,
             undefined,
@@ -552,7 +554,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
                   vectors, vectorIndex,
                   fallbackCalcStartVec, initialPath,
                   directToTarget,
-                  state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+                  desiredTurnRadius, undefined,
                   FlightPathVectorFlags.Fallback, true, true,
                   interceptCourseInfo.heading, interceptCourseInfo.isHeadingTrue
                 );
@@ -593,7 +595,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
           vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
             vectors, vectorIndex,
             state.currentPosition,
-            state.desiredTurnRadius.asUnit(UnitType.METER), turnDirection,
+            desiredTurnRadius, turnDirection,
             initialCourse, interceptCourseInfo.course,
             FlightPathVectorFlags.TurnToCourse,
             interceptCourseInfo.heading, interceptCourseInfo.isHeadingTrue
@@ -706,7 +708,7 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
           vectors, vectorIndex,
           interceptPathStartVec, startPath,
           fallbackInterceptInfo.fallbackInterceptPoint,
-          state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
+          desiredTurnRadius, undefined,
           FlightPathVectorFlags.Fallback, true, true,
           interceptCourseInfo.heading, interceptCourseInfo.isHeadingTrue
         );
@@ -758,12 +760,13 @@ export abstract class CircleInterceptLegCalculator extends AbstractFlightPathLeg
 
     if (this.isHeadingLeg) {
       const heading = course;
-      if (state.planeWindSpeed.number > 0) {
+      const windSpeed = state.getWindSpeed(calculateIndex);
+      if (windSpeed > 0) {
         course = NavMath.headingToGroundTrack(
           heading,
-          state.planeTrueAirspeed.asUnit(UnitType.KNOT),
-          state.planeWindDirection,
-          state.planeWindSpeed.asUnit(UnitType.KNOT)
+          state.getPlaneTrueAirspeed(calculateIndex),
+          state.getWindDirection(calculateIndex),
+          windSpeed
         );
         if (isNaN(course)) {
           course = heading;

@@ -1,8 +1,11 @@
 import { FacilityType, FSComponent, MutableSubscribable, VNode } from '@microsoft/msfs-sdk';
+
 import { AirportWaypoint } from '@microsoft/msfs-garminsdk';
+
 import { GtcTouchButton } from '../../Components/TouchButton/GtcTouchButton';
 import { GtcView, GtcViewProps } from '../../GtcService/GtcView';
 import { GtcViewKeys } from '../../GtcService/GtcViewKeys';
+import { GtcChartsPage } from '../ChartsPage/GtcChartsPage';
 import { GtcNearestWaypointOptionsPopup } from './GtcNearestWaypointOptionsPopup';
 
 import './GtcNearestAirportOptionsPopup.css';
@@ -53,6 +56,20 @@ export class GtcNearestAirportOptionsPopup extends GtcView<GtcNearestAirportOpti
     this.ref.instance.onPause();
   }
 
+  /**
+   * Responds to when this popup's Airport Chart button is pressed.
+   */
+  private onChartButtonPressed(): void {
+    const waypoint = this.props.selectedWaypoint.get();
+
+    if (!waypoint) {
+      return;
+    }
+
+    this.props.gtcService.changePageTo<GtcChartsPage>(GtcViewKeys.Charts)
+      .ref.initAirportSelection(waypoint.facility.get());
+  }
+
   /** @inheritdoc */
   public render(): VNode {
     return (
@@ -70,7 +87,7 @@ export class GtcNearestAirportOptionsPopup extends GtcView<GtcNearestAirportOpti
         <GtcTouchButton
           ref={this.chartButtonRef}
           label='Airport Chart'
-          isEnabled={false}
+          onPressed={this.onChartButtonPressed.bind(this)}
           class='nearest-wpt-options-popup-button nearest-wpt-options-popup-chart'
         />
       </GtcNearestWaypointOptionsPopup>

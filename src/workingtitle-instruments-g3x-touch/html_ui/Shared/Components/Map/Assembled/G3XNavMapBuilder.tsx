@@ -2,9 +2,9 @@
 
 import {
   FacilityLoader, FacilityRepository, FlightPlanner, FSComponent, MapOwnAirplaneIconOrientation,
-  MapOwnAirplanePropsKey, MappedSubject, MapRangeModule, MapSystemBuilder, MapSystemContext, NumberUnitInterface,
-  ReadonlyFloat64Array, Subject, Subscribable, Subscription, UnitFamily, UnitType, UserSettingManager, Vec2Math,
-  Vec2Subject, VNode
+  MapOwnAirplanePropsKey, MappedSubject, MapRangeModule, MapSystemBuilder, MapSystemContext, MapSystemKeys,
+  NumberUnitInterface, ReadonlyFloat64Array, Subject, Subscribable, Subscription, UnitFamily, UnitType,
+  UserSettingManager, Vec2Math, Vec2Subject, VNode
 } from '@microsoft/msfs-sdk';
 
 import {
@@ -41,6 +41,9 @@ export type G3XNavMapTrafficIconOptions = Pick<TrafficIconOptions, 'iconSize' | 
 export type G3XNavMapOptions = {
   /** The format of the map's parent GDU. */
   gduFormat: GduFormat;
+
+  /** The facility loader to use. If not defined, then a default instance will be created. */
+  facilityLoader?: FacilityLoader;
 
   /** The ID to assign to the map's bound Bing Map instance. */
   bingId: string;
@@ -351,6 +354,9 @@ export class G3XNavMapBuilder {
     options.showTrafficAltRestriction ??= true;
 
     mapBuilder
+      .withContext(MapSystemKeys.FacilityLoader, context => {
+        return options.facilityLoader ?? new FacilityLoader(FacilityRepository.getRepository(context.bus));
+      })
       .withModule(GarminMapKeys.Units, () => new MapUnitsModule(options.unitsSettingManager))
       .with(GarminMapBuilder.range,
         options.nauticalRangeArray ?? G3XMapUtils.mapRanges(UnitsDistanceSettingMode.Nautical),
@@ -457,7 +463,7 @@ export class G3XNavMapBuilder {
           drawEntirePlan: options.drawEntirePlan,
           waypointRecordManagerFactory: (context, renderer) => {
             return new MapDefaultFlightPlanWaypointRecordManager(
-              new FacilityLoader(FacilityRepository.getRepository(context.bus)),
+              context[MapSystemKeys.FacilityLoader],
               GarminFacilityWaypointCache.getCache(context.bus),
               renderer,
               MapWaypointRenderRole.FlightPlanInactive,

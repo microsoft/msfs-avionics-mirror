@@ -186,7 +186,6 @@
   position: absolute;
   top: 540px;
   left: calc(50% - 33px);
-  animation: gdu-460-display-boot-loading-icon-rotation 1.5s linear infinite;
 }
 
 .gdu-460-display-boot-system-info-text {
@@ -198,14 +197,4 @@
   font-size: 16px;
   color: var(--g3x-color-white);
   text-align: center;
-}
-
-@keyframes gdu-460-display-boot-loading-icon-rotation {
-  0% {
-    transform: rotate3d(0, 0, 1, 0deg);
-  }
-
-  100% {
-    transform: rotate3d(0, 0, 1, 360deg);
-  }
 }

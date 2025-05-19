@@ -141,7 +141,6 @@ export class FlightPlanFpaSpeedSlideoutMenu extends GtcView<FlightPlanFpaSpeedSl
             if (!legListData) { return; }
 
             const leg = legListData.leg;
-            const segment = legListData.segment;
 
             const speed = this.speed.get();
             const speedDesc = this.speedDesc.get();
@@ -149,10 +148,9 @@ export class FlightPlanFpaSpeedSlideoutMenu extends GtcView<FlightPlanFpaSpeedSl
             const result = await this.props.gtcService.openPopup<GtcSpeedConstraintDialog>(GtcViewKeys.SpeedConstraintDialog).ref.request({
               initialSpeed: speed,
               initialSpeedUnit: legListData.speedUnit.get(),
-              initialSpeedDesc: speedDesc ?? SpeedRestrictionType.At,
-              // If <= 0, then there is no published speed restriction
-              publishedSpeedIas: leg.leg.speedRestriction <= 0 ? undefined : leg.leg.speedRestriction,
-              publishedSpeedDesc: FmsUtils.getPublishedSpeedDescBasedOnSegment(leg.leg.speedRestriction, segment.segmentType),
+              initialSpeedDesc: speedDesc,
+              publishedSpeedIas: leg.leg.speedRestrictionDesc === SpeedRestrictionType.Unused ? undefined : leg.leg.speedRestriction,
+              publishedSpeedDesc: leg.leg.speedRestrictionDesc,
               allowRemove: legListData.speedDesc.get() !== SpeedRestrictionType.Unused,
               isDifferentFromPublished: legListData.isSpeedEdited.get(),
             });

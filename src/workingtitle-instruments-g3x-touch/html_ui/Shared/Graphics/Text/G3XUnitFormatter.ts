@@ -1,4 +1,5 @@
 import { Unit, UnitFamily, UnitType } from '@microsoft/msfs-sdk';
+
 import { G3XUnitType } from '../../Math/G3XUnitType';
 import { G3XSpecialChar } from './G3XSpecialChar';
 
@@ -30,7 +31,19 @@ export class G3XUnitFormatter {
       [UnitType.POUND.name]: G3XSpecialChar.Pound,
       [UnitType.LITER_FUEL.name]: 'L',
       [UnitType.GALLON_FUEL.name]: G3XSpecialChar.Gallon,
-      [UnitType.IMP_GALLON_FUEL.name]: 'IG'
+      [UnitType.IMP_GALLON_FUEL.name]: 'IG',
+      [UnitType.LITER_JET_A_FUEL.name]: 'L',
+      [UnitType.GALLON_JET_A_FUEL.name]: G3XSpecialChar.Gallon,
+      [UnitType.IMP_GALLON_JET_A_FUEL.name]: 'IG',
+      [UnitType.LITER_100LL_FUEL.name]: 'L',
+      [UnitType.GALLON_100LL_FUEL.name]: G3XSpecialChar.Gallon,
+      [UnitType.IMP_GALLON_100LL_FUEL.name]: 'IG',
+      [UnitType.LITER_AUTOGAS_FUEL.name]: 'L',
+      [UnitType.GALLON_AUTOGAS_FUEL.name]: G3XSpecialChar.Gallon,
+      [UnitType.IMP_GALLON_AUTOGAS_FUEL.name]: 'IG',
+      [G3XUnitType.LITER_SIM_FUEL.name]: 'L',
+      [G3XUnitType.GALLON_SIM_FUEL.name]: G3XSpecialChar.Gallon,
+      [G3XUnitType.IMP_GALLON_SIM_FUEL.name]: 'IG',
     },
     [UnitFamily.Volume]: {
       [UnitType.LITER.name]: 'L',
@@ -60,15 +73,43 @@ export class G3XUnitFormatter {
       [UnitType.PPH.name]: G3XSpecialChar.PoundPerHour,
       [UnitType.LPH_FUEL.name]: G3XSpecialChar.LiterPerHour,
       [UnitType.GPH_FUEL.name]: G3XSpecialChar.GallonPerHour,
-      [UnitType.IGPH_FUEL.name]: G3XSpecialChar.GallonPerHour
+      [UnitType.IGPH_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.LPH_JET_A_FUEL.name]: G3XSpecialChar.LiterPerHour,
+      [UnitType.GPH_JET_A_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.IGPH_JET_A_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.LPH_100LL_FUEL.name]: G3XSpecialChar.LiterPerHour,
+      [UnitType.GPH_100LL_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.IGPH_100LL_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.LPH_AUTOGAS_FUEL.name]: G3XSpecialChar.LiterPerHour,
+      [UnitType.GPH_AUTOGAS_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [UnitType.IGPH_AUTOGAS_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [G3XUnitType.LPH_SIM_FUEL.name]: G3XSpecialChar.LiterPerHour,
+      [G3XUnitType.GPH_SIM_FUEL.name]: G3XSpecialChar.GallonPerHour,
+      [G3XUnitType.IGPH_SIM_FUEL.name]: G3XSpecialChar.GallonPerHour,
     },
     [UnitFamily.DistancePerWeight]: {
       [UnitType.NMILE_PER_GALLON_FUEL.name]: G3XSpecialChar.NauticalMilePerGallon,
       [UnitType.MILE_PER_GALLON_FUEL.name]: G3XSpecialChar.StatuteMilePerGallon,
-      [G3XUnitType.KM_PER_LITER_FUEL.name]: G3XSpecialChar.KilometerPerLiter
+      [G3XUnitType.KM_PER_LITER_FUEL.name]: G3XSpecialChar.KilometerPerLiter,
+      [UnitType.NMILE_PER_GALLON_JET_A_FUEL.name]: G3XSpecialChar.NauticalMilePerGallon,
+      [UnitType.MILE_PER_GALLON_JET_A_FUEL.name]: G3XSpecialChar.StatuteMilePerGallon,
+      [G3XUnitType.KM_PER_LITER_JET_A_FUEL.name]: G3XSpecialChar.KilometerPerLiter,
+      [UnitType.NMILE_PER_GALLON_100LL_FUEL.name]: G3XSpecialChar.NauticalMilePerGallon,
+      [UnitType.MILE_PER_GALLON_100LL_FUEL.name]: G3XSpecialChar.StatuteMilePerGallon,
+      [G3XUnitType.KM_PER_LITER_100LL_FUEL.name]: G3XSpecialChar.KilometerPerLiter,
+      [UnitType.NMILE_PER_GALLON_AUTOGAS_FUEL.name]: G3XSpecialChar.NauticalMilePerGallon,
+      [UnitType.MILE_PER_GALLON_AUTOGAS_FUEL.name]: G3XSpecialChar.StatuteMilePerGallon,
+      [G3XUnitType.KM_PER_LITER_AUTOGAS_FUEL.name]: G3XSpecialChar.KilometerPerLiter,
+      [G3XUnitType.NMILE_PER_GALLON_SIM_FUEL.name]: G3XSpecialChar.NauticalMilePerGallon,
+      [G3XUnitType.MILE_PER_GALLON_SIM_FUEL.name]: G3XSpecialChar.StatuteMilePerGallon,
+      [G3XUnitType.KM_PER_LITER_SIM_FUEL.name]: G3XSpecialChar.KilometerPerLiter,
     },
     [UnitFamily.WeightPerDistance]: {
-      [G3XUnitType.LITER_PER_100KM.name]: G3XSpecialChar.LiterPer100Km
+      [G3XUnitType.LITER_PER_100KM.name]: G3XSpecialChar.LiterPer100Km,
+      [G3XUnitType.LITER_JET_A_FUEL_PER_100KM.name]: G3XSpecialChar.LiterPer100Km,
+      [G3XUnitType.LITER_100LL_FUEL_PER_100KM.name]: G3XSpecialChar.LiterPer100Km,
+      [G3XUnitType.LITER_AUTOGAS_FUEL_PER_100KM.name]: G3XSpecialChar.LiterPer100Km,
+      [G3XUnitType.LITER_SIM_FUEL_PER_100KM.name]: G3XSpecialChar.LiterPer100Km,
     }
   };
 
@@ -94,7 +135,19 @@ export class G3XUnitFormatter {
       [UnitType.POUND.name]: 'LB',
       [UnitType.LITER_FUEL.name]: 'LT',
       [UnitType.GALLON_FUEL.name]: 'GAL',
-      [UnitType.IMP_GALLON_FUEL.name]: 'IG'
+      [UnitType.IMP_GALLON_FUEL.name]: 'IG',
+      [UnitType.LITER_JET_A_FUEL.name]: 'LT',
+      [UnitType.GALLON_JET_A_FUEL.name]: 'GAL',
+      [UnitType.IMP_GALLON_JET_A_FUEL.name]: 'IG',
+      [UnitType.LITER_100LL_FUEL.name]: 'LT',
+      [UnitType.GALLON_100LL_FUEL.name]: 'GAL',
+      [UnitType.IMP_GALLON_100LL_FUEL.name]: 'IG',
+      [UnitType.LITER_AUTOGAS_FUEL.name]: 'LT',
+      [UnitType.GALLON_AUTOGAS_FUEL.name]: 'GAL',
+      [UnitType.IMP_GALLON_AUTOGAS_FUEL.name]: 'IG',
+      [G3XUnitType.LITER_SIM_FUEL.name]: 'LT',
+      [G3XUnitType.GALLON_SIM_FUEL.name]: 'GAL',
+      [G3XUnitType.IMP_GALLON_SIM_FUEL.name]: 'IG',
     },
     [UnitFamily.Volume]: {
       [UnitType.LITER.name]: 'L',
@@ -125,7 +178,19 @@ export class G3XUnitFormatter {
       [UnitType.PPH.name]: 'LB/HR',
       [UnitType.LPH_FUEL.name]: 'LT/HR',
       [UnitType.GPH_FUEL.name]: 'GAL/HR',
-      [UnitType.IGPH_FUEL.name]: 'IG/HR'
+      [UnitType.IGPH_FUEL.name]: 'IG/HR',
+      [UnitType.LPH_JET_A_FUEL.name]: 'LT/HR',
+      [UnitType.GPH_JET_A_FUEL.name]: 'GAL/HR',
+      [UnitType.IGPH_JET_A_FUEL.name]: 'IG/HR',
+      [UnitType.LPH_100LL_FUEL.name]: 'LT/HR',
+      [UnitType.GPH_100LL_FUEL.name]: 'GAL/HR',
+      [UnitType.IGPH_100LL_FUEL.name]: 'IG/HR',
+      [UnitType.LPH_AUTOGAS_FUEL.name]: 'LT/HR',
+      [UnitType.GPH_AUTOGAS_FUEL.name]: 'GAL/HR',
+      [UnitType.IGPH_AUTOGAS_FUEL.name]: 'IG/HR',
+      [G3XUnitType.LPH_SIM_FUEL.name]: 'LT/HR',
+      [G3XUnitType.GPH_SIM_FUEL.name]: 'GAL/HR',
+      [G3XUnitType.IGPH_SIM_FUEL.name]: 'IG/HR',
     }
   };
 

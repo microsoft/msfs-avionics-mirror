@@ -1,0 +1,117 @@
+.vsd-container {
+  display: flex;
+  width: 100%;
+  height: 193px;
+  background-color: var(--epic2-color-dark-grey);
+  position: absolute;
+  bottom: 0;
+  border-top: white solid 3px;
+}
+
+.vsd-altitude-container {
+  height: 100%;
+  width: 89px;
+  border-right: 3px var(--epic2-color-white) solid;
+}
+
+.vsd-display-container {
+  width: 534px;
+  height: 100%;
+}
+
+.vsd-display {
+  width: 534px;
+  height: 169px;
+  border-bottom: 3px var(--epic2-color-white) solid;
+  background-color: black;
+  overflow: hidden;
+}
+
+.vsd-range-labels {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.vsd-range-labels p {
+  font-size: 24px;
+  padding: 1px;
+}
+
+.vsd-right-container {
+  border-left: 3px solid white;
+}
+
+.vsd-mode-container {
+  background-color: var(--epic2-color-black);
+  border: solid var(--epic2-color-white) 2px;
+  height: 95px;
+  width: 27px;
+  margin-left: 20px;
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.vsd-mode-auto-annunciator {
+  font-size: 22px;
+  padding-top: 3px;
+  width: 100%;
+  text-align: center;
+  border-bottom: solid var(--epic2-color-white) 2px;
+}
+
+.vsd-mode-annunciator {
+  font-size: 22px;
+  padding-top: 5px;
+  width: 100%;
+  text-align: center;
+  line-height: 0.9;
+}
+
+.vsd-aircraft-icon {
+  position: absolute;
+  height: 30px;
+  width: 90px;
+  bottom: 9px;
+  left: 65px;
+}
+
+.vsd-fpa-line {
+  width: 70px;
+  height: 3px;
+  background-color: var(--epic2-color-green);
+  position: absolute;
+  left: 30px;
+  top: 16px;
+  transform-origin: top left;
+}
+
+.vsd-invalid-position-label {
+  position: absolute;
+  height: 30px;
+  width: 200px;
+  top: 50%;
+  left: 50%;
+  margin-top: -14px;
+  margin-left: -100px;
+}
+
+.vsd-invalid-position-label p {
+  font-size: 20px;
+  text-align: center;
+}
+
+.vsd-invalid-alt-container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  stroke: var(--epic2-color-amber);
+  stroke-width: 3px;
+  stroke-linecap: round;
+}
+
+.vsd-invalid-alt-container svg {
+  height: 190px;
+  width: 86px;
+}

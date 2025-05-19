@@ -1,5 +1,5 @@
 import {
-  AirportFacility, ApproachUtils, ArraySubject, FacilityType, FlightPlan, FlightPlanSegmentType, FlightPlanUtils,
+  AirportFacility, ApproachUtils, ArraySubject, ChartIndex, FacilityType, FlightPlan, FlightPlanSegmentType, FlightPlanUtils,
   FSComponent, ICAO, LegDefinition, MappedSubject, RnavTypeFlags, RunwayUtils, SetSubject, StringUtils, Subject,
   VNode, VorFacility
 } from '@microsoft/msfs-sdk';
@@ -8,7 +8,7 @@ import {
   ApproachListItem, FmsUtils, MinimumsDataProvider, ProcedureType, TouchButton, TransitionListItem, UnitsUserSettings
 } from '@microsoft/msfs-garminsdk';
 
-import { ApproachNameDisplay, ControllableDisplayPaneIndex, G3000FmsUtils } from '@microsoft/msfs-wtg3000-common';
+import { ApproachNameDisplay, ControllableDisplayPaneIndex, G3000ChartsAirportSelectionData, G3000ChartsSource, G3000ChartsUtils, G3000FmsUtils } from '@microsoft/msfs-wtg3000-common';
 
 import { GtcList } from '../../Components/List/GtcList';
 import { GtcMinimumsTouchButton } from '../../Components/Minimums/GtcMinimumsTouchButton';
@@ -308,6 +308,30 @@ export class GtcApproachPage extends GtcProcedureSelectionPage<GtcApproachPagePr
     return undefined;
   }
 
+  /** @inheritDoc */
+  protected async createAirportChartData(
+    selectedAirport: AirportFacility,
+    chartsSource: G3000ChartsSource,
+    chartIndex: ChartIndex<string>
+  ): Promise<G3000ChartsAirportSelectionData> {
+    const approachPages = await G3000ChartsUtils.getPageDataFromMetadata(chartsSource.getApproachCharts(chartIndex))
+      .catch(() => []);
+
+    return {
+      icao: selectedAirport.icaoStruct,
+      source: chartsSource.uid,
+      approachPages,
+      infoPages: [],
+      departurePages: [],
+      arrivalPages: [],
+    };
+  }
+
+  /** @inheritDoc */
+  protected onAirportChartDataRefreshed(): void {
+    this.updateChartPreviewData();
+  }
+
   /**
    * Creates a procedure preview plan with the current selections.
    * @returns Whether the sequence was built or not.
@@ -493,7 +517,54 @@ export class GtcApproachPage extends GtcProcedureSelectionPage<GtcApproachPagePr
       });
     }
 
+    this.updateChartPreviewData();
+
     return this.buildSequence();
+  }
+
+  /**
+   * Updates this page's chart preview data from the currently selected procedure.
+   */
+  private updateChartPreviewData(): void {
+    const airport = this.selectedAirport.get();
+    const approachItem = this.selectedApproachItem.get();
+
+    if (
+      !airport
+      || !approachItem
+      || approachItem.isVisualApproach
+      || !this.airportChartData
+      || this.airportChartData.source === null
+      || !ICAO.valueEquals(airport.icaoStruct, this.airportChartData.icao)
+    ) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const source = this.chartsSources.get(this.airportChartData.source);
+
+    if (!source) {
+      this.chartPreviewData.set(null);
+      return;
+    }
+
+    const transitionItem = this.selectedTransition.get();
+    const transitionName = transitionItem && transitionItem.transitionIndex >= 0 ? transitionItem.name : '';
+
+    const page = source.getApproachPage(
+      this.airportChartData.approachPages,
+      ApproachUtils.getIdentifier(approachItem.approach),
+      transitionName,
+    );
+
+    if (page) {
+      this.chartPreviewData.set({
+        source: source.uid,
+        pageData: page,
+      });
+    } else {
+      this.chartPreviewData.set(null);
+    }
   }
 
   /**

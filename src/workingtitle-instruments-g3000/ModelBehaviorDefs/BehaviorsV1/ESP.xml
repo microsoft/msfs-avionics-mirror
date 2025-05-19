@@ -31,7 +31,7 @@
 			<Condition>
 				<Test>
 					<Greater>
-							<Value>INCR_RESP_HALF_TAS</Value>
+							<Number>#INCR_RESP_HALF_TAS#</Number>
 							<Number>0</Number>
 					</Greater>
 				</Test>

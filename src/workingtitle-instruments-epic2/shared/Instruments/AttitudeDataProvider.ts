@@ -16,11 +16,11 @@ export interface AttitudeDataProvider {
 
 /** An attitude data provider implementation. */
 export class DefaultAttitudeDataProvider implements AttitudeDataProvider, Instrument {
-  private static readonly EXCESSIVE_ATTITUDE_ENTRY_PITCH_DOWN = -20;
-  private static readonly EXCESSIVE_ATTITUDE_ENTRY_PITCH_UP = 30;
+  private static readonly EXCESSIVE_ATTITUDE_ENTRY_PITCH_DOWN = 20; // 20degrees nose down
+  private static readonly EXCESSIVE_ATTITUDE_ENTRY_PITCH_UP = -30; // 30 degrees nose up
   private static readonly EXCESSIVE_ATTITUDE_ENTRY_ROLL = 65;
-  private static readonly EXCESSIVE_ATTITUDE_EXIT_PITCH_DOWN = -18;
-  private static readonly EXCESSIVE_ATTITUDE_EXIT_PITCH_UP = 28;
+  private static readonly EXCESSIVE_ATTITUDE_EXIT_PITCH_DOWN = 18;
+  private static readonly EXCESSIVE_ATTITUDE_EXIT_PITCH_UP = -28;
   private static readonly EXCESSIVE_ATTITUDE_EXIT_ROLL = 63;
 
   private readonly adahrsIndex: Subscribable<number>;
@@ -104,13 +104,14 @@ export class DefaultAttitudeDataProvider implements AttitudeDataProvider, Instru
     const isValid = this._dataValid.get();
 
     if (isValid) {
+      /** Pitch conventions are reversed, so negative pitch = pitch up */
       const pitch = this._pitch.get();
       const roll = this._roll.get();
 
       if (roll && pitch) {
         if (
           (roll < -DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_ROLL || roll > DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_ROLL) ||
-          (pitch < DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_PITCH_DOWN || pitch > DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_PITCH_UP)
+          (pitch > DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_PITCH_DOWN || pitch < DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_ENTRY_PITCH_UP)
         ) {
           this._excessiveAttitude.set(true);
         }
@@ -118,7 +119,7 @@ export class DefaultAttitudeDataProvider implements AttitudeDataProvider, Instru
         if (this._excessiveAttitude.get()) {
           if (
             (roll > -DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_ROLL && roll < DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_ROLL) &&
-            (pitch > DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_PITCH_DOWN && pitch < DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_PITCH_UP)
+            (pitch < DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_PITCH_DOWN && pitch > DefaultAttitudeDataProvider.EXCESSIVE_ATTITUDE_EXIT_PITCH_UP)
           ) {
             this._excessiveAttitude.set(false);
           }

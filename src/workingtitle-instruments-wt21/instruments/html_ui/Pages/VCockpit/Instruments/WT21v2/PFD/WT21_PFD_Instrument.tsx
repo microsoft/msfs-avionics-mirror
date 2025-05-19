@@ -120,16 +120,16 @@ export class WT21_PFD_Instrument extends WT21DisplayUnitFsInstrument {
   }
 
   /** @inheritdoc */
-  protected override doInit(): void {
-    this.initPluginSystem().then(() => {
-      this.doRenderComponents();
-      this.doRegisterMenus();
+  protected override async doInit(): Promise<void> {
+    await this.initPluginSystem();
 
-      super.doInit();
+    this.doRenderComponents();
+    this.doRegisterMenus();
 
-      this.gpws.init();
-      this.tcasTransponderManager.init();
-    });
+    super.doInit();
+
+    this.gpws.init();
+    this.tcasTransponderManager.init();
   }
 
   /**
@@ -157,7 +157,7 @@ export class WT21_PFD_Instrument extends WT21DisplayUnitFsInstrument {
         adfSource={this.navSources.get('ADF')} />
     );
     this.pfdMenuViewService.registerView('PfdConfigMenu', () => <PfdConfigMenu viewService={this.pfdMenuViewService} bus={this.bus} />);
-    this.pfdMenuViewService.registerView('PfdRefsMenu', () => <PfdRefsMenu viewService={this.pfdMenuViewService} bus={this.bus} planner={this.planner} />);
+    this.pfdMenuViewService.registerView('PfdRefsMenu', () => <PfdRefsMenu viewService={this.pfdMenuViewService} bus={this.bus} facLoader={this.facLoader} planner={this.planner} />);
     this.pfdMenuViewService.registerView('PfdOverlaysMenu', () => <PfdOverlaysMenu viewService={this.pfdMenuViewService} bus={this.bus} instrumentIndex={this.instrumentConfig.instrumentIndex} />);
     this.pfdMenuViewService.registerView('PfdBaroSetMenu', () => <PfdBaroSetMenu viewService={this.pfdMenuViewService} bus={this.bus} />);
     this.pfdMenuViewService.registerView(
@@ -211,6 +211,7 @@ export class WT21_PFD_Instrument extends WT21DisplayUnitFsInstrument {
           instrumentConfig={this.instrumentConfig}
           elapsedTime={this.elapsedTime}
           activeMenu={this.pfdMenuViewService.activeView}
+          facLoader={this.facLoader}
           flightPlanner={this.planner}
           tcas={this.tcas}
           fixInfo={this.fixInfoManager}
@@ -220,7 +221,7 @@ export class WT21_PFD_Instrument extends WT21DisplayUnitFsInstrument {
     );
     FSComponent.render(
       <NavIndicatorContext.Provider value={this.navIndicators}>
-        <BottomSectionContainer bus={this.bus} version={BottomSectionVersion.ver1} />
+        <BottomSectionContainer bus={this.bus} version={BottomSectionVersion.ver1} facLoader={this.facLoader} />
       </NavIndicatorContext.Provider>,
       document.getElementById('BottomSection')
     );

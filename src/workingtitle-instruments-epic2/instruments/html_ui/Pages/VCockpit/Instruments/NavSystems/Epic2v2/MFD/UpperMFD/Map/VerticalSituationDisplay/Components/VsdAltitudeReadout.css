@@ -1,0 +1,75 @@
+.vsd-digital-altitude {
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  height: 62px;
+  width: 90px;
+}
+
+.vsd-digital-altitude-background {
+  position: absolute;
+  right: 0;
+  top: 0;
+
+  stroke: var(--epic2-color-grey);
+  stroke-width: 2px;
+  fill: var(--epic2-color-black);
+  paint-order: fill;
+}
+
+.vsd-digital-altitude-background .shadow {
+  stroke: var(--epic2-color-black);
+  stroke-width: 3px;
+  stroke-opacity: 0.5;
+  fill: none;
+}
+
+.vsd-digital-altitude-tumblers {
+  position: absolute;
+  right: 7px;
+  top: 1px;
+
+  color: var(--epic2-color-white);
+  font-size: 22px;
+}
+
+.vsd-alt-digit-scroller {
+  overflow: hidden;
+  position: absolute;
+  width: 18px;
+}
+
+.vsd-alt-ten-thousands-scroller,
+.vsd-alt-thousands-scroller {
+  top: 12px;
+  height: 36px;
+  font-size: 34px;
+
+  --digit-scroller-line-offset-y: 4px;
+  --digit-scroller-line-height: 0.9em;
+}
+
+.vsd-alt-ten-thousands-scroller {
+  right: 57px;
+}
+
+.vsd-alt-thousands-scroller {
+  right: 43px;
+}
+
+.vsd-alt-tens-scroller,
+.vsd-alt-hundreds-scroller {
+  height: 42px;
+  font-size: 24px;
+  width: 24px;
+  right: 10px;
+  top: 9px;
+  --digit-scroller-line-offset-y: 4.7px;
+  --digit-scroller-line-height: 0.9em;
+}
+
+.vsd-alt-hundreds-scroller {
+  right: 21px;
+  --digit-scroller-line-height: 1.25em;
+  top: 8px;
+}

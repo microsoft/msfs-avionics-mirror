@@ -14,9 +14,10 @@ export class MapFacilitySelectModule {
   /**
    * Ctor
    * @param bus The event bus.
+   * @param facLoader The facility loader. If not defined, then a default instance will be created.
    */
-  constructor(bus: EventBus) {
-    this.facLoader = new FacilityLoader(FacilityRepository.getRepository(bus));
+  constructor(bus: EventBus, facLoader?: FacilityLoader) {
+    this.facLoader = facLoader ?? new FacilityLoader(FacilityRepository.getRepository(bus));
     this.facilityIcao.sub(async (v) => {
       if (v) {
         const facility = await this.facLoader.getFacility(ICAO.getFacilityType(v), v);

@@ -23,9 +23,9 @@
   --gtc-procedures-page-row-button-width: 241px;
 
   --gtc-procedures-page-proc-button-top-label-font-size: 30px;
-  --gtc-procedures-page-proc-button-top-label-top: 16px;
+  --gtc-procedures-page-proc-button-top-label-margin-top: 16px;
   --gtc-procedures-page-proc-button-bottom-label-font-size: 39px;
-  --gtc-procedures-page-proc-button-bottom-label-top: 79px;
+  --gtc-procedures-page-proc-button-bottom-label-margin: 0px 10px 19px;
   --gtc-procedures-page-proc-button-icon-scale: 2;
   --gtc-procedures-page-proc-button-icon-top: 20px;
   --gtc-procedures-page-proc-button-icon-left: 35px;
@@ -44,9 +44,9 @@
   --gtc-procedures-page-row-button-width: 130px;
 
   --gtc-procedures-page-proc-button-top-label-font-size: 17px;
-  --gtc-procedures-page-proc-button-top-label-top: 9px;
+  --gtc-procedures-page-proc-button-top-label-margin-top: 9px;
   --gtc-procedures-page-proc-button-bottom-label-font-size: 21px;
-  --gtc-procedures-page-proc-button-bottom-label-top: 44px;
+  --gtc-procedures-page-proc-button-bottom-label-margin: 0px 5px 9px;
   --gtc-procedures-page-proc-button-icon-scale: 1;
   --gtc-procedures-page-proc-button-icon-top: 8px;
   --gtc-procedures-page-proc-button-icon-left: 10px;
@@ -66,22 +66,25 @@
   width: 100%;
   height: var(--gtc-procedures-page-column-button-height);
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  align-items: stretch;
 }
 
 .gtc-procedures-page .procedures-top-column .touch-button .top-label {
-  position: absolute;
+  margin-top: var(--gtc-procedures-page-proc-button-top-label-margin-top);
+  text-align: center;
   font-size: var(--gtc-procedures-page-proc-button-top-label-font-size);
-  top: var(--gtc-procedures-page-proc-button-top-label-top);
 }
 
 .gtc-procedures-page .procedures-top-column .touch-button .bottom-label {
-  position: absolute;
-  width: 100%;
-  text-align: center;
+  position: relative;
+  margin: var(--gtc-procedures-page-proc-button-bottom-label-margin);
   font-size: var(--gtc-procedures-page-proc-button-bottom-label-font-size);
-  top: var(--gtc-procedures-page-proc-button-bottom-label-top);
+  white-space: nowrap;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
 }
 
 .gtc-procedures-page .procedures-top-column .touch-button img {

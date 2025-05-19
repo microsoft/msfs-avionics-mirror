@@ -5,9 +5,9 @@ import { MagVar } from '../../../geo/MagVar';
 import { MathUtils } from '../../../math/MathUtils';
 import { UnitType } from '../../../math/NumberUnit';
 import { Vec3Math } from '../../../math/VecMath';
-import { Facility } from '../../../navigation/Facilities';
 import { ArrayUtils } from '../../../utils/datastructures/ArrayUtils';
 import { LegDefinition } from '../../FlightPlanning';
+import { FlightPathCalculatorFacilityCache } from '../FlightPathCalculatorFacilityCache';
 import { FlightPathLegCalculationOptions } from '../FlightPathLegCalculator';
 import { FlightPathState } from '../FlightPathState';
 import { FlightPathUtils } from '../FlightPathUtils';
@@ -33,7 +33,7 @@ export class FixToManualLegCalculator extends AbstractFlightPathLegCalculator {
    * Creates a new instance of FixToManualLegCalculator.
    * @param facilityCache This calculator's cache of facilities.
    */
-  public constructor(facilityCache: Map<string, Facility>) {
+  public constructor(facilityCache: FlightPathCalculatorFacilityCache) {
     super(facilityCache, false);
   }
 
@@ -43,7 +43,7 @@ export class FixToManualLegCalculator extends AbstractFlightPathLegCalculator {
     calculateIndex: number
   ): void {
     const leg = legs[calculateIndex];
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
     leg.calculated!.courseMagVar = originPos === undefined ? 0 : this.getLegMagVar(leg.leg, originPos);
   }
 
@@ -58,7 +58,7 @@ export class FixToManualLegCalculator extends AbstractFlightPathLegCalculator {
     const leg = legs[calculateIndex];
     const vectors = legs[calculateIndex].calculated!.flightPath;
 
-    const originPos = this.getPositionFromIcao(leg.leg.fixIcao, this.geoPointCache[0]);
+    const originPos = this.getPositionFromIcao(leg.leg.fixIcaoStruct, this.geoPointCache[0]);
 
     if (!originPos) {
       vectors.length = 0;
@@ -77,11 +77,15 @@ export class FixToManualLegCalculator extends AbstractFlightPathLegCalculator {
     if (
       state.currentPosition.isValid()
       && (!state.isDiscontinuity || options.calculateDiscontinuityVectors)
-      && (state.isDiscontinuity || (state.isFallback && state.currentCourse !== undefined))
+      && (
+        state.isDiscontinuity
+        || (state.isFallback && state.currentCourse !== undefined)
+        || !state.currentPosition.equals(originPos)
+      )
     ) {
-      // We are in a discontinuity state and are configured to calculate discontinuity vectors or we are in a fallback
-      // state. We need to compute a path to connect the current position and course to the desired course from the
-      // origin fix.
+      // We are in a discontinuity state and are configured to calculate discontinuity vectors, or we are in a fallback
+      // state, or the current position is not equal to the origin fix. We need to compute a path to connect the
+      // current position and course to the desired course from the origin fix.
 
       const flags = (state.isDiscontinuity ? FlightPathVectorFlags.Discontinuity : FlightPathVectorFlags.None)
         | (state.isFallback && state.currentCourse !== undefined ? FlightPathVectorFlags.Fallback : FlightPathVectorFlags.None);
@@ -99,114 +103,129 @@ export class FixToManualLegCalculator extends AbstractFlightPathLegCalculator {
         }
       }
 
-      const initialPath = this.geoCircleCache[0].setAsGreatCircle(state.currentPosition, state.currentCourse);
-      const finalPath = this.geoCircleCache[1].setAsGreatCircle(originPos, course);
+      const desiredTurnRadius = state.getDesiredTurnRadius(calculateIndex);
 
-      const initialFinalPathAngle = Vec3Math.unitAngle(initialPath.center, finalPath.center);
-      if (initialFinalPathAngle >= Math.PI - GeoMath.ANGULAR_TOLERANCE) {
-        // If the initial path and the final path are antiparallel, then we will path a procedure turn to do a 180.
+      const initialVec = state.currentPosition.toCartesian(this.vec3Cache[1]);
+      const finalPath = this.geoCircleCache[0].setAsGreatCircle(originPos, course);
 
-        vectorIndex += this.procTurnVectorBuilder.build(
-          vectors, vectorIndex,
-          state.currentPosition, initialPath,
-          originVec, finalPath,
-          state.currentCourse + 45,
-          state.desiredCourseReversalTurnRadius.asUnit(UnitType.METER), undefined,
-          state.currentCourse, course,
-          flags | FlightPathVectorFlags.CourseReversal, true
-        );
-      } else if (initialFinalPathAngle > GeoMath.ANGULAR_TOLERANCE) {
-        const interceptFlags = flags | FlightPathVectorFlags.InterceptCourse;
-        const turnFlags = interceptFlags | FlightPathVectorFlags.TurnToCourse;
+      // If we are not calculating discontinuity vectors and the current position lies on the desired course from the
+      // origin fix, then simply path along the desired course starting from the current position. Otherwise, attempt
+      // to build a path from the current position that joins the desired course from the origin fix.
+      if (
+        !state.isDiscontinuity
+        && finalPath.includes(initialVec)
+        && finalPath.distanceAlong(originVec, initialVec, Math.PI, GeoMath.ANGULAR_TOLERANCE) < Math.PI
+      ) {
+        vectorIndex += this.circleVectorBuilder.buildGreatCircle(vectors, vectorIndex, initialVec, course, distance);
+      } else {
+        const initialPath = this.geoCircleCache[1].setAsGreatCircle(initialVec, state.currentCourse);
 
-        vectorIndex += this.interceptGreatCircleToPointVectorBuilder.build(
-          vectors, vectorIndex,
-          state.currentPosition, initialPath,
-          state.desiredTurnRadius.asUnit(UnitType.METER), undefined,
-          45,
-          finalPath.offsetAngleAlong(originVec, MathUtils.HALF_PI, this.vec3Cache[1], Math.PI), finalPath,
-          state.desiredTurnRadius.asUnit(UnitType.METER),
-          turnFlags, interceptFlags, turnFlags
-        );
-      }
+        const initialFinalPathAngle = Vec3Math.unitAngle(initialPath.center, finalPath.center);
+        if (initialFinalPathAngle >= Math.PI - GeoMath.ANGULAR_TOLERANCE) {
+          // If the initial path and the final path are antiparallel, then we will path a procedure turn to do a 180.
 
-      let isOnFinalPath = false;
-      if (initialFinalPathAngle <= GeoMath.ANGULAR_TOLERANCE) {
-        // We were already on the final path at the start of the leg.
-        isOnFinalPath = true;
-      } else if (vectorIndex > 0) {
-        const lastVector = vectors[vectorIndex - 1];
-        state.currentPosition.set(lastVector.endLat, lastVector.endLon);
-        state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+          vectorIndex += this.procTurnVectorBuilder.build(
+            vectors, vectorIndex,
+            initialVec, initialPath,
+            originVec, finalPath,
+            state.currentCourse + 45,
+            state.getDesiredCourseReversalTurnRadius(calculateIndex), undefined,
+            state.currentCourse, course,
+            flags | FlightPathVectorFlags.CourseReversal, true
+          );
+        } else if (initialFinalPathAngle > GeoMath.ANGULAR_TOLERANCE) {
+          const interceptFlags = flags | FlightPathVectorFlags.InterceptCourse;
+          const turnFlags = interceptFlags | FlightPathVectorFlags.TurnToCourse;
 
-        // To check if we are on the final path, first confirm that the last vector ends on the final path. Then,
-        // confirm that the great circle tangent to the last vector where the vector ends is parallel to the final
-        // path.
-        const lastVectorEndVec = state.currentPosition.toCartesian(this.vec3Cache[1]);
-        if (finalPath.includes(lastVectorEndVec)) {
-          const tangentCircleNormal = Vec3Math.normalize(
-            Vec3Math.cross(
+          vectorIndex += this.interceptGreatCircleToPointVectorBuilder.build(
+            vectors, vectorIndex,
+            initialVec, initialPath,
+            desiredTurnRadius, undefined,
+            45,
+            finalPath.offsetAngleAlong(originVec, MathUtils.HALF_PI, this.vec3Cache[2], Math.PI), finalPath,
+            desiredTurnRadius,
+            turnFlags, interceptFlags, turnFlags
+          );
+        }
+
+        let isOnFinalPath = false;
+        if (initialFinalPathAngle <= GeoMath.ANGULAR_TOLERANCE) {
+          // We were already on the final path at the start of the leg.
+          isOnFinalPath = true;
+        } else if (vectorIndex > 0) {
+          const lastVector = vectors[vectorIndex - 1];
+          state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+          state.currentCourse = FlightPathUtils.getVectorFinalCourse(lastVector);
+
+          // To check if we are on the final path, first confirm that the last vector ends on the final path. Then,
+          // confirm that the great circle tangent to the last vector where the vector ends is parallel to the final
+          // path.
+          const lastVectorEndVec = state.currentPosition.toCartesian(this.vec3Cache[1]);
+          if (finalPath.includes(lastVectorEndVec)) {
+            const tangentCircleNormal = Vec3Math.normalize(
               Vec3Math.cross(
+                Vec3Math.cross(
+                  lastVectorEndVec,
+                  Vec3Math.set(lastVector.centerX, lastVector.centerY, lastVector.centerZ, this.vec3Cache[2]),
+                  this.vec3Cache[2]
+                ),
                 lastVectorEndVec,
-                Vec3Math.set(lastVector.centerX, lastVector.centerY, lastVector.centerZ, this.vec3Cache[2]),
                 this.vec3Cache[2]
               ),
-              lastVectorEndVec,
               this.vec3Cache[2]
-            ),
-            this.vec3Cache[2]
-          );
+            );
 
-          // Angular difference <= 1e-6 radians
-          isOnFinalPath = Vec3Math.dot(tangentCircleNormal, finalPath.center) >= 0.9999999999995;
-        }
-      }
-
-      if (isOnFinalPath) {
-        // If we are on the final path, then check if we are behind the origin position. If we are, then we need to
-        // ensure we travel along the final path to the origin before continuing along the final path for the desired
-        // distance.
-
-        const startVec = state.currentPosition.toCartesian(this.vec3Cache[1]);
-        let distanceToOrigin = finalPath.distanceAlong(startVec, originVec, Math.PI, GeoMath.ANGULAR_TOLERANCE);
-
-        if (distanceToOrigin >= Math.PI) {
-          distanceToOrigin = 0;
+            // Angular difference <= 1e-6 radians
+            isOnFinalPath = Vec3Math.dot(tangentCircleNormal, finalPath.center) >= 0.9999999999995;
+          }
         }
 
-        vectorIndex += this.circleVectorBuilder.build(
-          vectors, vectorIndex,
-          finalPath,
-          startVec, finalPath.offsetDistanceAlong(startVec, distance + distanceToOrigin, this.vec3Cache[2], Math.PI)
-        );
-      } else {
-        // If we are not on the final path, then we will just turn toward the prescribed course and fly for the desired
-        // distance along that course.
+        if (isOnFinalPath) {
+          // If we are on the final path, then check if we are behind the origin position. If we are, then we need to
+          // ensure we travel along the final path to the origin before continuing along the final path for the desired
+          // distance.
 
-        if (MathUtils.angularDistanceDeg(state.currentCourse, course, 0) > 1) {
-          vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
-            vectors, vectorIndex,
-            state.currentPosition,
-            state.desiredTurnRadius.asUnit(UnitType.METER),
-            FlightPathUtils.getShortestTurnDirection(state.currentCourse, course) ?? 'right',
-            state.currentCourse, course,
-            FlightPathVectorFlags.Fallback | FlightPathVectorFlags.TurnToCourse
-          );
+          const startVec = state.currentPosition.toCartesian(this.vec3Cache[1]);
+          let distanceToOrigin = finalPath.distanceAlong(startVec, originVec, Math.PI, GeoMath.ANGULAR_TOLERANCE);
 
-          if (vectorIndex > 0) {
-            const lastVector = vectors[vectorIndex - 1];
-            state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+          if (distanceToOrigin >= Math.PI) {
+            distanceToOrigin = 0;
           }
 
-          state.currentCourse = course;
-        }
+          vectorIndex += this.circleVectorBuilder.build(
+            vectors, vectorIndex,
+            finalPath,
+            startVec, finalPath.offsetDistanceAlong(startVec, distance + distanceToOrigin, this.vec3Cache[2], Math.PI)
+          );
+        } else {
+          // If we are not on the final path, then we will just turn toward the prescribed course and fly for the desired
+          // distance along that course.
 
-        vectorIndex += this.circleVectorBuilder.buildGreatCircle(
-          vectors, vectorIndex,
-          state.currentPosition, course,
-          distance,
-          FlightPathVectorFlags.Fallback
-        );
+          if (MathUtils.angularDistanceDeg(state.currentCourse, course, 0) > 1) {
+            vectorIndex += this.circleVectorBuilder.buildTurnToCourse(
+              vectors, vectorIndex,
+              state.currentPosition,
+              desiredTurnRadius,
+              FlightPathUtils.getShortestTurnDirection(state.currentCourse, course) ?? 'right',
+              state.currentCourse, course,
+              FlightPathVectorFlags.Fallback | FlightPathVectorFlags.TurnToCourse
+            );
+
+            if (vectorIndex > 0) {
+              const lastVector = vectors[vectorIndex - 1];
+              state.currentPosition.set(lastVector.endLat, lastVector.endLon);
+            }
+
+            state.currentCourse = course;
+          }
+
+          vectorIndex += this.circleVectorBuilder.buildGreatCircle(
+            vectors, vectorIndex,
+            state.currentPosition, course,
+            distance,
+            FlightPathVectorFlags.Fallback
+          );
+        }
       }
     } else {
       vectorIndex += this.circleVectorBuilder.buildGreatCircle(vectors, vectorIndex, originPos, course, distance);

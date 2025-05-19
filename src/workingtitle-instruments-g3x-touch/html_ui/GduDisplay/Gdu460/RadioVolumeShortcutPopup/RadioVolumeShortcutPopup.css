@@ -14,6 +14,13 @@
   right: 5px;
 }
 
+.radio-volume-shortcut-popup-title {
+  height: 50px;
+  width: 100%;
+  text-align: center;
+  font-size: var(--ui-view-title-font-size);
+}
+
 .radio-volume-shortcut-popup-controls {
   display: flex;
   flex-direction: row;
@@ -23,59 +30,30 @@
   padding-bottom: 15px;
 }
 
-.radio-volume-shortcut-popup-title {
-  height: 50px;
-  width: 100%;
-  text-align: center;
-  font-size: var(--ui-view-title-font-size);
-}
-
-.radio-volume-shortcut-popup .touch-slider-slider-container {
-  border: 4px;
-  border-style: solid;
-  border-color: var(--touch-button-border-color);
-  border-radius: 2px;
-}
-
-.radio-volume-shortcut-popup-slider-occlude {
-  fill: white;
-}
-
-.radio-volume-shortcut-popup .radio-volume-shortcut-popup-slider {
+.radio-volume-shortcut-popup-slider {
   width: 242px;
   height: 80px;
+  font-size: 20px;
+
+  --touch-slider-slider-container-border-color: var(--ui-slider-focused-border-color);
 }
 
-.radio-volume-shortcut-popup .touch-slider-disabled .radio-volume-shortcut-popup-slider-label {
-  filter: grayscale(50%) brightness(40%);
-}
-
-.radio-volume-shortcut-popup-slider-label {
-  font-size: 24px;
+.radio-volume-shortcut-popup-slider .touch-slider-slider-container::after {
+  content: "";
   position: absolute;
-  left: 4px;
-  top: 2px;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  border: var(--ui-slider-focused-inner-border-width) var(--ui-slider-focused-inner-border-style) var(--ui-slider-focused-border-color);
 }
 
-.radio-volume-shortcut-popup-slider-vol-label {
-  font-size: 24px;
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
+.radio-volume-shortcut-popup-slider .touch-slider-slider-background {
+  background: var(--g3x-color-disabled-gray);
 }
 
-.radio-volume-shortcut-popup .touch-slider-slider-container {
-  margin: var(--touch-slider-slider-container-margin);
-  background: var(--g3x-color-black);
-}
-
-.radio-volume-shortcut-popup .touch-slider-slider-foreground {
-  background-size: cover;
-}
-
-.radio-volume-shortcut-popup .touch-slider-slider-foreground {
-  background-color: var(--g3x-color-white);
-  background-size: cover;
+.radio-volume-shortcut-popup-slider .touch-slider-slider-foreground {
+  background: linear-gradient(to right, #25811b, #46f232);
 }
 
 .radio-volume-shortcut-popup-slider-occlude {
@@ -87,14 +65,26 @@
   fill: var(--g3x-color-black);
 }
 
-.radio-volume-shortcut-popup-slider-background {
+.radio-volume-shortcut-popup-slider-label {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  fill: var(--g3x-color-gray);
+  left: 4px;
+  top: 2px;
 }
 
-.pfd-radio-squelch-button {
+.radio-volume-shortcut-popup-slider-vol-label {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  text-shadow: 0 0 4px black;
+}
+
+.radio-volume-shortcut-popup-slider-failure-box {
+  width: 242px;
+  height: 80px;
+  font-size: 20px;
+}
+
+.radio-volume-shortcut-squelch-button {
   margin-left: 20px;
   width: 120px;
   height: 80px;
