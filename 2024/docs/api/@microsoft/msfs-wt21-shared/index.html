@@ -1,0 +1,492 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/@microsoft/msfs-wt21-shared/index" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.8.1"><title data-rh=true>@microsoft/msfs-wt21-shared v3.2.3 | MSFS 2024 Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width, initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="@microsoft/msfs-wt21-shared v3.2.3 | MSFS 2024 Avionics Frameworks and Instruments"><meta data-rh=true name=description content=Enumerations><meta data-rh=true property=og:description content=Enumerations><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/ hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/ hreflang=x-default><script data-rh=true type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/","name":"Avionics Development","position":1},{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/","name":"Shared Plugin API","position":2}]}</script><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.452947e8.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.ec7d8b76.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.3ef592e4.js defer></script><body class=navigation-with-keyboard><svg xmlns=http://www.w3.org/2000/svg style="display: none;"><defs>
+<symbol id=theme-svg-external-link viewBox="0 0 24 24"><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t="dark",e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",e||t),document.documentElement.setAttribute("data-theme-choice",e||t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="theme-layout-navbar navbar navbar--fixed-top"><div class=navbar__inner><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS 2024 Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>Framework API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/cas/cas-system>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a><button aria-label="Collapse sidebar category 'Avionics Development'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3000-common/>G3000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3x/>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>WT21 Development</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>WT21 Plugin API</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item"><div class="menu__list-item-collapsible menu__list-item-collapsible--active"><a class="menu__link menu__link--sublist menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>Shared Plugin API</a><button aria-label="Collapse sidebar category 'Shared Plugin API'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/AirwayLegType>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ActiveWaypointIcon>Classes</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AdcSystemEvents>Interfaces</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/AdcDefinition>Type Aliases</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/ATO_REGEX>Variables</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/functions/initNavIndicatorContext>Functions</a></div></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/>PFD Plugin API</a><button aria-label="Expand sidebar category 'PFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-mfd/>MFD Plugin API</a><button aria-label="Expand sidebar category 'MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-fmc/>FMC Plugin API</a><button aria-label="Expand sidebar category 'FMC Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div></ul><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/overview>Overview</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/panel-xml-basics>panel.xml Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/panel-xml-tag-documentation>panel.xml Tag Documentation</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/electronic-checklists>Electronic Checklists</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/plugin-basics>Plugin Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/pfd-plugins>PFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/mfd-plugins>MFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/fmc-plugins>FMC Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/h-event-list>H Event List</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/overview>Epic2 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/uns/overview>UNS-1Lw Development</a></div></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><a class=breadcrumbs__link href=/msfs-avionics-mirror/2024/docs/avionics/><span>Avionics Development</span></a><li class=breadcrumbs__item><span class=breadcrumbs__link>WT21 Development</span><li class=breadcrumbs__item><span class=breadcrumbs__link>WT21 Plugin API</span><li class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link>Shared Plugin API</span></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>@microsoft/msfs-wt21-shared v3.2.3</h1></header>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enumerations>Enumerations<a href=#enumerations class=hash-link aria-label="Direct link to Enumerations" title="Direct link to Enumerations">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/AirwayLegType>AirwayLegType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/AlongTrackOffsetError>AlongTrackOffsetError</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/BottomSectionVersion>BottomSectionVersion</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/CDIScaleLabel>CDIScaleLabel</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/CheckBoxNumericStyle>CheckBoxNumericStyle</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/DcpEvent>DcpEvent</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/DirectToState>DirectToState</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/DisplayUnitLayout>DisplayUnitLayout</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/ElapsedTimeState>ElapsedTimeState</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/EngineIndicationDisplayMode>EngineIndicationDisplayMode</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/FmcSimVars>FmcSimVars</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/GpwsOperatingMode>GpwsOperatingMode</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/GuiHEvent>GuiHEvent</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/MapWaypointsDisplay>MapWaypointsDisplay</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/MESSAGE_LEVEL>MESSAGE_LEVEL</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/MESSAGE_TARGET>MESSAGE_TARGET</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/MfdDisplayMode>MfdDisplayMode</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/MFDUpperWindowState>MFDUpperWindowState</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/PilotWaypointError>PilotWaypointError</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/PilotWaypointType>PilotWaypointType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/ProcedureType><del>ProcedureType</del></a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/RadioListStyle>RadioListStyle</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/RefSpeedType>RefSpeedType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/TcasOperatingModeSetting>TcasOperatingModeSetting</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/VorTuningMode>VorTuningMode</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/VSpeedType>VSpeedType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WT21ControlVars>WT21ControlVars</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WT21InstrumentType>WT21InstrumentType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WT21LegDefinitionFlags>WT21LegDefinitionFlags</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WT21MapWaypointIconPriority>WT21MapWaypointIconPriority</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WT21MfdTextPage>WT21MfdTextPage</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WTLineLegacyFlightPlans>WTLineLegacyFlightPlans</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/WTLineLegacyMessageIDs><del>WTLineLegacyMessageIDs</del></a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=classes>Classes<a href=#classes class=hash-link aria-label="Direct link to Classes" title="Direct link to Classes">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ActiveWaypointIcon>ActiveWaypointIcon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AdcSystem>AdcSystem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AdcSystemSelector>AdcSystemSelector</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AdfRadioSource>AdfRadioSource</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AhrsSystem>AhrsSystem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AhrsSystemSelector>AhrsSystemSelector</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AOASystem>AOASystem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/AvionicsConfig>AvionicsConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BasePerformanceDataManager>BasePerformanceDataManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BearingPointerDataFields>BearingPointerDataFields</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BottomSectionContainer>BottomSectionContainer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BottomSectionVer1>BottomSectionVer1</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BottomSectionVer2>BottomSectionVer2</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/BottomSectionVer3>BottomSectionVer3</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/CheckBox>CheckBox</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/CheckBoxNumeric>CheckBoxNumeric</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/CheckBoxSelect>CheckBoxSelect</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/CompassRose>CompassRose</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/DcpController>DcpController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/DcpEventPublisher>DcpEventPublisher</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/DcpHEvents>DcpHEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/DefaultsUserSettings>DefaultsUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/DisplayUnitConfig>DisplayUnitConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ElapsedTime>ElapsedTime</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ElapsedTimeDisplay>ElapsedTimeDisplay</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FgpUserSettings>FgpUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FixInfoFacilityWaypoint>FixInfoFacilityWaypoint</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FlightPathWaypointLabel>FlightPathWaypointLabel</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FloatingRadioItem>FloatingRadioItem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FloatingRadioList>FloatingRadioList</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FmcSimVarPublisher>FmcSimVarPublisher</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FmcUserSettings>FmcUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FmsPos>FmsPos</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FormatSwitch>FormatSwitch</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/FuelTempSystemSimple>FuelTempSystemSimple</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/GpsSource>GpsSource</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/Gpws>Gpws</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/GuiDialog>GuiDialog</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIArc>HSIArc</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIArcHeadingVector>HSIArcHeadingVector</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIBearingPointer>HSIBearingPointer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIContainer>HSIContainer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSICourseNeedle>HSICourseNeedle</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIGhostNeedle>HSIGhostNeedle</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIHeadingBug>HSIHeadingBug</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIPlan>HSIPlan</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSIRose>HSIRose</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSITcas>HSITcas</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/HSITrackPointer>HSITrackPointer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/InstrumentConfig>InstrumentConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/LeftInfoPanel>LeftInfoPanel</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapAltitudeArcController>MapAltitudeArcController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapDesAdvisoryLabelFactory>MapDesAdvisoryLabelFactory</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapFacilitySelectModule>MapFacilitySelectModule</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapFixInfoIconFactory>MapFixInfoIconFactory</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapFixInfoWaypointIcon>MapFixInfoWaypointIcon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapFormatController>MapFormatController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapFormatSupportMatrix>MapFormatSupportMatrix</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapRangeController>MapRangeController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapSelectWaypointLayer>MapSelectWaypointLayer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapSystemCommon>MapSystemCommon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapSystemConfig>MapSystemConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTerrainColorsController>MapTerrainColorsController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTerrainStateModule>MapTerrainStateModule</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTodIcon>MapTodIcon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTodIconFactory>MapTodIconFactory</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTodLabelFactory>MapTodLabelFactory</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTodLayer>MapTodLayer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTrafficController>MapTrafficController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapTrafficIntruderIcon>MapTrafficIntruderIcon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MapUserSettings>MapUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MenuContainer>MenuContainer</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MenuViewService>MenuViewService</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/Message>Message</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MessageConditionChecks>MessageConditionChecks</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MessageDefinition>MessageDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MessageDefinitions>MessageDefinitions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MessageManager>MessageManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MessageService>MessageService</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MFDUserSettings>MFDUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/MinimumsDisplay>MinimumsDisplay</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavBase>NavBase</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavBaseFields>NavBaseFields</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavIndicator>NavIndicator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavIndicatorAnimator>NavIndicatorAnimator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavIndicators>NavIndicators</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavRadioNavSource>NavRadioNavSource</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavSourceBase>NavSourceBase</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavSourceDataField>NavSourceDataField</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavSourcePreset>NavSourcePreset</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NavSources>NavSources</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NextradInfo>NextradInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/NumericInput>NumericInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/OperatingMessage>OperatingMessage</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PerformancePlan>PerformancePlan</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PerformancePlanProxy>PerformancePlanProxy</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PerformancePlanRepository>PerformancePlanRepository</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PerformanceVariable>PerformanceVariable</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PfdMessage>PfdMessage</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PfdMessageReceiver>PfdMessageReceiver</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PFDUserSettings>PFDUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PlanFormatController>PlanFormatController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PopupMenu>PopupMenu</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PopupMenuSection>PopupMenuSection</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/PopupSubMenu>PopupSubMenu</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ProxiedPerformancePlanProperty>ProxiedPerformancePlanProperty</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RadioAltimeterSystem>RadioAltimeterSystem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RadioBox>RadioBox</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RadioBoxNumeric>RadioBoxNumeric</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RadioBoxSelect>RadioBoxSelect</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RadioList>RadioList</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/ReadonlyPerformanceVariable>ReadonlyPerformanceVariable</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RefsUserSettings>RefsUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/RightInfoPanel>RightInfoPanel</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/SelectInput>SelectInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/SensorsConfig>SensorsConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/SubmenuLink>SubmenuLink</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/TcasFlag>TcasFlag</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/TerrWxInfo>TerrWxInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/TfcInfo>TfcInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/TrafficUserSettings>TrafficUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/TransponderSystem>TransponderSystem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/VSpeedUserSettings>VSpeedUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WaypointAlerter>WaypointAlerter</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WaypointDisplayController>WaypointDisplayController</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WindVector>WindVector</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21_PFD_MFD_Colors>WT21_PFD_MFD_Colors</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21_PFD_MsgInfo>WT21_PFD_MsgInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21AvionicsPlugin>WT21AvionicsPlugin</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21ChecklistDomParser>WT21ChecklistDomParser</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21ControlSimVarPublisher>WT21ControlSimVarPublisher</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21DisplayUnitFsInstrument>WT21DisplayUnitFsInstrument</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21FlightPlanRouteLoader>WT21FlightPlanRouteLoader</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21FlightPlanRouteSyncManager>WT21FlightPlanRouteSyncManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21Fms>WT21Fms</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21MapKeys>WT21MapKeys</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21MapStylesModule>WT21MapStylesModule</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21SettingSaveManager>WT21SettingSaveManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21TCAS>WT21TCAS</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21TCASTransponderManager>WT21TCASTransponderManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21UiControl>WT21UiControl</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21UiControlList>WT21UiControlList</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21UnitsUtils>WT21UnitsUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21UserSettings>WT21UserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21VNavManager>WT21VNavManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21VnavUtils>WT21VnavUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WT21XmlAuralsConfig>WT21XmlAuralsConfig</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineAlternatePredictor>WTLineAlternatePredictor</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineBearingPointerNavIndicator>WTLineBearingPointerNavIndicator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineControlPublisher>WTLineControlPublisher</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineCoordinatesUtils>WTLineCoordinatesUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineCourseNeedleNavIndicator>WTLineCourseNeedleNavIndicator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFacilityUtils>WTLineFacilityUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFixInfoCalculator>WTLineFixInfoCalculator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFixInfoManager>WTLineFixInfoManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFlightPlanRouteLoader>WTLineFlightPlanRouteLoader</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFlightPlanRouteSyncManager>WTLineFlightPlanRouteSyncManager</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFlightPlanRouteUtils>WTLineFlightPlanRouteUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFms>WTLineFms</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFmsUtils>WTLineFmsUtils</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineGhostNeedleNavIndicator>WTLineGhostNeedleNavIndicator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineLegacyDefaultFlightPlanRepository>WTLineLegacyDefaultFlightPlanRepository</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineNavigationUserSettings>WTLineNavigationUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLinePilotWaypointUtils>WTLinePilotWaypointUtils</a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=interfaces>Interfaces<a href=#interfaces class=hash-link aria-label="Direct link to Interfaces" title="Direct link to Interfaces">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AdcSystemEvents>AdcSystemEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AdcSystemSelectorEvents>AdcSystemSelectorEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AhrsSystemEvents>AhrsSystemEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AhrsSystemSelectorEvents>AhrsSystemSelectorEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AlongTrackOffsetInput>AlongTrackOffsetInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AoaFlapDefinition>AoaFlapDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AoAFlapsDefinition>AoAFlapsDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/AOASystemEvents>AOASystemEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/ApproachPerformanceResults>ApproachPerformanceResults</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/BearingDistPredictions>BearingDistPredictions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/CoordinatesInput>CoordinatesInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/CyclicRadioListProps>CyclicRadioListProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/DcpEvents>DcpEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/DesAdvisoryDetails>DesAdvisoryDetails</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/DisplayUnitConfigInterface>DisplayUnitConfigInterface</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FlightPlanIndexTypes>FlightPlanIndexTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FlightPlanIntersection>FlightPlanIntersection</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FloatingRadioItemProps>FloatingRadioItemProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FmaData>FmaData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FmcSimVarEvents>FmcSimVarEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FmsPosEvents>FmsPosEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FormatInfoProps>FormatInfoProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/FuelTempEvents>FuelTempEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/GpwsEvents>GpwsEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/GpwsModule>GpwsModule</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/GuiDialogProps>GuiDialogProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/IMessageReceiver>IMessageReceiver</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/LatLonPredictions>LatLonPredictions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapAltitudeArcControllerModules>MapAltitudeArcControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapFormatControllerLayers>MapFormatControllerLayers</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapFormatControllerModules>MapFormatControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapSelectWaypointLayerModules>MapSelectWaypointLayerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapSelectWaypointLayerProps>MapSelectWaypointLayerProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapTerrainColorsControllerModules>MapTerrainColorsControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapTodLayerProps>MapTodLayerProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MapTrafficControllerModules>MapTrafficControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MemButtonState>MemButtonState</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/MessageManagerControlEvents>MessageManagerControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/NavIndicatorControlFields>NavIndicatorControlFields</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PerformancePlanData>PerformancePlanData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PfdMessageEvents>PfdMessageEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PfdMessagePacket>PfdMessagePacket</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PfdMessagePresentationInfo>PfdMessagePresentationInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlaceBearingDistanceInput>PlaceBearingDistanceInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlaceBearingPlaceBearingInput>PlaceBearingPlaceBearingInput</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlanFormatControllerContext>PlanFormatControllerContext</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlanFormatControllerModules>PlanFormatControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlanMapCenterRequest>PlanMapCenterRequest</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PlanMapEvents>PlanMapEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/PopupMenuProps>PopupMenuProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/RASystemEvents>RASystemEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/TakeoffPerformanceCalculatorResults>TakeoffPerformanceCalculatorResults</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/TransitionListItem>TransitionListItem</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/TransponderSystemEvents>TransponderSystemEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WaypointDisplayControllerModules>WaypointDisplayControllerModules</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WindEntry>WindEntry</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21ControlSimVarEvents>WT21ControlSimVarEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21MapStyles>WT21MapStyles</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21MfdApprPerfOutputs>WT21MfdApprPerfOutputs</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21MfdTextPageEvents>WT21MfdTextPageEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21MfdToPerfOutputs>WT21MfdToPerfOutputs</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21PluginBinder>WT21PluginBinder</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21UiControlListProps>WT21UiControlListProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21UiControlProps>WT21UiControlProps</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WT21VNavDataEvents>WT21VNavDataEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineControlEvents>WTLineControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoCalculatedData>WTLineFixInfoCalculatedData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoData>WTLineFixInfoData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoEvents>WTLineFixInfoEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoFlightPlanData>WTLineFixInfoFlightPlanData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoMarker>WTLineFixInfoMarker</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoOptions>WTLineFixInfoOptions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoWaypoint>WTLineFixInfoWaypoint</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFlightPlanProcedureIdents>WTLineFlightPlanProcedureIdents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFlightPlanRepository>WTLineFlightPlanRepository</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineLegacyFmsPosEvents><del>WTLineLegacyFmsPosEvents</del></a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineLNavDataEvents>WTLineLNavDataEvents</a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=type-aliases>Type Aliases<a href=#type-aliases class=hash-link aria-label="Direct link to Type Aliases" title="Direct link to Type Aliases">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/AdcDefinition>AdcDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/AhrsDefinition>AhrsDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/AoaDefinition>AoaDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/AOAFormat>AOAFormat</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/ApproachDetails>ApproachDetails</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/ApproachNameParts>ApproachNameParts</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/BaseMfdMapUserSettingTypes>BaseMfdMapUserSettingTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/BasePfdMapUserSettingTypes>BasePfdMapUserSettingTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/DefaultsSettings>DefaultsSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/FacilityInfo>FacilityInfo</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/FgpSettings>FgpSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/FlightPlanIndexType>FlightPlanIndexType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/FmcSettingsManagerType>FmcSettingsManagerType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/FMS_MESSAGE_ID>FMS_MESSAGE_ID</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/GpwsData>GpwsData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/GuiUiControlEvents>GuiUiControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/HSIFormat>HSIFormat</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/HSITickDirection>HSITickDirection</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/IndexedUserSettings>IndexedUserSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MainFlightPlanIndexType>MainFlightPlanIndexType</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MapFixInfoWaypointIconOptions>MapFixInfoWaypointIconOptions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MappedPerformanceVariableTypes>MappedPerformanceVariableTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MapRange>MapRange</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MapSettings>MapSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MapSettingsMfdAliased>MapSettingsMfdAliased</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MapSettingsPfdAliased>MapSettingsPfdAliased</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MfdMapUserSettingTypes>MfdMapUserSettingTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MFDSettings>MFDSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/MFDSettingsAliased>MFDSettingsAliased</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/NavBaseControlEvents>NavBaseControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/NavBaseEvents>NavBaseEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/NavIndicatorControlEvents>NavIndicatorControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/NavIndicatorEvents>NavIndicatorEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/PfdMapUserSettingTypes>PfdMapUserSettingTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/PFDSettings>PFDSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/PilotWaypointResult>PilotWaypointResult</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/RadioAltimeterDefinition>RadioAltimeterDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/RefsSettings>RefsSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/TerrWxState>TerrWxState</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/TrafficSettings>TrafficSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/TransponderDefinition>TransponderDefinition</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/VSpeedData>VSpeedData</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/VSpeedDataAliased>VSpeedDataAliased</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WT21ChecklistDomParserParseOptions>WT21ChecklistDomParserParseOptions</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WT21ChecklistSetDef>WT21ChecklistSetDef</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WT21ChecklistStateProvider>WT21ChecklistStateProvider</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WT21Settings>WT21Settings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineBearingPointerControlEvents>WTLineBearingPointerControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSource>WTLineCourseNeedleNavSource</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSourceName>WTLineCourseNeedleNavSourceName</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSourceNames>WTLineCourseNeedleNavSourceNames</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSources>WTLineCourseNeedleNavSources</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineGhostNeedleControlEvents>WTLineGhostNeedleControlEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineLegacyFlightPlanIndexTypes>WTLineLegacyFlightPlanIndexTypes</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineLegacyMainFlightPlan>WTLineLegacyMainFlightPlan</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavigationSettings>WTLineNavigationSettings</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicator>WTLineNavIndicator</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorEvents>WTLineNavIndicatorEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorName>WTLineNavIndicatorName</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorNames>WTLineNavIndicatorNames</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicators>WTLineNavIndicators</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSource>WTLineNavSource</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceEvents>WTLineNavSourceEvents</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceName>WTLineNavSourceName</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceNames>WTLineNavSourceNames</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSources>WTLineNavSources</a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=variables>Variables<a href=#variables class=hash-link aria-label="Direct link to Variables" title="Direct link to Variables">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/ATO_REGEX>ATO_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/FMS_MESSAGE_ID>FMS_MESSAGE_ID</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/HSICommon>HSICommon</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/LONG_LLA_FORMAT_REGEX>LONG_LLA_FORMAT_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/NavIndicatorContext>NavIndicatorContext</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/PBD_REGEX>PBD_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/PBPB_REGEX>PBPB_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/SHORT_END_LLA_FORMAT_REGEX>SHORT_END_LLA_FORMAT_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/SHORT_MID_LLA_FORMAT_REGEX>SHORT_MID_LLA_FORMAT_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/WT21_H_EVENT_GENERIC_UPR_REGEX>WT21_H_EVENT_GENERIC_UPR_REGEX</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/WT21FlightPlanPredictorConfiguration>WT21FlightPlanPredictorConfiguration</a></li>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/WTLineFixInfoConfig>WTLineFixInfoConfig</a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=functions>Functions<a href=#functions class=hash-link aria-label="Direct link to Functions" title="Direct link to Functions">​</a></h2>
+<ul>
+<li><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/functions/initNavIndicatorContext>initNavIndicatorContext</a></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=references>References<a href=#references class=hash-link aria-label="Direct link to References" title="Direct link to References">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21alternatepredictor>WT21AlternatePredictor<a href=#wt21alternatepredictor class=hash-link aria-label="Direct link to WT21AlternatePredictor" title="Direct link to WT21AlternatePredictor">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineAlternatePredictor>WTLineAlternatePredictor</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21bearingpointercontrolevents>WT21BearingPointerControlEvents<a href=#wt21bearingpointercontrolevents class=hash-link aria-label="Direct link to WT21BearingPointerControlEvents" title="Direct link to WT21BearingPointerControlEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineBearingPointerControlEvents>WTLineBearingPointerControlEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21bearingpointernavindicator>WT21BearingPointerNavIndicator<a href=#wt21bearingpointernavindicator class=hash-link aria-label="Direct link to WT21BearingPointerNavIndicator" title="Direct link to WT21BearingPointerNavIndicator">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineBearingPointerNavIndicator>WTLineBearingPointerNavIndicator</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21controlevents>WT21ControlEvents<a href=#wt21controlevents class=hash-link aria-label="Direct link to WT21ControlEvents" title="Direct link to WT21ControlEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineControlEvents>WTLineControlEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21controlpublisher>WT21ControlPublisher<a href=#wt21controlpublisher class=hash-link aria-label="Direct link to WT21ControlPublisher" title="Direct link to WT21ControlPublisher">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineControlPublisher>WTLineControlPublisher</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21coordinatesutils>WT21CoordinatesUtils<a href=#wt21coordinatesutils class=hash-link aria-label="Direct link to WT21CoordinatesUtils" title="Direct link to WT21CoordinatesUtils">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineCoordinatesUtils>WTLineCoordinatesUtils</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21courseneedlenavindicator>WT21CourseNeedleNavIndicator<a href=#wt21courseneedlenavindicator class=hash-link aria-label="Direct link to WT21CourseNeedleNavIndicator" title="Direct link to WT21CourseNeedleNavIndicator">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineCourseNeedleNavIndicator>WTLineCourseNeedleNavIndicator</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21courseneedlenavsource>WT21CourseNeedleNavSource<a href=#wt21courseneedlenavsource class=hash-link aria-label="Direct link to WT21CourseNeedleNavSource" title="Direct link to WT21CourseNeedleNavSource">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSource>WTLineCourseNeedleNavSource</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21courseneedlenavsourcename>WT21CourseNeedleNavSourceName<a href=#wt21courseneedlenavsourcename class=hash-link aria-label="Direct link to WT21CourseNeedleNavSourceName" title="Direct link to WT21CourseNeedleNavSourceName">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSourceName>WTLineCourseNeedleNavSourceName</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21courseneedlenavsourcenames>WT21CourseNeedleNavSourceNames<a href=#wt21courseneedlenavsourcenames class=hash-link aria-label="Direct link to WT21CourseNeedleNavSourceNames" title="Direct link to WT21CourseNeedleNavSourceNames">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSourceNames>WTLineCourseNeedleNavSourceNames</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21courseneedlenavsources>WT21CourseNeedleNavSources<a href=#wt21courseneedlenavsources class=hash-link aria-label="Direct link to WT21CourseNeedleNavSources" title="Direct link to WT21CourseNeedleNavSources">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineCourseNeedleNavSources>WTLineCourseNeedleNavSources</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfocalculateddata>WT21FixInfoCalculatedData<a href=#wt21fixinfocalculateddata class=hash-link aria-label="Direct link to WT21FixInfoCalculatedData" title="Direct link to WT21FixInfoCalculatedData">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoCalculatedData>WTLineFixInfoCalculatedData</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfocalculator>WT21FixInfoCalculator<a href=#wt21fixinfocalculator class=hash-link aria-label="Direct link to WT21FixInfoCalculator" title="Direct link to WT21FixInfoCalculator">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFixInfoCalculator>WTLineFixInfoCalculator</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfoconfig>WT21FixInfoConfig<a href=#wt21fixinfoconfig class=hash-link aria-label="Direct link to WT21FixInfoConfig" title="Direct link to WT21FixInfoConfig">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/variables/WTLineFixInfoConfig>WTLineFixInfoConfig</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfodata>WT21FixInfoData<a href=#wt21fixinfodata class=hash-link aria-label="Direct link to WT21FixInfoData" title="Direct link to WT21FixInfoData">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoData>WTLineFixInfoData</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfoevents>WT21FixInfoEvents<a href=#wt21fixinfoevents class=hash-link aria-label="Direct link to WT21FixInfoEvents" title="Direct link to WT21FixInfoEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoEvents>WTLineFixInfoEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfoflightplandata>WT21FixInfoFlightPlanData<a href=#wt21fixinfoflightplandata class=hash-link aria-label="Direct link to WT21FixInfoFlightPlanData" title="Direct link to WT21FixInfoFlightPlanData">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoFlightPlanData>WTLineFixInfoFlightPlanData</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfomanager>WT21FixInfoManager<a href=#wt21fixinfomanager class=hash-link aria-label="Direct link to WT21FixInfoManager" title="Direct link to WT21FixInfoManager">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFixInfoManager>WTLineFixInfoManager</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfomarker>WT21FixInfoMarker<a href=#wt21fixinfomarker class=hash-link aria-label="Direct link to WT21FixInfoMarker" title="Direct link to WT21FixInfoMarker">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoMarker>WTLineFixInfoMarker</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfooptions>WT21FixInfoOptions<a href=#wt21fixinfooptions class=hash-link aria-label="Direct link to WT21FixInfoOptions" title="Direct link to WT21FixInfoOptions">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoOptions>WTLineFixInfoOptions</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fixinfowaypoint>WT21FixInfoWaypoint<a href=#wt21fixinfowaypoint class=hash-link aria-label="Direct link to WT21FixInfoWaypoint" title="Direct link to WT21FixInfoWaypoint">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineFixInfoWaypoint>WTLineFixInfoWaypoint</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21flightplanrouteutils>WT21FlightPlanRouteUtils<a href=#wt21flightplanrouteutils class=hash-link aria-label="Direct link to WT21FlightPlanRouteUtils" title="Direct link to WT21FlightPlanRouteUtils">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFlightPlanRouteUtils>WTLineFlightPlanRouteUtils</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21fmsutils>WT21FmsUtils<a href=#wt21fmsutils class=hash-link aria-label="Direct link to WT21FmsUtils" title="Direct link to WT21FmsUtils">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineFmsUtils>WTLineFmsUtils</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21ghostneedlecontrolevents>WT21GhostNeedleControlEvents<a href=#wt21ghostneedlecontrolevents class=hash-link aria-label="Direct link to WT21GhostNeedleControlEvents" title="Direct link to WT21GhostNeedleControlEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineGhostNeedleControlEvents>WTLineGhostNeedleControlEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21ghostneedlenavindicator>WT21GhostNeedleNavIndicator<a href=#wt21ghostneedlenavindicator class=hash-link aria-label="Direct link to WT21GhostNeedleNavIndicator" title="Direct link to WT21GhostNeedleNavIndicator">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineGhostNeedleNavIndicator>WTLineGhostNeedleNavIndicator</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21lnavdataevents>WT21LNavDataEvents<a href=#wt21lnavdataevents class=hash-link aria-label="Direct link to WT21LNavDataEvents" title="Direct link to WT21LNavDataEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/interfaces/WTLineLNavDataEvents>WTLineLNavDataEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navigationsettings>WT21NavigationSettings<a href=#wt21navigationsettings class=hash-link aria-label="Direct link to WT21NavigationSettings" title="Direct link to WT21NavigationSettings">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavigationSettings>WTLineNavigationSettings</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navigationusersettings>WT21NavigationUserSettings<a href=#wt21navigationusersettings class=hash-link aria-label="Direct link to WT21NavigationUserSettings" title="Direct link to WT21NavigationUserSettings">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLineNavigationUserSettings>WTLineNavigationUserSettings</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navindicator>WT21NavIndicator<a href=#wt21navindicator class=hash-link aria-label="Direct link to WT21NavIndicator" title="Direct link to WT21NavIndicator">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicator>WTLineNavIndicator</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navindicatorevents>WT21NavIndicatorEvents<a href=#wt21navindicatorevents class=hash-link aria-label="Direct link to WT21NavIndicatorEvents" title="Direct link to WT21NavIndicatorEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorEvents>WTLineNavIndicatorEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navindicatorname>WT21NavIndicatorName<a href=#wt21navindicatorname class=hash-link aria-label="Direct link to WT21NavIndicatorName" title="Direct link to WT21NavIndicatorName">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorName>WTLineNavIndicatorName</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navindicatornames>WT21NavIndicatorNames<a href=#wt21navindicatornames class=hash-link aria-label="Direct link to WT21NavIndicatorNames" title="Direct link to WT21NavIndicatorNames">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicatorNames>WTLineNavIndicatorNames</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navindicators>WT21NavIndicators<a href=#wt21navindicators class=hash-link aria-label="Direct link to WT21NavIndicators" title="Direct link to WT21NavIndicators">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavIndicators>WTLineNavIndicators</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navsource>WT21NavSource<a href=#wt21navsource class=hash-link aria-label="Direct link to WT21NavSource" title="Direct link to WT21NavSource">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSource>WTLineNavSource</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navsourceevents>WT21NavSourceEvents<a href=#wt21navsourceevents class=hash-link aria-label="Direct link to WT21NavSourceEvents" title="Direct link to WT21NavSourceEvents">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceEvents>WTLineNavSourceEvents</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navsourcename>WT21NavSourceName<a href=#wt21navsourcename class=hash-link aria-label="Direct link to WT21NavSourceName" title="Direct link to WT21NavSourceName">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceName>WTLineNavSourceName</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navsourcenames>WT21NavSourceNames<a href=#wt21navsourcenames class=hash-link aria-label="Direct link to WT21NavSourceNames" title="Direct link to WT21NavSourceNames">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSourceNames>WTLineNavSourceNames</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21navsources>WT21NavSources<a href=#wt21navsources class=hash-link aria-label="Direct link to WT21NavSources" title="Direct link to WT21NavSources">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/type-aliases/WTLineNavSources>WTLineNavSources</a></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wt21pilotwaypointutils>WT21PilotWaypointUtils<a href=#wt21pilotwaypointutils class=hash-link aria-label="Direct link to WT21PilotWaypointUtils" title="Direct link to WT21PilotWaypointUtils">​</a></h3>
+<p>Renames and re-exports <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/classes/WTLinePilotWaypointUtils>WTLinePilotWaypointUtils</a></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/avionics/g3xtouch/features/electronic-charts><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>Electronic Charts</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/enumerations/AirwayLegType><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>AirwayLegType</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#enumerations class="table-of-contents__link toc-highlight">Enumerations</a><li><a href=#classes class="table-of-contents__link toc-highlight">Classes</a><li><a href=#interfaces class="table-of-contents__link toc-highlight">Interfaces</a><li><a href=#type-aliases class="table-of-contents__link toc-highlight">Type Aliases</a><li><a href=#variables class="table-of-contents__link toc-highlight">Variables</a><li><a href=#functions class="table-of-contents__link toc-highlight">Functions</a><li><a href=#references class="table-of-contents__link toc-highlight">References</a><ul><li><a href=#wt21alternatepredictor class="table-of-contents__link toc-highlight">WT21AlternatePredictor</a><li><a href=#wt21bearingpointercontrolevents class="table-of-contents__link toc-highlight">WT21BearingPointerControlEvents</a><li><a href=#wt21bearingpointernavindicator class="table-of-contents__link toc-highlight">WT21BearingPointerNavIndicator</a><li><a href=#wt21controlevents class="table-of-contents__link toc-highlight">WT21ControlEvents</a><li><a href=#wt21controlpublisher class="table-of-contents__link toc-highlight">WT21ControlPublisher</a><li><a href=#wt21coordinatesutils class="table-of-contents__link toc-highlight">WT21CoordinatesUtils</a><li><a href=#wt21courseneedlenavindicator class="table-of-contents__link toc-highlight">WT21CourseNeedleNavIndicator</a><li><a href=#wt21courseneedlenavsource class="table-of-contents__link toc-highlight">WT21CourseNeedleNavSource</a><li><a href=#wt21courseneedlenavsourcename class="table-of-contents__link toc-highlight">WT21CourseNeedleNavSourceName</a><li><a href=#wt21courseneedlenavsourcenames class="table-of-contents__link toc-highlight">WT21CourseNeedleNavSourceNames</a><li><a href=#wt21courseneedlenavsources class="table-of-contents__link toc-highlight">WT21CourseNeedleNavSources</a><li><a href=#wt21fixinfocalculateddata class="table-of-contents__link toc-highlight">WT21FixInfoCalculatedData</a><li><a href=#wt21fixinfocalculator class="table-of-contents__link toc-highlight">WT21FixInfoCalculator</a><li><a href=#wt21fixinfoconfig class="table-of-contents__link toc-highlight">WT21FixInfoConfig</a><li><a href=#wt21fixinfodata class="table-of-contents__link toc-highlight">WT21FixInfoData</a><li><a href=#wt21fixinfoevents class="table-of-contents__link toc-highlight">WT21FixInfoEvents</a><li><a href=#wt21fixinfoflightplandata class="table-of-contents__link toc-highlight">WT21FixInfoFlightPlanData</a><li><a href=#wt21fixinfomanager class="table-of-contents__link toc-highlight">WT21FixInfoManager</a><li><a href=#wt21fixinfomarker class="table-of-contents__link toc-highlight">WT21FixInfoMarker</a><li><a href=#wt21fixinfooptions class="table-of-contents__link toc-highlight">WT21FixInfoOptions</a><li><a href=#wt21fixinfowaypoint class="table-of-contents__link toc-highlight">WT21FixInfoWaypoint</a><li><a href=#wt21flightplanrouteutils class="table-of-contents__link toc-highlight">WT21FlightPlanRouteUtils</a><li><a href=#wt21fmsutils class="table-of-contents__link toc-highlight">WT21FmsUtils</a><li><a href=#wt21ghostneedlecontrolevents class="table-of-contents__link toc-highlight">WT21GhostNeedleControlEvents</a><li><a href=#wt21ghostneedlenavindicator class="table-of-contents__link toc-highlight">WT21GhostNeedleNavIndicator</a><li><a href=#wt21lnavdataevents class="table-of-contents__link toc-highlight">WT21LNavDataEvents</a><li><a href=#wt21navigationsettings class="table-of-contents__link toc-highlight">WT21NavigationSettings</a><li><a href=#wt21navigationusersettings class="table-of-contents__link toc-highlight">WT21NavigationUserSettings</a><li><a href=#wt21navindicator class="table-of-contents__link toc-highlight">WT21NavIndicator</a><li><a href=#wt21navindicatorevents class="table-of-contents__link toc-highlight">WT21NavIndicatorEvents</a><li><a href=#wt21navindicatorname class="table-of-contents__link toc-highlight">WT21NavIndicatorName</a><li><a href=#wt21navindicatornames class="table-of-contents__link toc-highlight">WT21NavIndicatorNames</a><li><a href=#wt21navindicators class="table-of-contents__link toc-highlight">WT21NavIndicators</a><li><a href=#wt21navsource class="table-of-contents__link toc-highlight">WT21NavSource</a><li><a href=#wt21navsourceevents class="table-of-contents__link toc-highlight">WT21NavSourceEvents</a><li><a href=#wt21navsourcename class="table-of-contents__link toc-highlight">WT21NavSourceName</a><li><a href=#wt21navsourcenames class="table-of-contents__link toc-highlight">WT21NavSourceNames</a><li><a href=#wt21navsources class="table-of-contents__link toc-highlight">WT21NavSources</a><li><a href=#wt21pilotwaypointutils class="table-of-contents__link toc-highlight">WT21PilotWaypointUtils</a></ul></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk>Garmin API Reference</a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2025 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>

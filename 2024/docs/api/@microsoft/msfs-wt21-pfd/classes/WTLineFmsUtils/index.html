@@ -1,0 +1,1990 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.8.1"><title data-rh=true>Class: WTLineFmsUtils | MSFS 2024 Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width, initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="Class: WTLineFmsUtils | MSFS 2024 Avionics Frameworks and Instruments"><meta data-rh=true name=description content="Defined in17"><meta data-rh=true property=og:description content="Defined in17"><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils hreflang=x-default><script data-rh=true type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/","name":"Avionics Development","position":1},{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/","name":"PFD Plugin API","position":2},{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils","name":"WTLineFmsUtils","position":3}]}</script><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.452947e8.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.ec7d8b76.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.3ef592e4.js defer></script><body class=navigation-with-keyboard><svg xmlns=http://www.w3.org/2000/svg style="display: none;"><defs>
+<symbol id=theme-svg-external-link viewBox="0 0 24 24"><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t="dark",e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",e||t),document.documentElement.setAttribute("data-theme-choice",e||t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="theme-layout-navbar navbar navbar--fixed-top"><div class=navbar__inner><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS 2024 Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>Framework API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/cas/cas-system>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a><button aria-label="Collapse sidebar category 'Avionics Development'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3000-common/>G3000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3x/>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>WT21 Development</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-3 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>WT21 Plugin API</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>Shared Plugin API</a><button aria-label="Expand sidebar category 'Shared Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/>PFD Plugin API</a><button aria-label="Collapse sidebar category 'PFD Plugin API'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/enumerations/AirwayLegType>Enumerations</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AdfRadioSource>Classes</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AdfRadioSource>AdfRadioSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AdiProjectionUtils>AdiProjectionUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AirspeedIndicator>AirspeedIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AirspeedSelectBox>AirspeedSelectBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AirspeedTrendVector>AirspeedTrendVector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/Altimeter>Altimeter</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AltitudeAlertController>AltitudeAlertController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AltPreselectBox>AltPreselectBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AoaIndicator>AoaIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/ArtificialHorizon>ArtificialHorizon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AttitudeDirectorIndicator>AttitudeDirectorIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/AttitudeIndicator>AttitudeIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/BaroPreset>BaroPreset</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/BasePerformanceDataManager>BasePerformanceDataManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/DefaultsUserSettings>DefaultsUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/DonutSpeedBug>DonutSpeedBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/FlapSpeedBug>FlapSpeedBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/FlcSpeedBug>FlcSpeedBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/FlightDirector>FlightDirector</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/FlightModeAnnunciator>FlightModeAnnunciator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/FmcSimVarPublisher>FmcSimVarPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/GpsSource>GpsSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/LateralDeviationIndicator>LateralDeviationIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/LowerSectionContainer>LowerSectionContainer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/MachDisplay>MachDisplay</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/MarkerBeacon>MarkerBeacon</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/MinimumsAlertController>MinimumsAlertController</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavBase>NavBase</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavBaseFields>NavBaseFields</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavIndicator>NavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavIndicators>NavIndicators</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavRadioNavSource>NavRadioNavSource</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavSourceBase>NavSourceBase</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/NavSources>NavSources</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PerformancePlan>PerformancePlan</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PerformancePlanProxy>PerformancePlanProxy</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PerformancePlanRepository>PerformancePlanRepository</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PerformanceVariable>PerformanceVariable</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdBaroSetMenu>PfdBaroSetMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdBrgSrcMenu>PfdBrgSrcMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdConfigMenu>PfdConfigMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdInstrumentConfig>PfdInstrumentConfig</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdMenu>PfdMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdMenuViewService>PfdMenuViewService</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdOverlaysMenu>PfdOverlaysMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdRefsMenu>PfdRefsMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdSideButtonsNavBrgSrcMenu>PfdSideButtonsNavBrgSrcMenu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdSideButtonsRefs1Menu>PfdSideButtonsRefs1Menu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/PfdSideButtonsRefs2Menu>PfdSideButtonsRefs2Menu</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/ProxiedPerformancePlanProperty>ProxiedPerformancePlanProperty</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/RadioAltimeter>RadioAltimeter</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/RadioBoxBaro>RadioBoxBaro</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/RadioBoxSTD>RadioBoxSTD</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/ReadonlyPerformanceVariable>ReadonlyPerformanceVariable</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/ReversionFlag>ReversionFlag</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/SpeedBug>SpeedBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/SpeedRange>SpeedRange</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/UpperSectionContainer>UpperSectionContainer</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/VerticalDeviationIndicator>VerticalDeviationIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/VnavPreselectBox>VnavPreselectBox</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/VSI>VSI</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/VSpeedBug>VSpeedBug</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/VSpeedValue>VSpeedValue</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WT21_PFD_Instrument>WT21_PFD_Instrument</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineAlternatePredictor>WTLineAlternatePredictor</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineBearingPointerNavIndicator>WTLineBearingPointerNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineControlPublisher>WTLineControlPublisher</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineCoordinatesUtils>WTLineCoordinatesUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineCourseNeedleNavIndicator>WTLineCourseNeedleNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFacilityUtils>WTLineFacilityUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFixInfoCalculator>WTLineFixInfoCalculator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFixInfoManager>WTLineFixInfoManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFlightPlanRouteLoader>WTLineFlightPlanRouteLoader</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFlightPlanRouteSyncManager>WTLineFlightPlanRouteSyncManager</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFlightPlanRouteUtils>WTLineFlightPlanRouteUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFms>WTLineFms</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFmsUtils>WTLineFmsUtils</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineGhostNeedleNavIndicator>WTLineGhostNeedleNavIndicator</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineLegacyDefaultFlightPlanRepository>WTLineLegacyDefaultFlightPlanRepository</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineNavigationUserSettings>WTLineNavigationUserSettings</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-6 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLinePilotWaypointUtils>WTLinePilotWaypointUtils</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/interfaces/AlongTrackOffsetInput>Interfaces</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/type-aliases/AirspeedTrendVectorProps>Type Aliases</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-5 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/variables/ATO_REGEX>Variables</a></div></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-mfd/>MFD Plugin API</a><button aria-label="Expand sidebar category 'MFD Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-4 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist" tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-fmc/>FMC Plugin API</a><button aria-label="Expand sidebar category 'FMC Plugin API'" aria-expanded=false type=button class="clean-btn menu__caret"></button></div></ul><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/overview>Overview</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/panel-xml-basics>panel.xml Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/panel-xml-tag-documentation>panel.xml Tag Documentation</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/electronic-checklists>Electronic Checklists</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/plugin-basics>Plugin Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/pfd-plugins>PFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/mfd-plugins>MFD Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/fmc-plugins>FMC Plugins</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/wt21/h-event-list>H Event List</a></ul><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/overview>Epic2 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/uns/overview>UNS-1Lw Development</a></div></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><a class=breadcrumbs__link href=/msfs-avionics-mirror/2024/docs/avionics/><span>Avionics Development</span></a><li class=breadcrumbs__item><span class=breadcrumbs__link>WT21 Development</span><li class=breadcrumbs__item><span class=breadcrumbs__link>WT21 Plugin API</span><li class=breadcrumbs__item><a class=breadcrumbs__link href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/><span>PFD Plugin API</span></a><li class=breadcrumbs__item><span class=breadcrumbs__link>Classes</span><li class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link>WTLineFmsUtils</span></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Class: WTLineFmsUtils</h1></header>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:17</p>
+<p>Utility Methods for the WT21 FMS.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=constructors>Constructors<a href=#constructors class=hash-link aria-label="Direct link to Constructors" title="Direct link to Constructors">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=constructor>Constructor<a href=#constructor class=hash-link aria-label="Direct link to Constructor" title="Direct link to Constructor">​</a></h3>
+<blockquote>
+<p><strong>new WTLineFmsUtils</strong>(): <code>WTLineFmsUtils</code></p>
+</blockquote>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns>Returns<a href=#returns class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>WTLineFmsUtils</code></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=dto_leg_offset>DTO_LEG_OFFSET<a href=#dto_leg_offset class=hash-link aria-label="Direct link to DTO_LEG_OFFSET" title="Direct link to DTO_LEG_OFFSET">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>DTO_LEG_OFFSET</strong>: <code>3</code> = <code>3</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:31</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getbestrnavtype>getBestRnavType()<a href=#getbestrnavtype class=hash-link aria-label="Direct link to getBestRnavType()" title="Direct link to getBestRnavType()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getBestRnavType</strong>: (<code>query</code>) => <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/RnavTypeFlags><code>RnavTypeFlags</code></a> = <code>ApproachUtils.getBestRnavType</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:198</p>
+<p>Utility method to return a single RnavTypeFlag from multiple possible flags.</p>
+<p>Gets the best RNAV minimum type available for a given approach.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters>Parameters<a href=#parameters class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>query</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/RnavTypeFlags><code>RnavTypeFlags</code></a><td>The approach to check, or its RNAV type flags.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-1>Returns<a href=#returns-1 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/RnavTypeFlags><code>RnavTypeFlags</code></a></p>
+<p>The best RNAV minimum type available for the specified approach.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=param>Param<a href=#param class=hash-link aria-label="Direct link to Param" title="Direct link to Param">​</a></h4>
+<p>The input RnavTypeFlags.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-2>Returns<a href=#returns-2 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p>A single RnavTypeFlag</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=primary_act_plan_index><del>PRIMARY_ACT_PLAN_INDEX</del><a href=#primary_act_plan_index class=hash-link aria-label="Direct link to primary_act_plan_index" title="Direct link to primary_act_plan_index">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>PRIMARY_ACT_PLAN_INDEX</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/enumerations/WTLineLegacyFlightPlans#active><code>Active</code></a> = <code>WTLineLegacyFlightPlans.Active</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:23</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated>Deprecated<a href=#deprecated class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/enumerations/WTLineLegacyFlightPlans>WTLineLegacyFlightPlans</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=primary_mod_plan_index><del>PRIMARY_MOD_PLAN_INDEX</del><a href=#primary_mod_plan_index class=hash-link aria-label="Direct link to primary_mod_plan_index" title="Direct link to primary_mod_plan_index">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>PRIMARY_MOD_PLAN_INDEX</strong>: <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/enumerations/WTLineLegacyFlightPlans#mod><code>Mod</code></a> = <code>WTLineLegacyFlightPlans.Mod</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:26</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-1>Deprecated<a href=#deprecated-1 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/enumerations/WTLineLegacyFlightPlans>WTLineLegacyFlightPlans</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=proc_preview_plan_index><del>PROC_PREVIEW_PLAN_INDEX</del><a href=#proc_preview_plan_index class=hash-link aria-label="Direct link to proc_preview_plan_index" title="Direct link to proc_preview_plan_index">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>PROC_PREVIEW_PLAN_INDEX</strong>: <code>2</code> = <code>2</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:29</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-2>Deprecated<a href=#deprecated-2 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>not used</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=user_data_key_altn>USER_DATA_KEY_ALTN<a href=#user_data_key_altn class=hash-link aria-label="Direct link to USER_DATA_KEY_ALTN" title="Direct link to USER_DATA_KEY_ALTN">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>USER_DATA_KEY_ALTN</strong>: <code>"wt21.altn"</code> = <code>'wt21.altn'</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:33</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=user_data_key_fix_info>USER_DATA_KEY_FIX_INFO<a href=#user_data_key_fix_info class=hash-link aria-label="Direct link to USER_DATA_KEY_FIX_INFO" title="Direct link to USER_DATA_KEY_FIX_INFO">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>USER_DATA_KEY_FIX_INFO</strong>: <code>"wt21.fix-info"</code> = <code>'wt21.fix-info'</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:35</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=user_data_key_procedure_idents>USER_DATA_KEY_PROCEDURE_IDENTS<a href=#user_data_key_procedure_idents class=hash-link aria-label="Direct link to USER_DATA_KEY_PROCEDURE_IDENTS" title="Direct link to USER_DATA_KEY_PROCEDURE_IDENTS">​</a></h3>
+<blockquote>
+<p><code>readonly</code> <code>static</code> <strong>USER_DATA_KEY_PROCEDURE_IDENTS</strong>: <code>"wtline.procedure-idents"</code> = <code>'wtline.procedure-idents'</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:37</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=methods>Methods<a href=#methods class=hash-link aria-label="Direct link to Methods" title="Direct link to Methods">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=approachhasnavfrequency>approachHasNavFrequency()<a href=#approachhasnavfrequency class=hash-link aria-label="Direct link to approachHasNavFrequency()" title="Direct link to approachHasNavFrequency()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>approachHasNavFrequency</strong>(<code>approach</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:502</p>
+<p>Checks whether an approach has a primary NAV frequency based on its type. Only approaches of the following types
+have primary NAV frequencies: ILS, LOC (BC), LDA, SDF, VOR(DME).</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-1>Parameters<a href=#parameters-1 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>approach</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a><td>The approach to check.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-3>Returns<a href=#returns-3 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the specified approach has a primary NAV frequency based on its type.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=buildrunwayleg>buildRunwayLeg()<a href=#buildrunwayleg class=hash-link aria-label="Direct link to buildRunwayLeg()" title="Direct link to buildRunwayLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>buildRunwayLeg</strong>(<code>airport</code>, <code>oneWayRunway</code>, <code>isOriginRunway</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:101</p>
+<p>Utility method to return a one-way runway leg</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-2>Parameters<a href=#parameters-2 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>airport</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>The runway's parent airport.<tr><td><code>oneWayRunway</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/OneWayRunway><code>OneWayRunway</code></a><td>is the one wway runway object<tr><td><code>isOriginRunway</code><td><code>boolean</code><td>is a bool whether this is the origin or destination (origin = true, dest = false)</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-4>Returns<a href=#returns-4 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a></p>
+<p>a leg object for the runway</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=buildvisualapproach>buildVisualApproach()<a href=#buildvisualapproach class=hash-link aria-label="Direct link to buildVisualApproach()" title="Direct link to buildVisualApproach()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>buildVisualApproach</strong>(<code>facRepo</code>, <code>airport</code>, <code>runway</code>, <code>finalLegDistance</code>, <code>name?</code>, <code>finalLegIdent?</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:122</p>
+<p>Utility method to return a visual approach for a runway.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-3>Parameters<a href=#parameters-3 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>facRepo</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FacilityRepository><code>FacilityRepository</code></a><td>is a facility repository in which to store the created faf leg facility<tr><td><code>airport</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>is the airport facility for the visual approach.<tr><td><code>runway</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/OneWayRunway><code>OneWayRunway</code></a><td>is the runway to build the visual approach for.<tr><td><code>finalLegDistance</code><td><code>number</code><td>is the distance from the runway to place the faf leg in NM.<tr><td><code>name?</code><td><code>string</code><td>is the optional name for the approach.<tr><td><code>finalLegIdent?</code><td><code>string</code><td>is the optional name for the faf leg.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-5>Returns<a href=#returns-5 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a></p>
+<p>an approach procedure.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=buildwt21legname>buildWT21LegName()<a href=#buildwt21legname class=hash-link aria-label="Direct link to buildWT21LegName()" title="Direct link to buildWT21LegName()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>buildWT21LegName</strong>(<code>leg</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1041</p>
+<p>Builds leg names using default nomenclature.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-4>Parameters<a href=#parameters-4 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a><td>The leg to build a name for.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-6>Returns<a href=#returns-6 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>The name of the leg.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=canlegbeselectedondirectpage>canLegBeSelectedOnDirectPage()<a href=#canlegbeselectedondirectpage class=hash-link aria-label="Direct link to canLegBeSelectedOnDirectPage()" title="Direct link to canLegBeSelectedOnDirectPage()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>canLegBeSelectedOnDirectPage</strong>(<code>leg</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1015</p>
+<p>Checks whether a leg should appear on the Direct To Page based on leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-5>Parameters<a href=#parameters-5 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a><td>The FlightPlanLeg to evaluate.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-7>Returns<a href=#returns-7 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>whether or not the leg should appear on the Direct To page.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=distancebetweendiscontinuedlegs>distanceBetweenDiscontinuedLegs()<a href=#distancebetweendiscontinuedlegs class=hash-link aria-label="Direct link to distanceBetweenDiscontinuedLegs()" title="Direct link to distanceBetweenDiscontinuedLegs()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>distanceBetweenDiscontinuedLegs</strong>(<code>prevLeg</code>, <code>nextLeg</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1299</p>
+<p>Returns the distance between the end of a leg before a discontinuity and the start of the leg after that discontinuity</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-6>Parameters<a href=#parameters-6 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>prevLeg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a><td>the leg before the discontinuity<tr><td><code>nextLeg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a><td>the leg after the discontinuity</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-8>Returns<a href=#returns-8 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>the great circle distance between the end of the previous leg and the start of the next leg, in metres</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=emptyflightplan>emptyFlightPlan()<a href=#emptyflightplan class=hash-link aria-label="Direct link to emptyFlightPlan()" title="Direct link to emptyFlightPlan()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>emptyFlightPlan</strong>(<code>plan</code>, <code>notify</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:56</p>
+<p>Empties a given flight plan</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-7>Parameters<a href=#parameters-7 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td><code>undefined</code><td>the plan to empty<tr><td><code>notify</code><td><code>boolean</code><td><code>true</code><td>whether to send out sync events</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-9>Returns<a href=#returns-9 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=estimatedistanceforseconds>estimateDistanceForSeconds()<a href=#estimatedistanceforseconds class=hash-link aria-label="Direct link to estimateDistanceForSeconds()" title="Direct link to estimateDistanceForSeconds()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>estimateDistanceForSeconds</strong>(<code>seconds</code>, <code>groundSpeed</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1266</p>
+<p>Calculates distance flown for a number of seconds at a ground speed</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-8>Parameters<a href=#parameters-8 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>seconds</code><td><code>number</code><td>time flown in number of seconds<tr><td><code>groundSpeed</code><td><code>number</code><td>GS to predict with</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-10>Returns<a href=#returns-10 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>distance in nautical miles</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=estimatesecondsfordistance>estimateSecondsForDistance()<a href=#estimatesecondsfordistance class=hash-link aria-label="Direct link to estimateSecondsForDistance()" title="Direct link to estimateSecondsForDistance()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>estimateSecondsForDistance</strong>(<code>distance</code>, <code>groundSpeed</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1254</p>
+<p>Calculates time in seconds to fly a certain distance at a ground speed</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-9>Parameters<a href=#parameters-9 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>distance</code><td><code>number</code><td>distance to fly<tr><td><code>groundSpeed</code><td><code>number</code><td>GS to predict with</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-11>Returns<a href=#returns-11 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>time in number of seconds</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=findicaoinsegment>findIcaoInSegment()<a href=#findicaoinsegment class=hash-link aria-label="Direct link to findIcaoInSegment()" title="Direct link to findIcaoInSegment()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>findIcaoInSegment</strong>(<code>segment</code>, <code>icao</code>): <code>undefined</code> | <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:82</p>
+<p>Checks whether a leg exists in a segment with the specified ICAO and, if so, returns the leg index of that leg.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-10>Parameters<a href=#parameters-10 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>segment</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanSegment><code>FlightPlanSegment</code></a><td>The segment to check for the icao.<tr><td><code>icao</code><td><code>undefined</code> | <code>string</code><td>The ICAO to check for in the segment.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-12>Returns<a href=#returns-12 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <code>number</code></p>
+<p>The segment leg index of the leg with the matching icao, or -1.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=formatfacilityfrequencytype>formatFacilityFrequencyType()<a href=#formatfacilityfrequencytype class=hash-link aria-label="Direct link to formatFacilityFrequencyType()" title="Direct link to formatFacilityFrequencyType()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>formatFacilityFrequencyType</strong>(<code>frequency</code>, <code>noneString</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1322</p>
+<p>Formats a facility frequency's type for display on the FMC</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-11>Parameters<a href=#parameters-11 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>frequency</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FacilityFrequency><code>FacilityFrequency</code></a><td><code>undefined</code><td>the frequency<tr><td><code>noneString</code><td><code>string</code><td><code>'UNKNOWN'</code><td>(optional) the string to return when the type is "None"</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-13>Returns<a href=#returns-13 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>a string</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getactivesegment>getActiveSegment()<a href=#getactivesegment class=hash-link aria-label="Direct link to getActiveSegment()" title="Direct link to getActiveSegment()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getActiveSegment</strong>(<code>plan</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanSegment><code>FlightPlanSegment</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:44</p>
+<p>Gets the active segment in the Lateral Flight Plan.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-12>Parameters<a href=#parameters-12 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>The Lateral Flight Plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-14>Returns<a href=#returns-14 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanSegment><code>FlightPlanSegment</code></a></p>
+<p>The Active Flight Plan Segment or undefined.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getapproachfromplan>getApproachFromPlan()<a href=#getapproachfromplan class=hash-link aria-label="Direct link to getApproachFromPlan()" title="Direct link to getApproachFromPlan()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getApproachFromPlan</strong>(<code>plan</code>, <code>destination</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:237</p>
+<p>Gets an approach procedure from a flight plan.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-13>Parameters<a href=#parameters-13 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.<tr><td><code>destination</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>The detsination airport of the flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-15>Returns<a href=#returns-15 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a></p>
+<p>The approach procedure from the flight plan, or undefined if the plan has no approach.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getapproachnameasparts>getApproachNameAsParts()<a href=#getapproachnameasparts class=hash-link aria-label="Direct link to getApproachNameAsParts()" title="Direct link to getApproachNameAsParts()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getApproachNameAsParts</strong>(<code>proc</code>, <code>transitionIndex</code>, <code>includeTransition</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/type-aliases/ApproachNameParts><code>ApproachNameParts</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:425</p>
+<p>Utility method to analyze an approach for its name components and
+pack them into a custom type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-14>Parameters<a href=#parameters-14 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>proc</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/ApproachProcedure><code>ApproachProcedure</code></a><td><code>undefined</code><td>The approach procedure.<tr><td><code>transitionIndex</code><td><code>number</code><td><code>undefined</code><td>The transition index.<tr><td><code>includeTransition</code><td><code>boolean</code><td><code>true</code><td>Whether to include the transition identifier.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-16>Returns<a href=#returns-16 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/type-aliases/ApproachNameParts><code>ApproachNameParts</code></a></p>
+<p>The name as an ApproachNameParts</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getapproachnameasstring>getApproachNameAsString()<a href=#getapproachnameasstring class=hash-link aria-label="Direct link to getApproachNameAsString()" title="Direct link to getApproachNameAsString()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getApproachNameAsString</strong>(<code>facility</code>, <code>procedureIndex</code>, <code>transitionIndex</code>, <code>includeTransition</code>, <code>padSuffix</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:483</p>
+<p>Utility method that gets an approach and returns its name as a flat
+string suitable for use in embedded text content.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-15>Parameters<a href=#parameters-15 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>facility</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td><code>undefined</code><td>The Facility.<tr><td><code>procedureIndex</code><td><code>number</code><td><code>undefined</code><td>The approach index.<tr><td><code>transitionIndex</code><td><code>number</code><td><code>undefined</code><td>The index of the approach transition.<tr><td><code>includeTransition</code><td><code>boolean</code><td><code>true</code><td>Whether to include the transition identifier.<tr><td><code>padSuffix</code><td><code>boolean</code><td><code>false</code><td>Whether to include space for the suffix even where there isn't one.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-17>Returns<a href=#returns-17 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>The formatted name as a string.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getapproachvtfleg>getApproachVtfLeg()<a href=#getapproachvtfleg class=hash-link aria-label="Direct link to getApproachVtfLeg()" title="Direct link to getApproachVtfLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getApproachVtfLeg</strong>(<code>plan</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:290</p>
+<p>Gets the vectors-to-final leg of a flight plan.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-16>Parameters<a href=#parameters-16 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-18>Returns<a href=#returns-18 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a></p>
+<p>The vectors-to-final leg of the flight plan, or undefined if one could not be found.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getarrivalnameasstring>getArrivalNameAsString()<a href=#getarrivalnameasstring class=hash-link aria-label="Direct link to getArrivalNameAsString()" title="Direct link to getArrivalNameAsString()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getArrivalNameAsString</strong>(<code>facility</code>, <code>procedureIndex</code>, <code>transitionIndex</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:393</p>
+<p>Gets the name of a arrival procedure as a string.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-17>Parameters<a href=#parameters-17 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>facility</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>The airport to which the arrival belongs.<tr><td><code>procedureIndex</code><td><code>number</code><td>An arrival procedure index.<tr><td><code>transitionIndex</code><td><code>number</code><td>The index of the arrival enroute transition.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-19>Returns<a href=#returns-19 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>The name of the arrival procedure.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getconstraintdisplayfordirectpage>getConstraintDisplayForDirectPage()<a href=#getconstraintdisplayfordirectpage class=hash-link aria-label="Direct link to getConstraintDisplayForDirectPage()" title="Direct link to getConstraintDisplayForDirectPage()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getConstraintDisplayForDirectPage</strong>(<code>verticalData</code>, <code>transitionAltitude</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:777</p>
+<p>Method to get the FMS constraint display data from a verticalData object</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-18>Parameters<a href=#parameters-18 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>verticalData</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/VerticalData><code>VerticalData</code></a><td><code>undefined</code><td>is the Vertical Data object for the leg<tr><td><code>transitionAltitude</code><td><code>number</code><td><code>18000</code><td>is the transition altitude that applies to the constraint</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-20>Returns<a href=#returns-20 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>A string to display on the FMC</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getconstraintdisplayforlegs>getConstraintDisplayForLegs()<a href=#getconstraintdisplayforlegs class=hash-link aria-label="Direct link to getConstraintDisplayForLegs()" title="Direct link to getConstraintDisplayForLegs()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getConstraintDisplayForLegs</strong>(<code>performancePlanData</code>, <code>verticalData</code>, <code>transitionAltitude</code>, <code>constraintInvalid?</code>, <code>isRunway?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:698</p>
+<p>Method to get the FMS constraint display data from a verticalData object.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-19>Parameters<a href=#parameters-19 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>performancePlanData</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/interfaces/PerformancePlanData><code>PerformancePlanData</code></a><td><code>undefined</code><td>performance plan data<tr><td><code>verticalData</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/VerticalData><code>VerticalData</code></a><td><code>undefined</code><td>The Vertical Data object for the leg.<tr><td><code>transitionAltitude</code><td><code>number</code><td><code>18000</code><td>The transition altitude that applies to the constraint.<tr><td><code>constraintInvalid?</code><td><code>boolean</code><td><code>undefined</code><td>If the constraint is invalid.<tr><td><code>isRunway?</code><td><code>boolean</code><td><code>undefined</code><td>If the constraint is a runway.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-21>Returns<a href=#returns-21 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>A string to display on the FMC.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getdeparturenameasstring>getDepartureNameAsString()<a href=#getdeparturenameasstring class=hash-link aria-label="Direct link to getDepartureNameAsString()" title="Direct link to getDepartureNameAsString()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getDepartureNameAsString</strong>(<code>facility</code>, <code>procedureIndex</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:364</p>
+<p>Gets the name of a departure procedure as a string.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-20>Parameters<a href=#parameters-20 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>facility</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>The Facility.<tr><td><code>procedureIndex</code><td><code>number</code><td>The procedure index.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-22>Returns<a href=#returns-22 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>The name of the departure procedure.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getdirecttocourse>getDirectToCourse()<a href=#getdirecttocourse class=hash-link aria-label="Direct link to getDirectToCourse()" title="Direct link to getDirectToCourse()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getDirectToCourse</strong>(<code>leg</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:951</p>
+<p>Gets the direct to magnetic course from the leg vectors.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-21>Parameters<a href=#parameters-21 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a><td>The Leg Definition</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-23>Returns<a href=#returns-23 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>the magnetic course.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getdistancefromppostolegend>getDistanceFromPposToLegEnd()<a href=#getdistancefromppostolegend class=hash-link aria-label="Direct link to getDistanceFromPposToLegEnd()" title="Direct link to getDistanceFromPposToLegEnd()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getDistanceFromPposToLegEnd</strong>(<code>lateralPlan</code>, <code>globalLegIndex</code>, <code>legDistanceRemaining</code>): <code>undefined</code> | <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1366</p>
+<p>Returns the distance from PPOS to the end of a leg, given a lateral plan and a global leg index</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-22>Parameters<a href=#parameters-22 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>lateralPlan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the lateral plan<tr><td><code>globalLegIndex</code><td><code>number</code><td>the global leg index<tr><td><code>legDistanceRemaining</code><td><code>number</code><td>The remaining distance to the end of the leg currently tracked by LNAV, in nautical miles.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-24>Returns<a href=#returns-24 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <code>number</code></p>
+<p>the distance, in metres</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getflightplanprocedureidents>getFlightPlanProcedureIdents()<a href=#getflightplanprocedureidents class=hash-link aria-label="Direct link to getFlightPlanProcedureIdents()" title="Direct link to getFlightPlanProcedureIdents()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getFlightPlanProcedureIdents</strong>(<code>plan</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/interfaces/WTLineFlightPlanProcedureIdents><code>WTLineFlightPlanProcedureIdents</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1393</p>
+<p>Gets the procedure identifiers of a flight plan</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-23>Parameters<a href=#parameters-23 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the flight plan</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-25>Returns<a href=#returns-25 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/interfaces/WTLineFlightPlanProcedureIdents><code>WTLineFlightPlanProcedureIdents</code></a></p>
+<p>the procedure idents</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws>Throws<a href=#throws class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>if an internal error occurs</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getfpadisplayforlegs>getFpaDisplayForLegs()<a href=#getfpadisplayforlegs class=hash-link aria-label="Direct link to getFpaDisplayForLegs()" title="Direct link to getFpaDisplayForLegs()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getFpaDisplayForLegs</strong>(<code>vnavLeg</code>, <code>vnavConstraint?</code>, <code>phase?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:673</p>
+<p>Method to get the FMS FPA display data for a leg from a VNavConstraint and VNavLeg.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-24>Parameters<a href=#parameters-24 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>vnavLeg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/VNavLeg><code>VNavLeg</code></a><td>The VNav Leg from the vertical flight plan that cooresponds to this leg index.<tr><td><code>vnavConstraint?</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/VNavConstraint><code>VNavConstraint</code></a><td>The VNav Constraint from the Vertical Flight Plan that cooresponds to this leg index.<tr><td><code>phase?</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/VerticalFlightPhase><code>VerticalFlightPhase</code></a><td>The vertical flight phase of this leg.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-26>Returns<a href=#returns-26 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>A string to display on the FMC.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getlastfixcoordinates>getLastFixCoordinates()<a href=#getlastfixcoordinates class=hash-link aria-label="Direct link to getLastFixCoordinates()" title="Direct link to getLastFixCoordinates()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getLastFixCoordinates</strong>(<code>plan</code>, <code>facClient</code>, <code>segmentIndex?</code>, <code>legIndex?</code>, <code>out?</code>): <code>Promise</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/GeoPointInterface><code>GeoPointInterface</code></a>></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1465</p>
+<p>Returns the coordinates of the last database fix that is the termination of a leg in the flight plan</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-25>Parameters<a href=#parameters-25 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the flight plan to query<tr><td><code>facClient</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FacilityClient><code>FacilityClient</code></a><td>a facility client instance, used to get the coordinates of leg termination facilities<tr><td><code>segmentIndex?</code><td><code>number</code><td>the segment index of the leg to start searching backwards from. If <code>undefined</code>, will search from the last leg<tr><td><code>legIndex?</code><td><code>number</code><td>the local leg index of the leg to start searching backwards from. If <code>undefined</code>, will search from the last leg<tr><td><code>out?</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/GeoPoint><code>GeoPoint</code></a><td>the <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/GeoPoint>GeoPoint</a> to write the results to. Defaults to a new <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/GeoPoint>GeoPoint</a>.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-27>Returns<a href=#returns-27 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/GeoPointInterface><code>GeoPointInterface</code></a>></p>
+<p>a <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/GeoPointInterface>GeoPointInterface</a></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-1>Throws<a href=#throws-1 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>if <a href=#getlastfixcoordinates-1>segmentIndex</a> and <a href=#getlastfixcoordinates-1>legIndex</a> are not both undefined or specified</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getlastnonmissedapproachleg>getLastNonMissedApproachLeg()<a href=#getlastnonmissedapproachleg class=hash-link aria-label="Direct link to getLastNonMissedApproachLeg()" title="Direct link to getLastNonMissedApproachLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getLastNonMissedApproachLeg</strong>(<code>plan</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1277</p>
+<p>Returns the index of the last non-missed approach leg in the flight plan</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-26>Parameters<a href=#parameters-26 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the plan to use for lookup</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-28>Returns<a href=#returns-28 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>array of index and ident, or undefined if no approach segment</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getnominalfromleg>getNominalFromLeg()<a href=#getnominalfromleg class=hash-link aria-label="Direct link to getNominalFromLeg()" title="Direct link to getNominalFromLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getNominalFromLeg</strong>(<code>plan</code>, <code>segmentIndex</code>, <code>segmentLegIndex</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:525</p>
+<p>Gets the nominal leg from which a specified flight plan leg originates. The nominal from leg excludes any legs
+which are part of a direct to or vectors-to-final sequence.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-27>Parameters<a href=#parameters-27 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.<tr><td><code>segmentIndex</code><td><code>number</code><td>The index of the segment containing the leg for which to get the from leg.<tr><td><code>segmentLegIndex</code><td><code>number</code><td>The index of the leg for which to get the from leg in its segment.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-29>Returns<a href=#returns-29 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a></p>
+<p>The nominal leg from which the specified flight plan leg originates.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getnominalfromlegindex>getNominalFromLegIndex()<a href=#getnominalfromlegindex class=hash-link aria-label="Direct link to getNominalFromLegIndex()" title="Direct link to getNominalFromLegIndex()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getNominalFromLegIndex</strong>(<code>plan</code>, <code>segmentIndex</code>, <code>segmentLegIndex</code>): <code>number</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:549</p>
+<p>Gets the global leg index of the nominal leg from which a specified flight plan leg originates. The nominal from
+leg excludes any legs which are part of a direct to or vectors-to-final sequence.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-28>Parameters<a href=#parameters-28 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.<tr><td><code>segmentIndex</code><td><code>number</code><td>The index of the segment containing the leg for which to get the from leg.<tr><td><code>segmentLegIndex</code><td><code>number</code><td>The index of the leg for which to get the from leg in its segment.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-30>Returns<a href=#returns-30 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code></p>
+<p>The nominal leg from which the specified flight plan leg originates.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getplanholds>getPlanHolds()<a href=#getplanholds class=hash-link aria-label="Direct link to getPlanHolds()" title="Direct link to getPlanHolds()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getPlanHolds</strong>(<code>plan</code>, <code>inMissed</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a>[]</p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1224</p>
+<p>Returns hold legs in the flight plan. Used to determine and show appropriate HOLD pages.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-29>Parameters<a href=#parameters-29 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td><code>undefined</code><td>the flight plan in question<tr><td><code>inMissed</code><td><code>boolean</code><td><code>false</code><td>whether to only include missed approach holds</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-31>Returns<a href=#returns-31 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a>[]</p>
+<p>the result</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getprocedureindexandtransitionindexfromsegmenttype>getProcedureIndexAndTransitionIndexFromSegmentType()<a href=#getprocedureindexandtransitionindexfromsegmenttype class=hash-link aria-label="Direct link to getProcedureIndexAndTransitionIndexFromSegmentType()" title="Direct link to getProcedureIndexAndTransitionIndexFromSegmentType()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getProcedureIndexAndTransitionIndexFromSegmentType</strong>(<code>segmentType</code>, <code>lateralPlan</code>): <code>number</code>[]</p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:309</p>
+<p>Gets the procedure index and transition index from procedure details of the lateral plan based on segment type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-30>Parameters<a href=#parameters-30 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>segmentType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/FlightPlanSegmentType><code>FlightPlanSegmentType</code></a><td>The segment type.<tr><td><code>lateralPlan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>The lateral flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-32>Returns<a href=#returns-32 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>number</code>[]</p>
+<p>an array of procedureIndex, transitionIndex.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=getprocedurenameasstring>getProcedureNameAsString()<a href=#getprocedurenameasstring class=hash-link aria-label="Direct link to getProcedureNameAsString()" title="Direct link to getProcedureNameAsString()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>getProcedureNameAsString</strong>(<code>segmentType</code>, <code>facility</code>, <code>procedureIndex</code>, <code>transitionIndex?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:329</p>
+<p>Combiner method to get a procedure name as a string for the FPLN Page.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-31>Parameters<a href=#parameters-31 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>segmentType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/FlightPlanSegmentType><code>FlightPlanSegmentType</code></a><td>The segment type.<tr><td><code>facility</code><td><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirportFacility><code>AirportFacility</code></a><td>The facility.<tr><td><code>procedureIndex</code><td><code>number</code><td>The procedure index.<tr><td><code>transitionIndex?</code><td><code>number</code><td>The transition index.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-33>Returns<a href=#returns-33 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>the name as a string.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isairwayatleg>isAirwayAtLeg()<a href=#isairwayatleg class=hash-link aria-label="Direct link to isAirwayAtLeg()" title="Direct link to isAirwayAtLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isAirwayAtLeg</strong>(<code>facLoader</code>, <code>icao</code>, <code>airwayName</code>): <code>Promise</code>&lt;<code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirwayData><code>AirwayData</code></a>></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:978</p>
+<p>Checks for an airway at a leg and returns the airway or undefined</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-32>Parameters<a href=#parameters-32 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>facLoader</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FacilityLoader><code>FacilityLoader</code></a><td>The facility loader.<tr><td><code>icao</code><td><code>string</code><td>The icao of the entry to check.<tr><td><code>airwayName</code><td><code>string</code><td>The airway to search for.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-34>Returns<a href=#returns-34 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirwayData><code>AirwayData</code></a>></p>
+<p>The airway object or undefined</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isaltitudeleg><del>isAltitudeLeg()</del><a href=#isaltitudeleg class=hash-link aria-label="Direct link to isaltitudeleg" title="Direct link to isaltitudeleg">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isAltitudeLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:903</p>
+<p>Checks if leg type is an "to altitude" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-33>Parameters<a href=#parameters-33 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-35>Returns<a href=#returns-35 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "to altitude" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-3>Deprecated<a href=#deprecated-3 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanUtils#isaltitudeleg>FlightPlanUtils.isAltitudeLeg</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isapproachloaded>isApproachLoaded()<a href=#isapproachloaded class=hash-link aria-label="Direct link to isApproachLoaded()" title="Direct link to isApproachLoaded()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isApproachLoaded</strong>(<code>plan</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:272</p>
+<p>Checks whether a flight plan has an approach loaded.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-34>Parameters<a href=#parameters-34 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-36>Returns<a href=#returns-36 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the flight plan has an approach loaded.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=iscoursetoleg>isCourseToLeg()<a href=#iscoursetoleg class=hash-link aria-label="Direct link to isCourseToLeg()" title="Direct link to isCourseToLeg()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isCourseToLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:912</p>
+<p>Checks if leg type is a "course to" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-35>Parameters<a href=#parameters-35 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-37>Returns<a href=#returns-37 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "course to" leg type.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isdiscontinuityleg><del>isDiscontinuityLeg()</del><a href=#isdiscontinuityleg class=hash-link aria-label="Direct link to isdiscontinuityleg" title="Direct link to isdiscontinuityleg">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isDiscontinuityLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:922</p>
+<p>Checks if leg type is a "discontinuity" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-36>Parameters<a href=#parameters-36 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-38>Returns<a href=#returns-38 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "discontinuity" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-4>Deprecated<a href=#deprecated-4 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanUtils#isdiscontinuityleg>FlightPlanUtils.isDiscontinuityLeg</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isgpsapproach>isGpsApproach()<a href=#isgpsapproach class=hash-link aria-label="Direct link to isGpsApproach()" title="Direct link to isGpsApproach()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isGpsApproach</strong>(<code>approachType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:205</p>
+<p>Utility method to check whether an approach is authorized for GPS guidance.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-37>Parameters<a href=#parameters-37 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>approachType</code><td><code>APPROACH_TYPE_UNKNOWN</code> | <code>APPROACH_TYPE_GPS</code> | <code>APPROACH_TYPE_VOR</code> | <code>APPROACH_TYPE_NDB</code> | <code>APPROACH_TYPE_ILS</code> | <code>APPROACH_TYPE_LOCALIZER</code> | <code>APPROACH_TYPE_SDF</code> | <code>APPROACH_TYPE_LDA</code> | <code>APPROACH_TYPE_VORDME</code> | <code>APPROACH_TYPE_NDBDME</code> | <code>APPROACH_TYPE_RNAV</code> | <code>APPROACH_TYPE_LOCALIZER_BACK_COURSE</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/AdditionalApproachType#approach_type_visual><code>APPROACH_TYPE_VISUAL</code></a><td>The approach type.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-39>Returns<a href=#returns-39 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>True if GPS guidance is authorized, false otherwise.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isheadingtoleg><del>isHeadingToLeg()</del><a href=#isheadingtoleg class=hash-link aria-label="Direct link to isheadingtoleg" title="Direct link to isheadingtoleg">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isHeadingToLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:883</p>
+<p>Checks if leg type is a "heading to" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-38>Parameters<a href=#parameters-38 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-40>Returns<a href=#returns-40 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "heading to" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-5>Deprecated<a href=#deprecated-5 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanUtils#isheadingtoleg>FlightPlanUtils.isHeadingToLeg</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isholdatleg><del>isHoldAtLeg()</del><a href=#isholdatleg class=hash-link aria-label="Direct link to isholdatleg" title="Direct link to isholdatleg">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isHoldAtLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:893</p>
+<p>Checks if leg type is a "hold at" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-39>Parameters<a href=#parameters-39 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-41>Returns<a href=#returns-41 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "hold at" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-6>Deprecated<a href=#deprecated-6 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanUtils#isholdleg>FlightPlanUtils.isHoldLeg</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isleghold>isLegHold()<a href=#isleghold class=hash-link aria-label="Direct link to isLegHold()" title="Direct link to isLegHold()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isLegHold</strong>(<code>leg</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1188</p>
+<p>Returns <code>true</code> if the leg is a hold leg</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-40>Parameters<a href=#parameters-40 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a><td>the leg in question</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-42>Returns<a href=#returns-42 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>the result</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=islegvalidairwayexit>isLegValidAirwayExit()<a href=#islegvalidairwayexit class=hash-link aria-label="Direct link to isLegValidAirwayExit()" title="Direct link to isLegValidAirwayExit()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isLegValidAirwayExit</strong>(<code>airway</code>, <code>icao</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/IntersectionFacility><code>IntersectionFacility</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:996</p>
+<p>Checks for an airway exit at a given icao.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-41>Parameters<a href=#parameters-41 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>airway</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirwayData><code>AirwayData</code></a><td>The Airway Object.<tr><td><code>icao</code><td><code>string</code><td>The icao of the entry to check.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-43>Returns<a href=#returns-43 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/IntersectionFacility><code>IntersectionFacility</code></a></p>
+<p>The Intersection Facility if the leg is a valid exit to the airway.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=islegvectordisco>isLegVectOrDisco()<a href=#islegvectordisco class=hash-link aria-label="Direct link to isLegVectOrDisco()" title="Direct link to isLegVectOrDisco()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isLegVectOrDisco</strong>(<code>leg</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1204</p>
+<p>Returns true if a leg is a vector of discontinuity.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-42>Parameters<a href=#parameters-42 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a><td>The FlightPlanLeg</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-44>Returns<a href=#returns-44 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg is a vector of discontinuity</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=islocalizerapproach>isLocalizerApproach()<a href=#islocalizerapproach class=hash-link aria-label="Direct link to isLocalizerApproach()" title="Direct link to isLocalizerApproach()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isLocalizerApproach</strong>(<code>approachType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:219</p>
+<p>Utility method to check for an approach with a a tunable localizer.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-43>Parameters<a href=#parameters-43 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>approachType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/type-aliases/ExtendedApproachType><code>ExtendedApproachType</code></a><td>The approach procedure type</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-45>Returns<a href=#returns-45 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>True if a localizer needs to be tuned, otherwise false.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isvectorsleg><del>isVectorsLeg()</del><a href=#isvectorsleg class=hash-link aria-label="Direct link to isvectorsleg" title="Direct link to isvectorsleg">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isVectorsLeg</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:932</p>
+<p>Checks if leg type is a "vectors" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-44>Parameters<a href=#parameters-44 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-46>Returns<a href=#returns-46 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a "vectors" leg type.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=deprecated-7>Deprecated<a href=#deprecated-7 class=hash-link aria-label="Direct link to Deprecated" title="Direct link to Deprecated">​</a></h4>
+<p>use <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlanUtils#ismanualdiscontinuityleg>FlightPlanUtils.isManualDiscontinuityLeg</a> instead</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=isvtfapproachloaded>isVtfApproachLoaded()<a href=#isvtfapproachloaded class=hash-link aria-label="Direct link to isVtfApproachLoaded()" title="Direct link to isVtfApproachLoaded()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>isVtfApproachLoaded</strong>(<code>plan</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:281</p>
+<p>Checks whether a plan has a vectors-to-final approach loaded.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-45>Parameters<a href=#parameters-45 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-47>Returns<a href=#returns-47 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the flight plan has a vectors-to-final approach loaded.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=matchidenttoairway>matchIdentToAirway()<a href=#matchidenttoairway class=hash-link aria-label="Direct link to matchIdentToAirway()" title="Direct link to matchIdentToAirway()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>matchIdentToAirway</strong>(<code>airway</code>, <code>ident</code>): <code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/IntersectionFacility><code>IntersectionFacility</code></a></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1006</p>
+<p>Checks for an airway exit matching an input ident</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-46>Parameters<a href=#parameters-46 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>airway</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/AirwayData><code>AirwayData</code></a><td>The AirwayObject.<tr><td><code>ident</code><td><code>string</code><td>The Ident to search for.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-48>Returns<a href=#returns-48 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/IntersectionFacility><code>IntersectionFacility</code></a></p>
+<p>The Intersection Facility if the leg is a valid exit to the airway.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=parsealtitudefordisplay>parseAltitudeForDisplay()<a href=#parsealtitudefordisplay class=hash-link aria-label="Direct link to parseAltitudeForDisplay()" title="Direct link to parseAltitudeForDisplay()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>parseAltitudeForDisplay</strong>(<code>altitudeMeters</code>, <code>transitionAltitudeFeet</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:806</p>
+<p>Gets an altitude for display with padding, Flight Level Handling</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-47>Parameters<a href=#parameters-47 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>altitudeMeters</code><td><code>number</code><td>the altitude IN METERS to evaluate<tr><td><code>transitionAltitudeFeet</code><td><code>number</code><td>the transition altitude IN FEET to evaluate</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-49>Returns<a href=#returns-49 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>A display string</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=parseconstraintinput>parseConstraintInput()<a href=#parseconstraintinput class=hash-link aria-label="Direct link to parseConstraintInput()" title="Direct link to parseConstraintInput()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>parseConstraintInput</strong>(<code>value</code>, <code>verticalData</code>): <code>undefined</code> | <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:571</p>
+<p>Copied from the CJ4 mod</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-48>Parameters<a href=#parameters-48 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>value</code><td><code>string</code><td>The scratchpad value.<tr><td><code>verticalData</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/VerticalData><code>VerticalData</code></a><td>The existing leg vertical data.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-50>Returns<a href=#returns-50 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>undefined</code> | <code>boolean</code></p>
+<p>False if invalid entry.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=parsedtkdistancefordisplay>parseDtkDistanceForDisplay()<a href=#parsedtkdistancefordisplay class=hash-link aria-label="Direct link to parseDtkDistanceForDisplay()" title="Direct link to parseDtkDistanceForDisplay()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>parseDtkDistanceForDisplay</strong>(<code>leg</code>, <code>isToLeg</code>, <code>ppos</code>, <code>distance?</code>): <code>string</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:823</p>
+<p>Gets a DTK and Distance string for the FMC Legs Page Display.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-49>Parameters<a href=#parameters-49 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>leg</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/LegDefinition><code>LegDefinition</code></a><td>The Leg Definition.<tr><td><code>isToLeg</code><td><code>boolean</code><td>Whether the leg is the TO loeg or not.<tr><td><code>ppos</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/GeoPoint><code>GeoPoint</code></a><td>The plane's present position.<tr><td><code>distance?</code><td><code>number</code><td>A manual distance to calculate with.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-51>Returns<a href=#returns-51 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>string</code></p>
+<p>A Display string.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=reconciledirecttodata>reconcileDirectToData()<a href=#reconciledirecttodata class=hash-link aria-label="Direct link to reconcileDirectToData()" title="Direct link to reconcileDirectToData()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>reconcileDirectToData</strong>(<code>plan</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1082</p>
+<p>Reconciles a flight plan's Direct-To data with its internal leg structure. Scans the legs of the flight plan for
+Direct-To legs and sets the segment index and segment leg index of the plan's Direct-To data to point to the leg
+immediately preceding the first Direct-To leg found, or to -1 for both if the plan contains no Direct-To legs.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-50>Parameters<a href=#parameters-50 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-52>Returns<a href=#returns-52 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=removealldirecttodata>removeAllDirectToData()<a href=#removealldirecttodata class=hash-link aria-label="Direct link to removeAllDirectToData()" title="Direct link to removeAllDirectToData()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>removeAllDirectToData</strong>(<code>plan</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1134</p>
+<p>Removes all of a flight plan's Direct-To data, but from the DirectToData object and from any legs in the plan.
+Scans the legs of the flight plan for Direct-To legs and removes them.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-51>Parameters<a href=#parameters-51 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-53>Returns<a href=#returns-53 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=removedirecttoexisting>removeDirectToExisting()<a href=#removedirecttoexisting class=hash-link aria-label="Direct link to removeDirectToExisting()" title="Direct link to removeDirectToExisting()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>removeDirectToExisting</strong>(<code>plan</code>, <code>lateralLegIndex?</code>, <code>calculate?</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1108</p>
+<p>Removes the direct to existing legs from the primary flight plan. If a direct to existing is currently active,
+this will effectively cancel it.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-52>Parameters<a href=#parameters-52 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Default value<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td><code>undefined</code><td>The flight plan.<tr><td><code>lateralLegIndex?</code><td><code>number</code><td><code>undefined</code><td>The index of the leg to set as the active lateral leg after the removal operation. Defaults<tr><td><code>calculate?</code><td><code>boolean</code><td><code>true</code><td>Whether to calculate the flight plan to the index of the current active primary flight plan leg.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-54>Returns<a href=#returns-54 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=removedisplacedactivelegs>removeDisplacedActiveLegs()<a href=#removedisplacedactivelegs class=hash-link aria-label="Direct link to removeDisplacedActiveLegs()" title="Direct link to removeDisplacedActiveLegs()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>removeDisplacedActiveLegs</strong>(<code>plan</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1155</p>
+<p>Removes all of a flight plan's Displaced Active Legs,
+which are flagged when a procedure is added and the active leg array is moved to enroute.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-53>Parameters<a href=#parameters-53 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>A flight plan.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-55>Returns<a href=#returns-55 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=removefixtypeflags>removeFixTypeFlags()<a href=#removefixtypeflags class=hash-link aria-label="Direct link to removeFixTypeFlags()" title="Direct link to removeFixTypeFlags()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>removeFixTypeFlags</strong>(<code>legs</code>): <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a>[]</p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1174</p>
+<p>Removes fix type flags from legs being moved from an approach procedure to the enroute segment.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-54>Parameters<a href=#parameters-54 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legs</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a>[]<td>The FlightPlanLegs to remove fix type flags from.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-56>Returns<a href=#returns-56 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FlightPlanLeg><code>FlightPlanLeg</code></a>[]</p>
+<p>The array of FlightPlanLegs with the flags removed.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=setflightplanprocedureidents>setFlightPlanProcedureIdents()<a href=#setflightplanprocedureidents class=hash-link aria-label="Direct link to setFlightPlanProcedureIdents()" title="Direct link to setFlightPlanProcedureIdents()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>setFlightPlanProcedureIdents</strong>(<code>plan</code>, <code>idents</code>): <code>void</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1411</p>
+<p>Sets the procedure identifiers of a flight plan</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-55>Parameters<a href=#parameters-55 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the flight plan<tr><td><code>idents</code><td><code>undefined</code> | <a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/interfaces/WTLineFlightPlanProcedureIdents><code>WTLineFlightPlanProcedureIdents</code></a><td>the procedure idents</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-57>Returns<a href=#returns-57 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>void</code></p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=throws-2>Throws<a href=#throws-2 class=hash-link aria-label="Direct link to Throws" title="Direct link to Throws">​</a></h4>
+<p>if an internal error occurs</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=shouldshowlegcourse>shouldShowLegCourse()<a href=#shouldshowlegcourse class=hash-link aria-label="Direct link to shouldShowLegCourse()" title="Direct link to shouldShowLegCourse()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>shouldShowLegCourse</strong>(<code>legType</code>): <code>boolean</code></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:942</p>
+<p>Checks if leg type is a course or heading leg,
+which should have the leg course shown instead of the initial dtk.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-56>Parameters<a href=#parameters-56 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>legType</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/enumerations/LegType><code>LegType</code></a><td>The LegType.</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-58>Returns<a href=#returns-58 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>boolean</code></p>
+<p>Whether the leg type is a course or heading leg.</p>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=wouldfacilitybeduplicate>wouldFacilityBeDuplicate()<a href=#wouldfacilitybeduplicate class=hash-link aria-label="Direct link to wouldFacilityBeDuplicate()" title="Direct link to wouldFacilityBeDuplicate()">​</a></h3>
+<blockquote>
+<p><code>static</code> <strong>wouldFacilityBeDuplicate</strong>(<code>plan</code>, <code>facClient</code>, <code>facility</code>, <code>segmentIndex?</code>, <code>legIndex?</code>): <code>Promise</code>&lt;<code>boolean</code>></p>
+</blockquote>
+<p>Defined in: wtlinesdk/fms/WTLineFmsUtils.ts:1426</p>
+<p>Determines whether a given facility would create a duplicate waypoint if inserted at a given leg index</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=parameters-57>Parameters<a href=#parameters-57 class=hash-link aria-label="Direct link to Parameters" title="Direct link to Parameters">​</a></h4>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Parameter<th>Type<th>Description<tbody><tr><td><code>plan</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/classes/FlightPlan><code>FlightPlan</code></a><td>the flight plan to verify<tr><td><code>facClient</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/FacilityClient><code>FacilityClient</code></a><td>a facility client, used to load the previous leg's termination fix facility<tr><td><code>facility</code><td><a href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/interfaces/Facility><code>Facility</code></a><td>the facility to be inserted<tr><td><code>segmentIndex?</code><td><code>number</code><td>the segment index where the facility would be inserted as a waypoint - if <code>undefined</code>, leg is assumed to be appended to the end of the plan<tr><td><code>legIndex?</code><td><code>number</code><td>the local leg index where the facility would be inserted as a waypoint - if <code>undefined</code>, leg is assumed to be appended to the end of the plan</table>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id=returns-59>Returns<a href=#returns-59 class=hash-link aria-label="Direct link to Returns" title="Direct link to Returns">​</a></h4>
+<p><code>Promise</code>&lt;<code>boolean</code>></p>
+<p>a boolean</div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineFms><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>WTLineFms</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-pfd/classes/WTLineGhostNeedleNavIndicator><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>WTLineGhostNeedleNavIndicator</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#constructors class="table-of-contents__link toc-highlight">Constructors</a><ul><li><a href=#constructor class="table-of-contents__link toc-highlight">Constructor</a></ul><li><a href=#properties class="table-of-contents__link toc-highlight">Properties</a><ul><li><a href=#dto_leg_offset class="table-of-contents__link toc-highlight">DTO_LEG_OFFSET</a><li><a href=#getbestrnavtype class="table-of-contents__link toc-highlight">getBestRnavType()</a><li><a href=#primary_act_plan_index class="table-of-contents__link toc-highlight"><del>PRIMARY_ACT_PLAN_INDEX</del></a><li><a href=#primary_mod_plan_index class="table-of-contents__link toc-highlight"><del>PRIMARY_MOD_PLAN_INDEX</del></a><li><a href=#proc_preview_plan_index class="table-of-contents__link toc-highlight"><del>PROC_PREVIEW_PLAN_INDEX</del></a><li><a href=#user_data_key_altn class="table-of-contents__link toc-highlight">USER_DATA_KEY_ALTN</a><li><a href=#user_data_key_fix_info class="table-of-contents__link toc-highlight">USER_DATA_KEY_FIX_INFO</a><li><a href=#user_data_key_procedure_idents class="table-of-contents__link toc-highlight">USER_DATA_KEY_PROCEDURE_IDENTS</a></ul><li><a href=#methods class="table-of-contents__link toc-highlight">Methods</a><ul><li><a href=#approachhasnavfrequency class="table-of-contents__link toc-highlight">approachHasNavFrequency()</a><li><a href=#buildrunwayleg class="table-of-contents__link toc-highlight">buildRunwayLeg()</a><li><a href=#buildvisualapproach class="table-of-contents__link toc-highlight">buildVisualApproach()</a><li><a href=#buildwt21legname class="table-of-contents__link toc-highlight">buildWT21LegName()</a><li><a href=#canlegbeselectedondirectpage class="table-of-contents__link toc-highlight">canLegBeSelectedOnDirectPage()</a><li><a href=#distancebetweendiscontinuedlegs class="table-of-contents__link toc-highlight">distanceBetweenDiscontinuedLegs()</a><li><a href=#emptyflightplan class="table-of-contents__link toc-highlight">emptyFlightPlan()</a><li><a href=#estimatedistanceforseconds class="table-of-contents__link toc-highlight">estimateDistanceForSeconds()</a><li><a href=#estimatesecondsfordistance class="table-of-contents__link toc-highlight">estimateSecondsForDistance()</a><li><a href=#findicaoinsegment class="table-of-contents__link toc-highlight">findIcaoInSegment()</a><li><a href=#formatfacilityfrequencytype class="table-of-contents__link toc-highlight">formatFacilityFrequencyType()</a><li><a href=#getactivesegment class="table-of-contents__link toc-highlight">getActiveSegment()</a><li><a href=#getapproachfromplan class="table-of-contents__link toc-highlight">getApproachFromPlan()</a><li><a href=#getapproachnameasparts class="table-of-contents__link toc-highlight">getApproachNameAsParts()</a><li><a href=#getapproachnameasstring class="table-of-contents__link toc-highlight">getApproachNameAsString()</a><li><a href=#getapproachvtfleg class="table-of-contents__link toc-highlight">getApproachVtfLeg()</a><li><a href=#getarrivalnameasstring class="table-of-contents__link toc-highlight">getArrivalNameAsString()</a><li><a href=#getconstraintdisplayfordirectpage class="table-of-contents__link toc-highlight">getConstraintDisplayForDirectPage()</a><li><a href=#getconstraintdisplayforlegs class="table-of-contents__link toc-highlight">getConstraintDisplayForLegs()</a><li><a href=#getdeparturenameasstring class="table-of-contents__link toc-highlight">getDepartureNameAsString()</a><li><a href=#getdirecttocourse class="table-of-contents__link toc-highlight">getDirectToCourse()</a><li><a href=#getdistancefromppostolegend class="table-of-contents__link toc-highlight">getDistanceFromPposToLegEnd()</a><li><a href=#getflightplanprocedureidents class="table-of-contents__link toc-highlight">getFlightPlanProcedureIdents()</a><li><a href=#getfpadisplayforlegs class="table-of-contents__link toc-highlight">getFpaDisplayForLegs()</a><li><a href=#getlastfixcoordinates class="table-of-contents__link toc-highlight">getLastFixCoordinates()</a><li><a href=#getlastnonmissedapproachleg class="table-of-contents__link toc-highlight">getLastNonMissedApproachLeg()</a><li><a href=#getnominalfromleg class="table-of-contents__link toc-highlight">getNominalFromLeg()</a><li><a href=#getnominalfromlegindex class="table-of-contents__link toc-highlight">getNominalFromLegIndex()</a><li><a href=#getplanholds class="table-of-contents__link toc-highlight">getPlanHolds()</a><li><a href=#getprocedureindexandtransitionindexfromsegmenttype class="table-of-contents__link toc-highlight">getProcedureIndexAndTransitionIndexFromSegmentType()</a><li><a href=#getprocedurenameasstring class="table-of-contents__link toc-highlight">getProcedureNameAsString()</a><li><a href=#isairwayatleg class="table-of-contents__link toc-highlight">isAirwayAtLeg()</a><li><a href=#isaltitudeleg class="table-of-contents__link toc-highlight"><del>isAltitudeLeg()</del></a><li><a href=#isapproachloaded class="table-of-contents__link toc-highlight">isApproachLoaded()</a><li><a href=#iscoursetoleg class="table-of-contents__link toc-highlight">isCourseToLeg()</a><li><a href=#isdiscontinuityleg class="table-of-contents__link toc-highlight"><del>isDiscontinuityLeg()</del></a><li><a href=#isgpsapproach class="table-of-contents__link toc-highlight">isGpsApproach()</a><li><a href=#isheadingtoleg class="table-of-contents__link toc-highlight"><del>isHeadingToLeg()</del></a><li><a href=#isholdatleg class="table-of-contents__link toc-highlight"><del>isHoldAtLeg()</del></a><li><a href=#isleghold class="table-of-contents__link toc-highlight">isLegHold()</a><li><a href=#islegvalidairwayexit class="table-of-contents__link toc-highlight">isLegValidAirwayExit()</a><li><a href=#islegvectordisco class="table-of-contents__link toc-highlight">isLegVectOrDisco()</a><li><a href=#islocalizerapproach class="table-of-contents__link toc-highlight">isLocalizerApproach()</a><li><a href=#isvectorsleg class="table-of-contents__link toc-highlight"><del>isVectorsLeg()</del></a><li><a href=#isvtfapproachloaded class="table-of-contents__link toc-highlight">isVtfApproachLoaded()</a><li><a href=#matchidenttoairway class="table-of-contents__link toc-highlight">matchIdentToAirway()</a><li><a href=#parsealtitudefordisplay class="table-of-contents__link toc-highlight">parseAltitudeForDisplay()</a><li><a href=#parseconstraintinput class="table-of-contents__link toc-highlight">parseConstraintInput()</a><li><a href=#parsedtkdistancefordisplay class="table-of-contents__link toc-highlight">parseDtkDistanceForDisplay()</a><li><a href=#reconciledirecttodata class="table-of-contents__link toc-highlight">reconcileDirectToData()</a><li><a href=#removealldirecttodata class="table-of-contents__link toc-highlight">removeAllDirectToData()</a><li><a href=#removedirecttoexisting class="table-of-contents__link toc-highlight">removeDirectToExisting()</a><li><a href=#removedisplacedactivelegs class="table-of-contents__link toc-highlight">removeDisplacedActiveLegs()</a><li><a href=#removefixtypeflags class="table-of-contents__link toc-highlight">removeFixTypeFlags()</a><li><a href=#setflightplanprocedureidents class="table-of-contents__link toc-highlight">setFlightPlanProcedureIdents()</a><li><a href=#shouldshowlegcourse class="table-of-contents__link toc-highlight">shouldShowLegCourse()</a><li><a href=#wouldfacilitybeduplicate class="table-of-contents__link toc-highlight">wouldFacilityBeDuplicate()</a></ul></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk>Garmin API Reference</a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2025 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>
