@@ -1,0 +1,1625 @@
+<!doctype html><html lang=en dir=ltr class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-avionics/ifd/panel-xml-tag-documentation" data-has-hydrated=false><meta charset=UTF-8><meta name=generator content="Docusaurus v3.8.1"><title data-rh=true>IFD panel.xml Tag Documentation | MSFS 2024 Avionics Frameworks and Instruments</title><meta data-rh=true name=viewport content="width=device-width, initial-scale=1.0"><meta data-rh=true name=twitter:card content=summary_large_image><meta data-rh=true property=og:url content=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation><meta data-rh=true property=og:locale content=en><meta data-rh=true name=docusaurus_locale content=en><meta data-rh=true name=docsearch:language content=en><meta data-rh=true name=docusaurus_version content=current><meta data-rh=true name=docusaurus_tag content=docs-default-current><meta data-rh=true name=docsearch:version content=current><meta data-rh=true name=docsearch:docusaurus_tag content=docs-default-current><meta data-rh=true property=og:title content="IFD panel.xml Tag Documentation | MSFS 2024 Avionics Frameworks and Instruments"><meta data-rh=true name=description content="``"><meta data-rh=true property=og:description content="``"><link data-rh=true rel=icon href=/msfs-avionics-mirror/2024/img/favicon.ico><link data-rh=true rel=canonical href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation hreflang=en><link data-rh=true rel=alternate href=https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation hreflang=x-default><script data-rh=true type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/","name":"Avionics Development","position":1},{"@type":"ListItem","item":"https://microsoft.github.io/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation","name":"panel.xml Tag Documentation","position":2}]}</script><link rel=stylesheet href=/msfs-avionics-mirror/2024/assets/css/styles.452947e8.css><script src=/msfs-avionics-mirror/2024/assets/js/runtime~main.b89627f2.js defer></script><script src=/msfs-avionics-mirror/2024/assets/js/main.194722f3.js defer></script><body class=navigation-with-keyboard><svg xmlns=http://www.w3.org/2000/svg style="display: none;"><defs>
+<symbol id=theme-svg-external-link viewBox="0 0 24 24"><path fill=currentColor d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t="dark",e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",e||t),document.documentElement.setAttribute("data-theme-choice",e||t)}(),function(){try{for(var[t,e]of new URLSearchParams(window.location.search).entries())if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id=__docusaurus><div role=region aria-label="Skip to main content"><a class=skipToContent_fXgn href=#__docusaurus_skipToContent_fallback>Skip to main content</a></div><nav aria-label=Main class="theme-layout-navbar navbar navbar--fixed-top"><div class=navbar__inner><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded=false class="navbar__toggle clean-btn" type=button><svg width=30 height=30 viewBox="0 0 30 30" aria-hidden=true><path stroke=currentColor stroke-linecap=round stroke-miterlimit=10 stroke-width=2 d="M4 7h22M4 15h22M4 23h22"/></svg></button><a class=navbar__brand href=/msfs-avionics-mirror/2024/><div class=navbar__logo><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src=/msfs-avionics-mirror/2024/img/logo.png alt="MSFS Avionics Framework Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">MSFS 2024 Avionics Development</b></a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>Framework API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk/>Garmin API</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a><a aria-current=page class="navbar__item navbar__link navbar__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><div class=navbarSearchContainer_Bca1></div></div></div><div role=presentation class=navbar-sidebar__backdrop></div></nav><div id=__docusaurus_skipToContent_fallback class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class=docsWrapper_hBAB><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type=button></button><div class=docRoot_UBD9><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class=sidebarViewport_aRkj><div class=sidebar_njMd><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class=menu__link href=/msfs-avionics-mirror/2024/docs/intro>MSFS Avionics Framework</a><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/getting-started/setting-up-your-environment>Getting Started</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/interacting-with-msfs/simvars>Interacting with MSFS</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk/>API References</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/plugins/overview>Plugin Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false href=/msfs-avionics-mirror/2024/docs/framework-systems/cas/cas-system>Framework Systems</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--active" href=/msfs-avionics-mirror/2024/docs/avionics/>Avionics Development</a><button aria-label="Collapse sidebar category 'Avionics Development'" aria-expanded=true type=button class="clean-btn menu__caret"></button></div><ul class=menu__list><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/g1000/overview>G1000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3000-common/>G3000 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/gns/overview>GNS Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wtg3x/>G3X Touch Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-wt21-shared/>WT21 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/epic2/overview>Epic2 Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret" role=button aria-expanded=false tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/uns/overview>UNS-1Lw Development</a></div><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item"><div class=menu__list-item-collapsible><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role=button aria-expanded=true tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/overview>IFD Development</a></div><ul class=menu__list><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/overview>Overview</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/sim-attachment>Sim Attachments</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-basics>panel.xml Basics</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class="menu__link menu__link--active" aria-current=page tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-tag-documentation>panel.xml Tag Documentation</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/autopilot>Autopilot Options</a><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-3 menu__list-item"><a class=menu__link tabindex=0 href=/msfs-avionics-mirror/2024/docs/avionics/ifd/h-event-list>H Event List</a></ul></ul></ul></nav></div></div></aside><main class=docMainContainer_TBSr><div class="container padding-top--md padding-bottom--lg"><div class=row><div class="col docItemCol_VOVn"><div class=docItemContainer_Djhp><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label=Breadcrumbs><ul class=breadcrumbs><li class=breadcrumbs__item><a aria-label="Home page" class=breadcrumbs__link href=/msfs-avionics-mirror/2024/><svg viewBox="0 0 24 24" class=breadcrumbHomeIcon_YNFT><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill=currentColor /></svg></a><li class=breadcrumbs__item><a class=breadcrumbs__link href=/msfs-avionics-mirror/2024/docs/avionics/><span>Avionics Development</span></a><li class=breadcrumbs__item><span class=breadcrumbs__link>IFD Development</span><li class="breadcrumbs__item breadcrumbs__item--active"><span class=breadcrumbs__link>panel.xml Tag Documentation</span></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type=button class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>IFD <code>panel.xml</code> Tag Documentation</h1></header>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=airframetype><code>&lt;AirframeType></code><a href=#airframetype class=hash-link aria-label="Direct link to airframetype" title="Direct link to airframetype">​</a></h2>
+<p>Defines the airframe type for flight path calculations and other predictive functions.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties>Properties<a href=#properties class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center><code>fixed-wing</code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content>Content<a href=#content class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>fixed-wing</code></li>
+<li><code>helicopter</code></li>
+<li><code>high-speed</code></li>
+<li><code>canard</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=audio><code>&lt;Audio></code><a href=#audio class=hash-link aria-label="Direct link to audio" title="Direct link to audio">​</a></h2>
+<p>Defines the audio configuration for this instrument. Any entries not present will have no audio output.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-1>Properties<a href=#properties-1 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-1>Content<a href=#content-1 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;AirspaceAhead></code>, <code>&lt;Altitude1000></code>, <code>&lt;Altitude500></code>, <code>&lt;Altitude400></code>, <code>&lt;Altitude300></code>, <code>&lt;Altitude200></code>, <code>&lt;Altitude100></code>, <code>&lt;CautionTerrain></code>, <code>&lt;DontSink></code>, <code>&lt;FinalApproach></code>, <code>&lt;MissedApproach></code>, <code>&lt;PullUpPullUp></code>, <code>&lt;SinkRate></code>, <code>&lt;TerrainAhead></code>, <code>&lt;TerrainPullUp></code>, <code>&lt;TerrainTerrain></code>, <code>&lt;TooLowTerrain></code>, <code>&lt;TopOfDescent></code>, <code>&lt;Waypoint></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=airspaceahead><code>&lt;AirspaceAhead></code><a href=#airspaceahead class=hash-link aria-label="Direct link to airspaceahead" title="Direct link to airspaceahead">​</a></h2>
+<p>Defines the WWise event to use for the "airspace ahead" callout. No callout will be made if not defined. The sim attachment provides a sound with the name <code>ifd_airspace_ahead</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-2>Properties<a href=#properties-2 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=altitude1000><code>&lt;Altitude1000></code><a href=#altitude1000 class=hash-link aria-label="Direct link to altitude1000" title="Direct link to altitude1000">​</a></h3>
+<p>Defines the WWise event to use for the 1000 foot altitude callout. No callout will be made if not defined.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-3>Properties<a href=#properties-3 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-2>Content<a href=#content-2 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altitude500><code>&lt;Altitude500></code><a href=#altitude500 class=hash-link aria-label="Direct link to altitude500" title="Direct link to altitude500">​</a></h2>
+<p>Defines the WWise event to use for the 500 foot altitude callout. No callout will be made if not defined. The sim attachment provides a sound with the name <code>ifd_500</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-4>Properties<a href=#properties-4 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-3>Content<a href=#content-3 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altitude400><code>&lt;Altitude400></code><a href=#altitude400 class=hash-link aria-label="Direct link to altitude400" title="Direct link to altitude400">​</a></h2>
+<p>Defines the WWise event to use for the 400 foot altitude callout. No callout will be made if not defined.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-5>Properties<a href=#properties-5 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-4>Content<a href=#content-4 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altitude300><code>&lt;Altitude300></code><a href=#altitude300 class=hash-link aria-label="Direct link to altitude300" title="Direct link to altitude300">​</a></h2>
+<p>Defines the WWise event to use for the 300 foot altitude callout. No callout will be made if not defined.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-6>Properties<a href=#properties-6 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-5>Content<a href=#content-5 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altitude200><code>&lt;Altitude200></code><a href=#altitude200 class=hash-link aria-label="Direct link to altitude200" title="Direct link to altitude200">​</a></h2>
+<p>Defines the WWise event to use for the 200 foot altitude callout. No callout will be made if not defined. The sim attachment provides a sound with the name <code>ifd_200</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-7>Properties<a href=#properties-7 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-6>Content<a href=#content-6 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altitude100><code>&lt;Altitude100></code><a href=#altitude100 class=hash-link aria-label="Direct link to altitude100" title="Direct link to altitude100">​</a></h2>
+<p>Defines the WWise event to use for the 100 foot altitude callout. No callout will be made if not defined. The sim attachment provides a sound with the name <code>ifd_100</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-8>Properties<a href=#properties-8 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-7>Content<a href=#content-7 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=cautionterrain><code>&lt;CautionTerrain></code><a href=#cautionterrain class=hash-link aria-label="Direct link to cautionterrain" title="Direct link to cautionterrain">​</a></h2>
+<p>FLTA terrain caution primary callout WWise event "Caution Terrain", or undefined to disable. If both <code>&lt;CautionTerrain></code> and <code>&lt;TerrainAhead></code> are defined the setup tab will provide an option to select which is used. The sim attachment provides a sound with the name <code>ifd_caution_terrain</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-9>Properties<a href=#properties-9 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-8>Content<a href=#content-8 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=dontsink><code>&lt;DontSink></code><a href=#dontsink class=hash-link aria-label="Direct link to dontsink" title="Direct link to dontsink">​</a></h2>
+<p>TAWS NCR descent after takeoff wwise event "Don't Sink", or undefined to disable. The sim attachment provides a sound with the name <code>ifd_dont_sink</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-10>Properties<a href=#properties-10 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-9>Content<a href=#content-9 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=finalapproach><code>&lt;FinalApproach></code><a href=#finalapproach class=hash-link aria-label="Direct link to finalapproach" title="Direct link to finalapproach">​</a></h2>
+<p>Defines the WWise event to use for the "final approach" waypoint sequencing callout. No callout will be made if not defined.
+All of <code>&lt;FinalApproach></code>, <code>&lt;MissedApproach></code>, <code>&lt;Waypoint></code> must be defined together to enable waypoint callouts.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-11>Properties<a href=#properties-11 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-10>Content<a href=#content-10 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=missedapproach><code>&lt;MissedApproach></code><a href=#missedapproach class=hash-link aria-label="Direct link to missedapproach" title="Direct link to missedapproach">​</a></h2>
+<p>Defines the WWise event to use for the "missed approach" waypoint sequencing callout. No callout will be made if not defined.
+All of <code>&lt;FinalApproach></code>, <code>&lt;MissedApproach></code>, <code>&lt;Waypoint></code> must be defined together to enable waypoint callouts.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-12>Properties<a href=#properties-12 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-11>Content<a href=#content-11 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=pulluppullup><code>&lt;PullUpPullUp></code><a href=#pulluppullup class=hash-link aria-label="Direct link to pulluppullup" title="Direct link to pulluppullup">​</a></h2>
+<p>TAWS EDR excessive descent rate warning wwise event "Pull Up, Pull Up", or undefined to disable. The sim attachment provides a sound with the name <code>ifd_pull_up_pull_up</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-13>Properties<a href=#properties-13 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-12>Content<a href=#content-12 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=sinkrate><code>&lt;SinkRate></code><a href=#sinkrate class=hash-link aria-label="Direct link to sinkrate" title="Direct link to sinkrate">​</a></h2>
+<p>TAWS EDR excessive descent rate caution wwise event "Sink Rate", or undefined to disable. The sim attachment provides a sound with the name <code>ifd_sink_rate</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-14>Properties<a href=#properties-14 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-13>Content<a href=#content-13 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=terrainahead><code>&lt;TerrainAhead></code><a href=#terrainahead class=hash-link aria-label="Direct link to terrainahead" title="Direct link to terrainahead">​</a></h2>
+<p>FLTA terrain caution alternate callout wwise event "Terrain Ahead", or undefined to disable. If both <code>&lt;CautionTerrain></code> and <code>&lt;TerrainAhead></code> are defined the setup tab will provide an option to select which is used. The sim attachment provides a sound with the name <code>ifd_terrain_ahead</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-15>Properties<a href=#properties-15 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-14>Content<a href=#content-14 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=terrainpullup><code>&lt;TerrainPullUp></code><a href=#terrainpullup class=hash-link aria-label="Direct link to terrainpullup" title="Direct link to terrainpullup">​</a></h2>
+<p>FLTA terrain warning primary callout wwise event "Terrain, Pull Up", or undefined to disable. If both <code>&lt;TerrainPullUp></code> and <code>&lt;TerrainTerrain></code> are defined the setup tab will provide an option to select which is used. The sim attachment provides a sound with the name <code>ifd_terrain_ahead_pull_up</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-16>Properties<a href=#properties-16 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-15>Content<a href=#content-15 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=terrainterrain><code>&lt;TerrainTerrain></code><a href=#terrainterrain class=hash-link aria-label="Direct link to terrainterrain" title="Direct link to terrainterrain">​</a></h2>
+<p>FLTA terrain warning alternate callout wwise event "Terrain, Terrain", or undefined to disable. If both <code>&lt;TerrainPullUp></code> and <code>&lt;TerrainTerrain></code> are defined the setup tab will provide an option to select which is used. The sim attachment provides a sound with the name <code>ifd_terrain_ahead_terrain_ahead</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-17>Properties<a href=#properties-17 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-16>Content<a href=#content-16 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=toolowterrain><code>&lt;TooLowTerrain></code><a href=#toolowterrain class=hash-link aria-label="Direct link to toolowterrain" title="Direct link to toolowterrain">​</a></h2>
+<p>TAWS PDA premature descent into terrain caution wwise event "Too Low, Terrain*, or undefined to disable.  The sim attachment provides a sound with the name <code>ifd_too_low_terrain</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-18>Properties<a href=#properties-18 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-17>Content<a href=#content-17 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=topofdescent><code>&lt;TopOfDescent></code><a href=#topofdescent class=hash-link aria-label="Direct link to topofdescent" title="Direct link to topofdescent">​</a></h2>
+<p>Defines the WWise event to use for the top of descent chime. No chime will be made if not defined. The sim attachment provides a sound with the name <code>ifd_tod_chime</code> that can be used here.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-19>Properties<a href=#properties-19 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-18>Content<a href=#content-18 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=waypoint><code>&lt;Waypoint></code><a href=#waypoint class=hash-link aria-label="Direct link to waypoint" title="Direct link to waypoint">​</a></h2>
+<p>Defines the WWise event to use for the "waypoint" sequencing callout. No callout will be made if not defined.
+All of <code>&lt;FinalApproach></code>, <code>&lt;MissedApproach></code>, <code>&lt;Waypoint></code> must be defined together to enable waypoint callouts.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-20>Properties<a href=#properties-20 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Audio></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-19>Content<a href=#content-19 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>WWise event name.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=autopilot><code>&lt;Autopilot></code><a href=#autopilot class=hash-link aria-label="Direct link to autopilot" title="Direct link to autopilot">​</a></h2>
+<p>See the <a href=/msfs-avionics-mirror/2024/docs/avionics/ifd/autopilot>autopilot options</a></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=comindex><code>&lt;ComIndex></code><a href=#comindex class=hash-link aria-label="Direct link to comindex" title="Direct link to comindex">​</a></h2>
+<p>Defines the COM radio to use for the internal VHF COM radio in the IFD, or the remote tuning function if <code>RemoteTuningEnabled</code> is <code>true</code>.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-21>Properties<a href=#properties-21 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>No<td style=text-align:center>1</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-20>Content<a href=#content-20 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:
+1 - 3</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=defaultdatablockpreset><code>&lt;DefaultDatablockPreset></code><a href=#defaultdatablockpreset class=hash-link aria-label="Direct link to defaultdatablockpreset" title="Direct link to defaultdatablockpreset">​</a></h2>
+<p>Sets the default datablock configuration used when the user has not configured the datablock settings explicitly.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-22>Properties<a href=#properties-22 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center><code>factorysettings</code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-21>Content<a href=#content-21 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>factorysettings</code></li>
+<li><code>leftsidefactory</code></li>
+<li><code>leftsidetraffic</code></li>
+<li><code>leftsidetransponder</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=defaultpagename><code>&lt;DefaultPageName></code><a href=#defaultpagename class=hash-link aria-label="Direct link to defaultpagename" title="Direct link to defaultpagename">​</a></h2>
+<p>Sets the default page to be displayed when the IFD starts up. Defaults to the SVS page for IFD550 and FMS page for IFD540.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-23>Properties<a href=#properties-23 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>*</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-22>Content<a href=#content-22 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>SVS</code> (IFD550 only)</li>
+<li><code>FMS</code></li>
+<li><code>MAP</code></li>
+<li><code>AUX</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=dimming><code>&lt;Dimming></code><a href=#dimming class=hash-link aria-label="Direct link to dimming" title="Direct link to dimming">​</a></h2>
+<p>Defines the display and bezel brightness/dimming configuration.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-24>Properties<a href=#properties-24 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>*</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-23>Content<a href=#content-23 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;DimmingPotentiometerIndex></code>, <code>&lt;Bezel></code>, <code>&lt;Display></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=dimmingpotentiometerindex><code>&lt;DimmingPotentiometerIndex></code><a href=#dimmingpotentiometerindex class=hash-link aria-label="Direct link to dimmingpotentiometerindex" title="Direct link to dimmingpotentiometerindex">​</a></h2>
+<p>Defines the MSFS potentiometer index to use for the "dimming bus" input.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-25>Properties<a href=#properties-25 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Dimming></code><td style=text-align:center>Yes<td style=text-align:center><code>1</code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-24>Content<a href=#content-24 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>MSFS potentiometer index (numeric).</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=bezel><code>&lt;Bezel></code><a href=#bezel class=hash-link aria-label="Direct link to bezel" title="Direct link to bezel">​</a></h2>
+<p>Defines the bezel key illumination settings.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-26>Properties<a href=#properties-26 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Dimming></code><td style=text-align:center>Yes<td style=text-align:center>*</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-25>Content<a href=#content-25 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;PhotoResponseTime></code>, <code>&lt;PhotoSlope></code>, <code>&lt;PhotoMinimum></code>, <code>&lt;PhotoMaximum></code>, <code>&lt;BusTransition></code>, <code>&lt;BusSlope></code>, <code>&lt;BusMinimum></code>, <code>&lt;BusMaximum></code>, <code>&lt;BusCurve></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=display><code>&lt;Display></code><a href=#display class=hash-link aria-label="Direct link to display" title="Direct link to display">​</a></h2>
+<p>Defines the display illumination settings.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-27>Properties<a href=#properties-27 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Dimming></code><td style=text-align:center>Yes<td style=text-align:center>*</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-26>Content<a href=#content-26 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;PhotoResponseTime></code>, <code>&lt;PhotoSlope></code>, <code>&lt;PhotoMinimum></code>, <code>&lt;PhotoMaximum></code>, <code>&lt;BusTransition></code>, <code>&lt;BusSlope></code>, <code>&lt;BusMinimum></code>, <code>&lt;BusMaximum></code>, <code>&lt;BusCurve></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=photoresponsetime><code>&lt;PhotoResponseTime></code><a href=#photoresponsetime class=hash-link aria-label="Direct link to photoresponsetime" title="Direct link to photoresponsetime">​</a></h2>
+<p>Defines the speed at which the brightness changes when the photocell is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-28>Properties<a href=#properties-28 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>3</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-27>Content<a href=#content-27 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 1-5.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=photoslope><code>&lt;PhotoSlope></code><a href=#photoslope class=hash-link aria-label="Direct link to photoslope" title="Direct link to photoslope">​</a></h2>
+<p>Defines the sensitivity to changes in input when the photocell is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-29>Properties<a href=#properties-29 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>80</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-28>Content<a href=#content-28 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 15-100.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=photominimum><code>&lt;PhotoMinimum></code><a href=#photominimum class=hash-link aria-label="Direct link to photominimum" title="Direct link to photominimum">​</a></h2>
+<p>Defines the minimum brightness when the photocell is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-30>Properties<a href=#properties-30 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>1</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-29>Content<a href=#content-29 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 1-50.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=photomaximum><code>&lt;PhotoMaximum></code><a href=#photomaximum class=hash-link aria-label="Direct link to photomaximum" title="Direct link to photomaximum">​</a></h2>
+<p>Defines the maximum brightness when the photocell is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-31>Properties<a href=#properties-31 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>100</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-30>Content<a href=#content-30 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range in the range 50-100.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=bustransition><code>&lt;BusTransition></code><a href=#bustransition class=hash-link aria-label="Direct link to bustransition" title="Direct link to bustransition">​</a></h2>
+<p>Defines the threshold where the dimming input (potentiometer) takes over from the photocell. Below the threshold the potentiometer controls the lighting.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-32>Properties<a href=#properties-32 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>0</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-31>Content<a href=#content-31 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 0-100.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=busslope><code>&lt;BusSlope></code><a href=#busslope class=hash-link aria-label="Direct link to busslope" title="Direct link to busslope">​</a></h2>
+<p>Defines the sensitivity to changes in input when the dimming input (potentiometer) is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-33>Properties<a href=#properties-33 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>60</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-32>Content<a href=#content-32 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 15-100.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=busminimum><code>&lt;BusMinimum></code><a href=#busminimum class=hash-link aria-label="Direct link to busminimum" title="Direct link to busminimum">​</a></h2>
+<p>Defines the minmum brightness when the dimming input (potentiometer) is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-34>Properties<a href=#properties-34 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>1</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-33>Content<a href=#content-33 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 1-50.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=busmaximum><code>&lt;BusMaximum></code><a href=#busmaximum class=hash-link aria-label="Direct link to busmaximum" title="Direct link to busmaximum">​</a></h2>
+<p>Defines the maximum brightness when the dimming input (potentiometer) is the source.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-35>Properties<a href=#properties-35 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center>100</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-34>Content<a href=#content-34 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Numeric value in the range 50-100.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=buscurve><code>&lt;BusCurve></code><a href=#buscurve class=hash-link aria-label="Direct link to buscurve" title="Direct link to buscurve">​</a></h2>
+<p>Defines the curve to map brightness input to output.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-36>Properties<a href=#properties-36 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Bezel></code> or <code>&lt;Display></code><td style=text-align:center>Yes<td style=text-align:center><code>proportional</code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-35>Content<a href=#content-35 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<ul>
+<li><code>proportional</code></li>
+<li><code>avicurve</code> (refer to IFD Installation Manual)</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enableapproachprompt><code>&lt;EnableApproachPrompt></code><a href=#enableapproachprompt class=hash-link aria-label="Direct link to enableapproachprompt" title="Direct link to enableapproachprompt">​</a></h2>
+<p>Enables the "Enable A/P APR" prompt when the autopilot APR mode should be activated for certain autopilots like KAP140 of KFC225.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-37>Properties<a href=#properties-37 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-36>Content<a href=#content-36 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enableautoslew><code>&lt;EnableAutoSlew></code><a href=#enableautoslew class=hash-link aria-label="Direct link to enableautoslew" title="Direct link to enableautoslew">​</a></h2>
+<p>Enables auto-slewing the CDI course to the IFD desired track in GPS mode. Defaults to disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-38>Properties<a href=#properties-38 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-37>Content<a href=#content-37 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enableflta><code>&lt;EnableFlta></code><a href=#enableflta class=hash-link aria-label="Direct link to enableflta" title="Direct link to enableflta">​</a></h2>
+<p>Enables the forward-looking terrain awareness function (F500).</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-39>Properties<a href=#properties-39 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>true</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-38>Content<a href=#content-38 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enablerflegs><code>&lt;EnableRfLegs></code><a href=#enablerflegs class=hash-link aria-label="Direct link to enablerflegs" title="Direct link to enablerflegs">​</a></h2>
+<p>Enables procedures containing RF legs, but not RNP AR procedures which are not certified on the IFD at all.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-40>Properties<a href=#properties-40 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-39>Content<a href=#content-39 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enablesbas><code>&lt;EnableSbas></code><a href=#enablesbas class=hash-link aria-label="Direct link to enablesbas" title="Direct link to enablesbas">​</a></h2>
+<p>Enables the SBAS antenna to receive differential GPS from SBAS satellites, and LP or LPV glidepath suppport.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-41>Properties<a href=#properties-41 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>true</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-40>Content<a href=#content-40 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enablesetcoursealert><code>&lt;EnableSetCourseAlert></code><a href=#enablesetcoursealert class=hash-link aria-label="Direct link to enablesetcoursealert" title="Direct link to enablesetcoursealert">​</a></h2>
+<p>Enables the IFD to receive the CRS/OBS value from the CDI display/gauge and show SET COURSE xxx messages when it doesn't match the desired track for the current leg.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-42>Properties<a href=#properties-42 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>true</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-41>Content<a href=#content-41 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=enabletaws><code>&lt;EnableTaws></code><a href=#enabletaws class=hash-link aria-label="Direct link to enabletaws" title="Direct link to enabletaws">​</a></h2>
+<p>Enables the terrain awareness warning system.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-43>Properties<a href=#properties-43 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>true</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-42>Content<a href=#content-42 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=externalairdatasystem><code>&lt;ExternalAirDataSystem></code><a href=#externalairdatasystem class=hash-link aria-label="Direct link to externalairdatasystem" title="Direct link to externalairdatasystem">​</a></h2>
+<p>Configures air data input from an "external" air data computer. The IFD does not contain any air data computer internally, and does not have barometric altitude, speed, or temperature data by default.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-44>Properties<a href=#properties-44 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-43>Content<a href=#content-43 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;AltimeterIndex></code>, <code>&lt;AirspeedIndex></code>, <code>&lt;Electric></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=altimeterindex><code>&lt;AltimeterIndex></code><a href=#altimeterindex class=hash-link aria-label="Direct link to altimeterindex" title="Direct link to altimeterindex">​</a></h2>
+<p>Configures the MSFS altimeter to use for the barometric altitude and temperature air data inputs. By default barometric altitude data is disabled (and enroute VNAV is consequently disabled even if configured).</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-45>Properties<a href=#properties-45 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalAirDataSystem></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-44>Content<a href=#content-44 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=airspeedindex><code>&lt;AirspeedIndex></code><a href=#airspeedindex class=hash-link aria-label="Direct link to airspeedindex" title="Direct link to airspeedindex">​</a></h2>
+<p>Configures the MSFS airspeed indicator to use for the airspeed inputs. By default airspeed data is disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-46>Properties<a href=#properties-46 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalAirDataSystem></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-45>Content<a href=#content-45 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=electric><code>&lt;Electric></code><a href=#electric class=hash-link aria-label="Direct link to electric" title="Direct link to electric">​</a></h2>
+<p>Configures the electrical supply for the air data or heading computer. If not defined the computer will be considered always powered.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-47>Properties<a href=#properties-47 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalAirDataSystem></code><td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-46>Content<a href=#content-46 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>A <a href=https://docs.flightsimulator.com/msfs2024/html/5_Content_Configuration/Modular_SimObjects/Aircraft/Instruments/Panel_XML_Logic_Elements.htm target=_blank rel="noopener noreferrer">XML logic element</a>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=externalfuelflowsystem><code>&lt;ExternalFuelFlowSystem></code><a href=#externalfuelflowsystem class=hash-link aria-label="Direct link to externalfuelflowsystem" title="Direct link to externalfuelflowsystem">​</a></h2>
+<p>Configures fuel flow input from an "external" system. The IFD does not have fuel data by default. If not configured, the fuel management functionality of the IFD will be disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-48>Properties<a href=#properties-48 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-47>Content<a href=#content-47 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;HasTotalizer></code>, <code>&lt;Sensors></code></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=hastotalizer><code>&lt;HasTotalizer></code><a href=#hastotalizer class=hash-link aria-label="Direct link to hastotalizer" title="Direct link to hastotalizer">​</a></h2>
+<p>Defines whether the aircraft is equipped with a fuel quantity totalizer providing total remaining fuel quantity data.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-49>Properties<a href=#properties-49 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalFuelFlowSystem></code><td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-48>Content<a href=#content-48 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=sensors><code>&lt;Sensors></code><a href=#sensors class=hash-link aria-label="Direct link to sensors" title="Direct link to sensors">​</a></h2>
+<p>Defines the external fuel flow sensors. Required to enable the fuel management functionality of the IFD.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-50>Properties<a href=#properties-50 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalFuelFlowSystem></code><td style=text-align:center>No<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-49>Content<a href=#content-49 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;Sensor></code></p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=sensor><code>&lt;Sensor></code><a href=#sensor class=hash-link aria-label="Direct link to sensor" title="Direct link to sensor">​</a></h2>
+<p>Defines a singular external fuel flow sensor. At least one is required for the fuel management functionality of the IFD to work. Supports up to two sensors.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-51>Properties<a href=#properties-51 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;Sensors></code><td style=text-align:center>No<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=attributes>Attributes<a href=#attributes class=hash-link aria-label="Direct link to Attributes" title="Direct link to Attributes">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Name<th style=text-align:center>Value<th style=text-align:center>Optional (Default)<th style=text-align:center>Description<tbody><tr><td style=text-align:center><code>index</code><td style=text-align:center>Integer in range [1, 2]<td style=text-align:center>no<td style=text-align:center>The index of the sensor<tr><td style=text-align:center><code>engine-index</code><td style=text-align:center>Integer in range [1, ∞)<td style=text-align:center>no<td style=text-align:center>The index of the engine simvar to monitor to fetch the fuel flow data</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-50>Content<a href=#content-50 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>None.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=externalheadingsystem><code>&lt;ExternalHeadingSystem></code><a href=#externalheadingsystem class=hash-link aria-label="Direct link to externalheadingsystem" title="Direct link to externalheadingsystem">​</a></h2>
+<p>Configures heading input from an "external" system. The IFD does not contain any heading computation internally, and does not have heading data by default. If not configured GNSS track will be used for map orientation and SVS view instead.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-52>Properties<a href=#properties-52 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-51>Content<a href=#content-51 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;Electric></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=externaltrafficsystem><code>&lt;ExternalTrafficSystem></code><a href=#externaltrafficsystem class=hash-link aria-label="Direct link to externaltrafficsystem" title="Direct link to externaltrafficsystem">​</a></h2>
+<p>Configures traffic input from an "external" system. The IFD does not contain any traffic detection internally. If not configured no traffic will be shown on the map and no advisories will be issued.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-53>Properties<a href=#properties-53 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-52>Content<a href=#content-52 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;Type></code>, <code>&lt;Electric></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=type><code>&lt;Type></code><a href=#type class=hash-link aria-label="Direct link to type" title="Direct link to type">​</a></h2>
+<p>The traffic system type. Either TAS or TIS-A are supported. ADS-B IN is optional.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-54>Properties<a href=#properties-54 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;ExternalTrafficSystem></code><td style=text-align:center>No<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=attributes-1>Attributes<a href=#attributes-1 class=hash-link aria-label="Direct link to Attributes" title="Direct link to Attributes">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Name<th style=text-align:center>Value<th style=text-align:center>Optional (Default)<th style=text-align:center>Description<tbody><tr><td style=text-align:center><code>ads-b</code><td style=text-align:center><code>true</code> or <code>false</code><td style=text-align:center>yes (false)<td style=text-align:center>Whether ADS-B IN is supported.</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-53>Content<a href=#content-53 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>TAS</code></li>
+<li><code>TIS</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=flightpathcalculator><code>&lt;FlightPathCalculator></code><a href=#flightpathcalculator class=hash-link aria-label="Direct link to flightpathcalculator" title="Direct link to flightpathcalculator">​</a></h2>
+<p>Defines a specific configuration for the flight path calculator that turns the flight plan into a geometric path. By default, the <code>&lt;AirframeType></code> gives appropriate parameters for each type.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-55>Properties<a href=#properties-55 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-54>Content<a href=#content-54 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p><code>&lt;DefaultClimbRate></code>, <code>&lt;DefaultSpeed></code>, <code>&lt;BankAngle></code>, <code>&lt;AnticipatedSpeedAbove10k></code>, <code>&lt;AnticipatedSpeedBelow10k></code>, <code>&lt;AnticipatedApproachSpeed></code>.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=defaultclimbrate><code>&lt;DefaultClimbRate></code><a href=#defaultclimbrate class=hash-link aria-label="Direct link to defaultclimbrate" title="Direct link to defaultclimbrate">​</a></h2>
+<p>The default climb rate if the plane is not yet at flying speed.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-56>Properties<a href=#properties-56 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-55>Content<a href=#content-55 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in feet per minute.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=defaultspeed><code>&lt;DefaultSpeed></code><a href=#defaultspeed class=hash-link aria-label="Direct link to defaultspeed" title="Direct link to defaultspeed">​</a></h2>
+<p>The default airplane speed. This speed is used if the airplane speed mode is <code>Default</code> or if the airplane speed calculated through other means is slower than this speed. It is also used as the airplane's true airspeed if the true airspeed obtained through other means is slower than this speed.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-57>Properties<a href=#properties-57 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-56>Content<a href=#content-56 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in knots.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=bankangle><code>&lt;BankAngle></code><a href=#bankangle class=hash-link aria-label="Direct link to bankangle" title="Direct link to bankangle">​</a></h2>
+<p>The bank angle with which to calculate turns.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-58>Properties<a href=#properties-58 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-57>Content<a href=#content-57 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in degrees.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=anticipatedspeedabove10k><code>&lt;AnticipatedSpeedAbove10k></code><a href=#anticipatedspeedabove10k class=hash-link aria-label="Direct link to anticipatedspeedabove10k" title="Direct link to anticipatedspeedabove10k">​</a></h2>
+<p>The speed used for anticipating turns when above 10000 feet.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-59>Properties<a href=#properties-59 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-58>Content<a href=#content-58 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in knots.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=anticipatedspeedbelow10k><code>&lt;AnticipatedSpeedBelow10k></code><a href=#anticipatedspeedbelow10k class=hash-link aria-label="Direct link to anticipatedspeedbelow10k" title="Direct link to anticipatedspeedbelow10k">​</a></h2>
+<p>The speed used for anticipating turns when below 10000 feet.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-60>Properties<a href=#properties-60 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-59>Content<a href=#content-59 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in knots.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=anticipatedapproachspeed><code>&lt;AnticipatedApproachSpeed></code><a href=#anticipatedapproachspeed class=hash-link aria-label="Direct link to anticipatedapproachspeed" title="Direct link to anticipatedapproachspeed">​</a></h2>
+<p>The speed used for anticipating the final approach turns.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-61>Properties<a href=#properties-61 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center><code>&lt;FlightPathCalculator></code><td style=text-align:center>Yes<td style=text-align:center>Depending on <code>&lt;AirframeType></code></table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-60>Content<a href=#content-60 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive numeric value in knots.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=headingselectenabled><code>&lt;HeadingSelectEnabled></code><a href=#headingselectenabled class=hash-link aria-label="Direct link to headingselectenabled" title="Direct link to headingselectenabled">​</a></h2>
+<p>Enables heading select input to the IFD to show heading bugs on maps and SVS. Defaults to disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-62>Properties<a href=#properties-62 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-61>Content<a href=#content-61 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=isfmsprimary><code>&lt;IsFMSPrimary></code><a href=#isfmsprimary class=hash-link aria-label="Direct link to isfmsprimary" title="Direct link to isfmsprimary">​</a></h2>
+<p>This should be set to true on exactly one IFD.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-63>Properties<a href=#properties-63 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-62>Content<a href=#content-62 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=lnavindex><code>&lt;LnavIndex></code><a href=#lnavindex class=hash-link aria-label="Direct link to lnavindex" title="Direct link to lnavindex">​</a></h2>
+<p>Defines the LNAV index to use for this instrument.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-64>Properties<a href=#properties-64 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>0</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-63>Content<a href=#content-63 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive semidefinite numeric value.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=navindex><code>&lt;NavIndex></code><a href=#navindex class=hash-link aria-label="Direct link to navindex" title="Direct link to navindex">​</a></h2>
+<p>Defines the nav radio to use for the VLOC functions. When not defined VLOC is disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-65>Properties<a href=#properties-65 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>undefined</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-64>Content<a href=#content-64 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:
+1 - 4</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=remotetuningenabled><code>&lt;RemoteTuningEnabled></code><a href=#remotetuningenabled class=hash-link aria-label="Direct link to remotetuningenabled" title="Direct link to remotetuningenabled">​</a></h2>
+<p>Enables remote tuning control in the IFD, controlling the COM radios in another IFD. Defaults to false. When enabled, the <code>ComIndex</code> should be set equal to the IFD to be remotely controlled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-66>Properties<a href=#properties-66 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-65>Content<a href=#content-65 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=transponder><code>&lt;Transponder></code><a href=#transponder class=hash-link aria-label="Direct link to transponder" title="Direct link to transponder">​</a></h2>
+<p>Enables transponder control in the IFD. Defaults to no transponder control.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-67>Properties<a href=#properties-67 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-66>Content<a href=#content-66 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=verticalnavigation><code>&lt;VerticalNavigation></code><a href=#verticalnavigation class=hash-link aria-label="Direct link to verticalnavigation" title="Direct link to verticalnavigation">​</a></h2>
+<p>Enables enroute vertical navigation. Defaults to disabled. An <code>&lt;ExternalAirDataSystem></code> must be configured with an altimeter index as well to enable enroute VNAV.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-68>Properties<a href=#properties-68 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-67>Content<a href=#content-67 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=vnavindex><code>&lt;VnavIndex></code><a href=#vnavindex class=hash-link aria-label="Direct link to vnavindex" title="Direct link to vnavindex">​</a></h2>
+<p>Defines the VNAV index to use for this instrument.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-69>Properties<a href=#properties-69 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>0</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-68>Content<a href=#content-68 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Positive semidefinite numeric value.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id=wxradar><code>&lt;WxRadar></code><a href=#wxradar class=hash-link aria-label="Direct link to wxradar" title="Direct link to wxradar">​</a></h2>
+<p>Enables a weather radar input to the IFD. Defaults to disabled.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=properties-70>Properties<a href=#properties-70 class=hash-link aria-label="Direct link to Properties" title="Direct link to Properties">​</a></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th style=text-align:center>Scope<th style=text-align:center>Optional<th style=text-align:center>Default<tbody><tr><td style=text-align:center>Global<td style=text-align:center>Yes<td style=text-align:center>false</table>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id=content-69>Content<a href=#content-69 class=hash-link aria-label="Direct link to Content" title="Direct link to Content">​</a></h3>
+<p>Possible values:</p>
+<ul>
+<li><code>true</code></li>
+<li><code>false</code></li>
+</ul></div></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href=/msfs-avionics-mirror/2024/docs/avionics/ifd/panel-xml-basics><div class=pagination-nav__sublabel>Previous</div><div class=pagination-nav__label>panel.xml Basics</div></a><a class="pagination-nav__link pagination-nav__link--next" href=/msfs-avionics-mirror/2024/docs/avionics/ifd/autopilot><div class=pagination-nav__sublabel>Next</div><div class=pagination-nav__label>Autopilot Options</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href=#airframetype class="table-of-contents__link toc-highlight"><code>&lt;AirframeType></code></a><li><a href=#audio class="table-of-contents__link toc-highlight"><code>&lt;Audio></code></a><li><a href=#airspaceahead class="table-of-contents__link toc-highlight"><code>&lt;AirspaceAhead></code></a><li><a href=#altitude500 class="table-of-contents__link toc-highlight"><code>&lt;Altitude500></code></a><li><a href=#altitude400 class="table-of-contents__link toc-highlight"><code>&lt;Altitude400></code></a><li><a href=#altitude300 class="table-of-contents__link toc-highlight"><code>&lt;Altitude300></code></a><li><a href=#altitude200 class="table-of-contents__link toc-highlight"><code>&lt;Altitude200></code></a><li><a href=#altitude100 class="table-of-contents__link toc-highlight"><code>&lt;Altitude100></code></a><li><a href=#cautionterrain class="table-of-contents__link toc-highlight"><code>&lt;CautionTerrain></code></a><li><a href=#dontsink class="table-of-contents__link toc-highlight"><code>&lt;DontSink></code></a><li><a href=#finalapproach class="table-of-contents__link toc-highlight"><code>&lt;FinalApproach></code></a><li><a href=#missedapproach class="table-of-contents__link toc-highlight"><code>&lt;MissedApproach></code></a><li><a href=#pulluppullup class="table-of-contents__link toc-highlight"><code>&lt;PullUpPullUp></code></a><li><a href=#sinkrate class="table-of-contents__link toc-highlight"><code>&lt;SinkRate></code></a><li><a href=#terrainahead class="table-of-contents__link toc-highlight"><code>&lt;TerrainAhead></code></a><li><a href=#terrainpullup class="table-of-contents__link toc-highlight"><code>&lt;TerrainPullUp></code></a><li><a href=#terrainterrain class="table-of-contents__link toc-highlight"><code>&lt;TerrainTerrain></code></a><li><a href=#toolowterrain class="table-of-contents__link toc-highlight"><code>&lt;TooLowTerrain></code></a><li><a href=#topofdescent class="table-of-contents__link toc-highlight"><code>&lt;TopOfDescent></code></a><li><a href=#waypoint class="table-of-contents__link toc-highlight"><code>&lt;Waypoint></code></a><li><a href=#autopilot class="table-of-contents__link toc-highlight"><code>&lt;Autopilot></code></a><li><a href=#comindex class="table-of-contents__link toc-highlight"><code>&lt;ComIndex></code></a><li><a href=#defaultdatablockpreset class="table-of-contents__link toc-highlight"><code>&lt;DefaultDatablockPreset></code></a><li><a href=#defaultpagename class="table-of-contents__link toc-highlight"><code>&lt;DefaultPageName></code></a><li><a href=#dimming class="table-of-contents__link toc-highlight"><code>&lt;Dimming></code></a><li><a href=#dimmingpotentiometerindex class="table-of-contents__link toc-highlight"><code>&lt;DimmingPotentiometerIndex></code></a><li><a href=#bezel class="table-of-contents__link toc-highlight"><code>&lt;Bezel></code></a><li><a href=#display class="table-of-contents__link toc-highlight"><code>&lt;Display></code></a><li><a href=#photoresponsetime class="table-of-contents__link toc-highlight"><code>&lt;PhotoResponseTime></code></a><li><a href=#photoslope class="table-of-contents__link toc-highlight"><code>&lt;PhotoSlope></code></a><li><a href=#photominimum class="table-of-contents__link toc-highlight"><code>&lt;PhotoMinimum></code></a><li><a href=#photomaximum class="table-of-contents__link toc-highlight"><code>&lt;PhotoMaximum></code></a><li><a href=#bustransition class="table-of-contents__link toc-highlight"><code>&lt;BusTransition></code></a><li><a href=#busslope class="table-of-contents__link toc-highlight"><code>&lt;BusSlope></code></a><li><a href=#busminimum class="table-of-contents__link toc-highlight"><code>&lt;BusMinimum></code></a><li><a href=#busmaximum class="table-of-contents__link toc-highlight"><code>&lt;BusMaximum></code></a><li><a href=#buscurve class="table-of-contents__link toc-highlight"><code>&lt;BusCurve></code></a><li><a href=#enableapproachprompt class="table-of-contents__link toc-highlight"><code>&lt;EnableApproachPrompt></code></a><li><a href=#enableautoslew class="table-of-contents__link toc-highlight"><code>&lt;EnableAutoSlew></code></a><li><a href=#enableflta class="table-of-contents__link toc-highlight"><code>&lt;EnableFlta></code></a><li><a href=#enablerflegs class="table-of-contents__link toc-highlight"><code>&lt;EnableRfLegs></code></a><li><a href=#enablesbas class="table-of-contents__link toc-highlight"><code>&lt;EnableSbas></code></a><li><a href=#enablesetcoursealert class="table-of-contents__link toc-highlight"><code>&lt;EnableSetCourseAlert></code></a><li><a href=#enabletaws class="table-of-contents__link toc-highlight"><code>&lt;EnableTaws></code></a><li><a href=#externalairdatasystem class="table-of-contents__link toc-highlight"><code>&lt;ExternalAirDataSystem></code></a><li><a href=#altimeterindex class="table-of-contents__link toc-highlight"><code>&lt;AltimeterIndex></code></a><li><a href=#airspeedindex class="table-of-contents__link toc-highlight"><code>&lt;AirspeedIndex></code></a><li><a href=#electric class="table-of-contents__link toc-highlight"><code>&lt;Electric></code></a><li><a href=#externalfuelflowsystem class="table-of-contents__link toc-highlight"><code>&lt;ExternalFuelFlowSystem></code></a><li><a href=#hastotalizer class="table-of-contents__link toc-highlight"><code>&lt;HasTotalizer></code></a><li><a href=#sensors class="table-of-contents__link toc-highlight"><code>&lt;Sensors></code></a><li><a href=#sensor class="table-of-contents__link toc-highlight"><code>&lt;Sensor></code></a><li><a href=#externalheadingsystem class="table-of-contents__link toc-highlight"><code>&lt;ExternalHeadingSystem></code></a><li><a href=#externaltrafficsystem class="table-of-contents__link toc-highlight"><code>&lt;ExternalTrafficSystem></code></a><li><a href=#type class="table-of-contents__link toc-highlight"><code>&lt;Type></code></a><li><a href=#flightpathcalculator class="table-of-contents__link toc-highlight"><code>&lt;FlightPathCalculator></code></a><li><a href=#defaultclimbrate class="table-of-contents__link toc-highlight"><code>&lt;DefaultClimbRate></code></a><li><a href=#defaultspeed class="table-of-contents__link toc-highlight"><code>&lt;DefaultSpeed></code></a><li><a href=#bankangle class="table-of-contents__link toc-highlight"><code>&lt;BankAngle></code></a><li><a href=#anticipatedspeedabove10k class="table-of-contents__link toc-highlight"><code>&lt;AnticipatedSpeedAbove10k></code></a><li><a href=#anticipatedspeedbelow10k class="table-of-contents__link toc-highlight"><code>&lt;AnticipatedSpeedBelow10k></code></a><li><a href=#anticipatedapproachspeed class="table-of-contents__link toc-highlight"><code>&lt;AnticipatedApproachSpeed></code></a><li><a href=#headingselectenabled class="table-of-contents__link toc-highlight"><code>&lt;HeadingSelectEnabled></code></a><li><a href=#isfmsprimary class="table-of-contents__link toc-highlight"><code>&lt;IsFMSPrimary></code></a><li><a href=#lnavindex class="table-of-contents__link toc-highlight"><code>&lt;LnavIndex></code></a><li><a href=#navindex class="table-of-contents__link toc-highlight"><code>&lt;NavIndex></code></a><li><a href=#remotetuningenabled class="table-of-contents__link toc-highlight"><code>&lt;RemoteTuningEnabled></code></a><li><a href=#transponder class="table-of-contents__link toc-highlight"><code>&lt;Transponder></code></a><li><a href=#verticalnavigation class="table-of-contents__link toc-highlight"><code>&lt;VerticalNavigation></code></a><li><a href=#vnavindex class="table-of-contents__link toc-highlight"><code>&lt;VnavIndex></code></a><li><a href=#wxradar class="table-of-contents__link toc-highlight"><code>&lt;WxRadar></code></a></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Docs</div><ul class="footer__items clean-list"><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/intro>Getting Started</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-sdk>Framework API Reference</a><li class=footer__item><a class=footer__link-item href=/msfs-avionics-mirror/2024/docs/api/@microsoft/msfs-garminsdk>Garmin API Reference</a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>Community</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://forums.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Forums<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.gg/msfs target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://devsupport.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>MSFS Dev Support AnswerHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://discord.com/invite/Fa6w2xK target=_blank rel="noopener noreferrer" class=footer__link-item>Working Title Discord<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div><div class="theme-layout-footer-column col footer__col"><div class=footer__title>More</div><ul class="footer__items clean-list"><li class=footer__item><a href=https://www.flightsimulator.com/ target=_blank rel="noopener noreferrer" class=footer__link-item>Microsoft Flight Simulator<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a><li class=footer__item><a href=https://github.com/microsoft/msfs-avionics-mirror target=_blank rel="noopener noreferrer" class=footer__link-item>GitHub<svg width=13.5 height=13.5 aria-hidden=true class=iconExternalLink_nPIU><use href=#theme-svg-external-link /></svg></a></ul></div></div><div class="footer__bottom text--center"><div class=footer__copyright>Copyright © 2026 Microsoft, Asobo Studio, and Working Title Simulations. Built with Docusaurus.</div></div></div></footer></div>
