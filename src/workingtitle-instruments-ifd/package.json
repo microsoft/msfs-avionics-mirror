@@ -5,6 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "build": "npm run build:compile && npm run build:rollup && npm run build:copies",
+    "build:types": "npx rollup -c rollup.config.dts.mjs",
     "build:compile": "npx tspc",
     "build:rollup": "robocopy html_ui *.css build/html_ui /s & npx rollup -c rollup.config.mjs",
     "build:copies": "npm run build:copies:extras & npm run build:copies:msfssdk",
